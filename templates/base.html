@@ -13,10 +13,20 @@
                 <li><strong><a href="/">Bookstore</a></strong></li>
             </ul>
             <ul>
-                <li><a href="/cart">Cart</a></li>
+                <li>
+                    <details role="list" dir="rtl">
+                        <summary aria-haspopup="listbox" role="link" class="secondary">
+                            Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body"></span>
+                        </summary>
+                        <ul role="listbox" hx-get="/partials/cart-summary" hx-trigger="mouseenter once" hx-swap="innerHTML">
+                            <li><em>Loading...</em></li>
+                        </ul>
+                    </details>
+                </li>
             </ul>
         </nav>
         {{block "content" .}}{{end}}
     </main>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </body>
 </html>

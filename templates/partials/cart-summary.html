@@ -1,0 +1,10 @@
+{{if .}}
+    <article>
+        <h6>Cart Summary</h6>
+        {{range .}}
+            <p>{{.Title}} - ${{.Price}}</p>
+        {{end}}
+        <hr>
+        <a href="/cart">Go to Cart</a>
+    </article>
+{{end}}

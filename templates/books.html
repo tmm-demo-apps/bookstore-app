@@ -20,7 +20,7 @@
                 <td>{{.Author}}</td>
                 <td>${{.Price}}</td>
                 <td>
-                    <form action="/cart/add" method="POST" style="margin-bottom: 0;">
+                    <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;">
                         <input type="hidden" name="book_id" value="{{.ID}}">
                         <button type="submit" class="outline">Add to Cart</button>
                     </form>

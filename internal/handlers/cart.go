@@ -20,6 +20,11 @@ type CartItemView struct {
 	Book       models.Book
 }
 
+type CartViewData struct {
+	Items []CartItemView
+	Total float64
+}
+
 func AddToCart(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session, _ := store.Get(r, "cart-session")
@@ -44,7 +49,8 @@ func AddToCart(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(w, r, "/", http.StatusFound)
+		w.Header().Set("HX-Trigger", "cart-updated")
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -65,7 +71,9 @@ func RemoveFromCart(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(w, r, "/cart", http.StatusFound)
+		w.Header().Set("HX-Trigger", "cart-updated")
+		w.Header().Set("HX-Refresh", "true") // Cause a page refresh when on the cart page
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -93,6 +101,7 @@ func ViewCart(db *sql.DB) http.HandlerFunc {
 		defer rows.Close()
 
 		var items []CartItemView
+		var total float64
 		for rows.Next() {
 			var item CartItemView
 			if err := rows.Scan(&item.CartItemID, &item.Book.Title, &item.Book.Author, &item.Book.Price); err != nil {
@@ -101,6 +110,12 @@ func ViewCart(db *sql.DB) http.HandlerFunc {
 				return
 			}
 			items = append(items, item)
+			total += item.Book.Price
+		}
+
+		data := CartViewData{
+			Items: items,
+			Total: total,
 		}
 
 		ts, err := template.ParseFiles("./templates/base.html", "./templates/cart.html")
@@ -110,6 +125,6 @@ func ViewCart(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		ts.Execute(w, items)
+		ts.Execute(w, data)
 	}
 }

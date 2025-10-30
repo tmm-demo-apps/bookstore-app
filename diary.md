@@ -25,15 +25,8 @@ The foundational structure is complete. The next phase will be to build out the 
 - Implementing a basic checkout process.
 - We can also look at enhancing the Kubernetes manifests for better configuration management and security (e.g., using Secrets for database credentials).
 
-### Current Focus: Finalizing Shopping Cart
-Based on our discussion, we've decided to complete the core cart functionality before moving to checkout. The immediate next step is to implement the ability to remove items from the cart.
-
-### Next Steps
-- **Implement "Remove from Cart"**: Added a button and handler to remove items from the shopping cart. This completes the core cart functionality (add, view, remove).
-- **Implement Checkout Process**: Implemented a PII-free checkout process. Users can now view an order summary, confirm their order without entering personal data, and receive a confirmation. Cart items are converted into a historical order in the database.
-
-### Current Focus: UI Improvement
-We are now focusing on improving the user interface. We will use the Pico.css framework to provide a clean, modern look and feel with minimal changes to the HTML structure.
+### Current Focus: Shopping Cart
+We are now implementing the core shopping cart functionality, starting with the ability to add books to the cart.
 
 ### Next Steps
 - **Future Enhancements**:
