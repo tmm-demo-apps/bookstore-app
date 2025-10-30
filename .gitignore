@@ -12,6 +12,10 @@
 # -o flag to save it to a file
 *.out
 
+# Go application binary
+main
+DemoApp
+
 # Go workspace file
 go.work
 
@@ -20,9 +24,14 @@ go.work
 
 # Docker
 .dockerignore
-docker-compose.yml
 docker-compose.override.yml
-Dockerfile
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Kubernetes secrets
+kubernetes/secret.yaml
 
 # macOS
 .DS_Store
