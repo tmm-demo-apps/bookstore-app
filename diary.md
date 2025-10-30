@@ -6,7 +6,7 @@
 Create a demo shopping cart application for selling books, designed for Kubernetes using the 12-factor app methodology.
 
 ### What We've Done So Far
-- **Project Initialization:** Set up a Go project with a standard directory structure for a web application.
+- **Project Initialization:** Set up a Go project with a standard directory structure and initialized a local Git repository for version control.
 - **Backend Development:** Implemented a basic Go web server that connects to a PostgreSQL database to fetch and display a list of books using server-side templates.
 - **Containerization:** Wrote a multi-stage `Dockerfile` to create an optimized container image for the application and a `docker-compose.yml` file to run the app and database locally.
 - **Deployment Setup:** Created Kubernetes manifests (`deployment.yaml`, `service.yaml`) for both the application and the PostgreSQL database.
@@ -30,7 +30,7 @@ Based on our discussion, we've decided to complete the core cart functionality b
 
 ### Next Steps
 - **Implement "Remove from Cart"**: Added a button and handler to remove items from the shopping cart. This completes the core cart functionality (add, view, remove).
-- **Implement Checkout Process**: Once the cart is fully functional, we will implement a basic checkout flow.
+- **Implement Checkout Process**: We will implement a PII-free checkout process. This will involve creating an order summary page and a confirmation step that simulates a purchase without collecting any personal data. The cart items will be converted into a historical order.
 - **Future Enhancements**:
     - Improved UI
     - Expanded book selection and categorization

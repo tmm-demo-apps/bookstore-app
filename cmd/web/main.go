@@ -31,6 +31,9 @@ func main() {
 	mux.HandleFunc("/cart/add", handlers.AddToCart(db))
 	mux.HandleFunc("/cart/remove", handlers.RemoveFromCart(db))
 	mux.HandleFunc("/cart", handlers.ViewCart(db))
+	mux.HandleFunc("/checkout", handlers.CheckoutPage(db))
+	mux.HandleFunc("/checkout/process", handlers.ProcessOrder(db))
+	mux.HandleFunc("/confirmation", handlers.ConfirmationPage())
 
 	log.Println("Starting server on :8080")
 	err = http.ListenAndServe(":8080", mux)

@@ -1,33 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Shopping Cart</title>
+    <title>Checkout</title>
 </head>
 <body>
-    <h1>Your Shopping Cart</h1>
-    {{if .}}
+    <h1>Order Summary</h1>
+    {{if .Items}}
         <table>
             <tr>
                 <th>Title</th>
                 <th>Author</th>
                 <th>Price</th>
-                <th></th>
             </tr>
-            {{range .}}
+            {{range .Items}}
             <tr>
                 <td>{{.Book.Title}}</td>
                 <td>{{.Book.Author}}</td>
                 <td>${{.Book.Price}}</td>
-                <td>
-                    <form action="/cart/remove" method="POST">
-                        <input type="hidden" name="cart_item_id" value="{{.CartItemID}}">
-                        <button type="submit">Remove</button>
-                    </form>
-                </td>
             </tr>
             {{end}}
         </table>
-        <p><a href="/checkout">Proceed to Checkout</a></p>
+        <p><strong>Total: ${{.Total}}</strong></p>
+        <form action="/checkout/process" method="POST">
+            <button type="submit">Confirm Order</button>
+        </form>
     {{else}}
         <p>Your cart is empty.</p>
     {{end}}
