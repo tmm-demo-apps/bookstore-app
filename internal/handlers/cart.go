@@ -75,7 +75,7 @@ func ViewCart(db *sql.DB) http.HandlerFunc {
 		sessionID := session.Values["id"]
 		if sessionID == nil {
 			// No cart yet, show empty cart
-			ts, _ := template.ParseFiles("./templates/cart.html")
+			ts, _ := template.ParseFiles("./templates/base.html", "./templates/cart.html")
 			ts.Execute(w, nil)
 			return
 		}
@@ -103,7 +103,7 @@ func ViewCart(db *sql.DB) http.HandlerFunc {
 			items = append(items, item)
 		}
 
-		ts, err := template.ParseFiles("./templates/cart.html")
+		ts, err := template.ParseFiles("./templates/base.html", "./templates/cart.html")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)

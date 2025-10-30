@@ -1,11 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Order Confirmation</title>
-</head>
-<body>
-    <h1>Thank You For Your Order!</h1>
-    <p>Your order has been placed successfully.</p>
-    <p><a href="/">Return to Store</a></p>
-</body>
-</html>
+{{template "base.html" .}}
+
+{{define "title"}}Order Confirmation{{end}}
+
+{{define "content"}}
+    <article>
+        <header>
+            <h1>Thank You For Your Order!</h1>
+        </header>
+        <p>Your order has been placed successfully.</p>
+        <a href="/" role="button">Return to Store</a>
+    </article>
+{{end}}

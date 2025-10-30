@@ -30,9 +30,13 @@ Based on our discussion, we've decided to complete the core cart functionality b
 
 ### Next Steps
 - **Implement "Remove from Cart"**: Added a button and handler to remove items from the shopping cart. This completes the core cart functionality (add, view, remove).
-- **Implement Checkout Process**: We will implement a PII-free checkout process. This will involve creating an order summary page and a confirmation step that simulates a purchase without collecting any personal data. The cart items will be converted into a historical order.
+- **Implement Checkout Process**: Implemented a PII-free checkout process. Users can now view an order summary, confirm their order without entering personal data, and receive a confirmation. Cart items are converted into a historical order in the database.
+
+### Current Focus: UI Improvement
+We are now focusing on improving the user interface. We will use the Pico.css framework to provide a clean, modern look and feel with minimal changes to the HTML structure.
+
+### Next Steps
 - **Future Enhancements**:
-    - Improved UI
     - Expanded book selection and categorization
     - User management (settings, profile, etc.)
 - We can also look at enhancing the Kubernetes manifests for better configuration management and security (e.g., using Secrets for database credentials).

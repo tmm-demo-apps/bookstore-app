@@ -1,32 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Checkout</title>
-</head>
-<body>
+{{template "base.html" .}}
+
+{{define "title"}}Checkout{{end}}
+
+{{define "content"}}
     <h1>Order Summary</h1>
     {{if .Items}}
         <table>
-            <tr>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Price</th>
-            </tr>
-            {{range .Items}}
-            <tr>
-                <td>{{.Book.Title}}</td>
-                <td>{{.Book.Author}}</td>
-                <td>${{.Book.Price}}</td>
-            </tr>
-            {{end}}
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Items}}
+                <tr>
+                    <td>{{.Book.Title}}</td>
+                    <td>{{.Book.Author}}</td>
+                    <td>${{.Book.Price}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="2">Total</th>
+                    <th>${{.Total}}</th>
+                </tr>
+            </tfoot>
         </table>
-        <p><strong>Total: ${{.Total}}</strong></p>
         <form action="/checkout/process" method="POST">
             <button type="submit">Confirm Order</button>
         </form>
     {{else}}
         <p>Your cart is empty.</p>
     {{end}}
-    <p><a href="/">Continue Shopping</a></p>
-</body>
-</html>
+    <a href="/">Continue Shopping</a>
+{{end}}

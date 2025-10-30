@@ -29,7 +29,7 @@ func ListBooks(db *sql.DB) http.HandlerFunc {
 			books = append(books, b)
 		}
 
-		ts, err := template.ParseFiles("./templates/books.html")
+		ts, err := template.ParseFiles("./templates/base.html", "./templates/books.html")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)

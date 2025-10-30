@@ -51,7 +51,7 @@ func CheckoutPage(db *sql.DB) http.HandlerFunc {
 			Total: total,
 		}
 
-		ts, err := template.ParseFiles("./templates/checkout.html")
+		ts, err := template.ParseFiles("./templates/base.html", "./templates/checkout.html")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)
@@ -122,7 +122,7 @@ func ProcessOrder(db *sql.DB) http.HandlerFunc {
 
 func ConfirmationPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ts, err := template.ParseFiles("./templates/confirmation.html")
+		ts, err := template.ParseFiles("./templates/base.html", "./templates/confirmation.html")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)

@@ -1,36 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Shopping Cart</title>
-</head>
-<body>
+{{template "base.html" .}}
+
+{{define "title"}}Shopping Cart{{end}}
+
+{{define "content"}}
     <h1>Your Shopping Cart</h1>
     {{if .}}
         <table>
-            <tr>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Price</th>
-                <th></th>
-            </tr>
-            {{range .}}
-            <tr>
-                <td>{{.Book.Title}}</td>
-                <td>{{.Book.Author}}</td>
-                <td>${{.Book.Price}}</td>
-                <td>
-                    <form action="/cart/remove" method="POST">
-                        <input type="hidden" name="cart_item_id" value="{{.CartItemID}}">
-                        <button type="submit">Remove</button>
-                    </form>
-                </td>
-            </tr>
-            {{end}}
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Price</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .}}
+                <tr>
+                    <td>{{.Book.Title}}</td>
+                    <td>{{.Book.Author}}</td>
+                    <td>${{.Book.Price}}</td>
+                    <td>
+                        <form action="/cart/remove" method="POST" style="margin-bottom: 0;">
+                            <input type="hidden" name="cart_item_id" value="{{.CartItemID}}">
+                            <button type="submit" class="secondary outline">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
         </table>
-        <p><a href="/checkout">Proceed to Checkout</a></p>
+        <a href="/checkout" role="button">Proceed to Checkout</a>
     {{else}}
         <p>Your cart is empty.</p>
     {{end}}
-    <p><a href="/">Continue Shopping</a></p>
-</body>
-</html>
+    <a href="/">Continue Shopping</a>
+{{end}}
