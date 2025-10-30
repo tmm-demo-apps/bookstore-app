@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstore-app
+  template:
+    metadata:
+      labels:
+        app: bookstore-app
+    spec:
+      containers:
+        - name: bookstore-app
+          image: your-docker-registry/bookstore-app:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              value: "postgres://user:password@postgres-service:5432/bookstore?sslmode=disable"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+spec:
+  selector:
+    app: bookstore-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer

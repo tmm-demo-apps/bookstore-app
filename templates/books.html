@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bookstore</title>
+</head>
+<body>
+    <h1>Books</h1>
+    <p><a href="/cart">View Cart</a></p>
+    <table>
+        <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Price</th>
+            <th></th>
+        </tr>
+        {{range .}}
+        <tr>
+            <td>{{.Title}}</td>
+            <td>{{.Author}}</td>
+            <td>${{.Price}}</td>
+            <td>
+                <form action="/cart/add" method="POST">
+                    <input type="hidden" name="book_id" value="{{.ID}}">
+                    <button type="submit">Add to Cart</button>
+                </form>
+            </td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+</html>
