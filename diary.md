@@ -11,25 +11,19 @@ Create a demo shopping cart application for selling books, designed for Kubernet
 - **Containerization:** Wrote a multi-stage `Dockerfile` to create an optimized container image for the application and a `docker-compose.yml` file to run the app and database locally.
 - **Deployment Setup:** Created Kubernetes manifests (`deployment.yaml`, `service.yaml`) for both the application and the PostgreSQL database.
 - **CI/CD Pipeline:** Set up a basic CI/CD workflow using GitHub Actions to automate the building and pushing of the Docker image.
+- **Core Shopping Cart:** Implemented the ability to add, view, and remove items from the shopping cart.
+- **Checkout Process:** Implemented a PII-free checkout process where users can confirm an order without entering personal data.
+- **UI Improvement**: Refactored the frontend using Pico.css and a base template structure to create a clean, modern, and consistent user interface.
+- **Advanced Cart Features**: Implemented several UI/UX improvements for the shopping cart using htmx, including a dynamic cart count, a hover-enabled cart summary, and a total cost display.
 - **Debugging:**
     - Resolved an initial error caused by Go not being installed on the system.
-    - Fixed several build failures due to a Go version mismatch between the `go.mod` file and the Docker image. We standardized on Go version `1.21`.
-    - Resolved further Go version mismatches by updating the `Dockerfile` to use `go 1.23` after a dependency update modified the `go.mod` file.
-    - Added the `github.com/google/uuid` dependency to `go.mod` to fix a "no required module" build error.
-- **Application Preview:** Successfully launched the application locally using Docker Compose and populated the database with sample data.
+    - Fixed several build failures due to a Go version mismatch between the `go.mod` file and the Docker image, eventually standardizing on Go 1.23.
+    - Added missing package dependencies (`github.com/google/uuid`) to resolve build errors.
 
-### Next Steps
-The foundational structure is complete. The next phase will be to build out the core shopping cart features, including:
-- Adding a book to a shopping cart.
-- Viewing the items in the cart.
-- Implementing a basic checkout process.
-- We can also look at enhancing the Kubernetes manifests for better configuration management and security (e.g., using Secrets for database credentials).
-
-### Current Focus: Shopping Cart
-We are now implementing the core shopping cart functionality, starting with the ability to add books to the cart.
+### Current Focus: Kubernetes Security Enhancements
+We are now improving the security and configuration of our Kubernetes deployment by moving sensitive data, like database credentials, from our deployment manifests into Kubernetes Secrets.
 
 ### Next Steps
 - **Future Enhancements**:
-    - Expanded book selection and categorization
-    - User management (settings, profile, etc.)
-- We can also look at enhancing the Kubernetes manifests for better configuration management and security (e.g., using Secrets for database credentials).
+    - Expanded book selection and categorization.
+    - User management (settings, profile, etc.).

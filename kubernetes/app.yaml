@@ -18,8 +18,20 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: DATABASE_URL
-              value: "postgres://user:password@postgres-service:5432/bookstore?sslmode=disable"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_HOST
+              value: "postgres-service"
+            - name: DB_NAME
+              value: "bookstore"
 ---
 apiVersion: v1
 kind: Service
