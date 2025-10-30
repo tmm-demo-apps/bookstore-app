@@ -12,8 +12,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var store = sessions.NewCookieStore([]byte("something-very-secret"))
-
 func main() {
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
@@ -29,16 +27,29 @@ func main() {
 	}
 	defer db.Close()
 
+	store := sessions.NewCookieStore([]byte("something-very-secret"))
+
+	h := &handlers.Handlers{
+		DB:    db,
+		Store: store,
+	}
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", handlers.ListBooks(db))
-	mux.HandleFunc("/cart/add", handlers.AddToCart(db))
-	mux.HandleFunc("/cart/remove", handlers.RemoveFromCart(db))
-	mux.HandleFunc("/cart", handlers.ViewCart(db))
-	mux.HandleFunc("/checkout", handlers.CheckoutPage(db))
-	mux.HandleFunc("/checkout/process", handlers.ProcessOrder(db))
-	mux.HandleFunc("/confirmation", handlers.ConfirmationPage())
-	mux.HandleFunc("/partials/cart-count", handlers.CartCount(db))
-	mux.HandleFunc("/partials/cart-summary", handlers.CartSummary(db))
+	mux.HandleFunc("/", h.ListBooks)
+	mux.HandleFunc("/cart/add", h.AddToCart)
+	mux.HandleFunc("/cart/remove", h.RemoveFromCart)
+	mux.HandleFunc("/cart", h.ViewCart)
+	mux.HandleFunc("/checkout", h.CheckoutPage)
+	mux.HandleFunc("/checkout/process", h.ProcessOrder)
+	mux.HandleFunc("/confirmation", h.ConfirmationPage)
+	mux.HandleFunc("/partials/cart-count", h.CartCount)
+	mux.HandleFunc("/partials/cart-summary", h.CartSummary)
+
+	mux.HandleFunc("/signup", h.SignupPage)
+	mux.HandleFunc("/signup/process", h.Signup)
+	mux.HandleFunc("/login", h.LoginPage)
+	mux.HandleFunc("/login/process", h.Login)
+	mux.HandleFunc("/logout", h.Logout)
 
 	log.Println("Starting server on :8080")
 	err = http.ListenAndServe(":8080", mux)

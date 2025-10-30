@@ -1,0 +1,17 @@
+{{template "base.html" .}}
+
+{{define "title"}}Login{{end}}
+
+{{define "content"}}
+    <article>
+        <header><h1>Login</h1></header>
+        <form action="/login" method="POST">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="/signup">Sign up here</a>.</p>
+    </article>
+{{end}}
