@@ -44,5 +44,5 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts.Execute(w, data)
+	ts.ExecuteTemplate(w, "products.html", data)
 }

@@ -63,7 +63,7 @@ func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts.Execute(w, data)
+	ts.ExecuteTemplate(w, "checkout.html", data)
 }
 
 func (h *Handlers) ProcessOrder(w http.ResponseWriter, r *http.Request) {
@@ -132,5 +132,5 @@ func (h *Handlers) ConfirmationPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	ts.Execute(w, data)
+	ts.ExecuteTemplate(w, "confirmation.html", data)
 }

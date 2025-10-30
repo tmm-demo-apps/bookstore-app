@@ -12,21 +12,24 @@ import (
 type LoginPageData struct {
 	IsAuthenticated bool
 	Error           string
+	Next            string
 }
 
 type SignupPageData struct {
 	IsAuthenticated bool
 	PasswordHelp    string
 	Error           string
+	Next            string
 }
 
 func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 	data := SignupPageData{
-		IsAuthenticated: false,
+		IsAuthenticated: h.IsAuthenticated(r),
 		PasswordHelp:    "Password must be at least 8 characters long and contain at least one letter and one number.",
+		Next:            r.URL.Query().Get("next"),
 	}
 	ts, _ := template.ParseFiles("./templates/base.html", "./templates/signup.html")
-	ts.Execute(w, data)
+	ts.ExecuteTemplate(w, "signup.html", data)
 }
 
 func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +76,12 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	session.Values["user_id"] = userID
 	session.Save(r, w)
 
+	nextURL := r.URL.Query().Get("next")
+	if nextURL != "" {
+		http.Redirect(w, r, nextURL, http.StatusFound)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -97,15 +106,12 @@ func validatePassword(password string) error {
 
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request, errorMsg string) {
 	data := LoginPageData{
-		IsAuthenticated: false,
+		IsAuthenticated: h.IsAuthenticated(r),
 		Error:           errorMsg,
+		Next:            r.URL.Query().Get("next"),
 	}
 	ts, _ := template.ParseFiles("./templates/base.html", "./templates/login.html")
-	err := ts.Execute(w, data)
-	if err != nil {
-		h.LoginPage(w, r, errorMsg)
-		return
-	}
+	ts.ExecuteTemplate(w, "login.html", data)
 }
 
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {

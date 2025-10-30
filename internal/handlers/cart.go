@@ -74,7 +74,7 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	sessionID := session.Values["id"]
 	if sessionID == nil {
 		ts, _ := template.ParseFiles("./templates/base.html", "./templates/cart.html")
-		ts.Execute(w, nil)
+		ts.ExecuteTemplate(w, "cart.html", nil)
 		return
 	}
 
@@ -116,5 +116,5 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts.Execute(w, data)
+	ts.ExecuteTemplate(w, "cart.html", data)
 }
