@@ -13,6 +13,11 @@ type CheckoutViewData struct {
 }
 
 func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
+	if !h.IsAuthenticated(r) {
+		http.Redirect(w, r, "/login?next=/checkout", http.StatusFound)
+		return
+	}
+
 	session, _ := h.Store.Get(r, "cart-session")
 	sessionID := session.Values["id"]
 	if sessionID == nil {

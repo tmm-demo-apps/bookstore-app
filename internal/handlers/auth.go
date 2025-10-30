@@ -101,7 +101,11 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request, errorMsg st
 		Error:           errorMsg,
 	}
 	ts, _ := template.ParseFiles("./templates/base.html", "./templates/login.html")
-	ts.Execute(w, data)
+	err := ts.Execute(w, data)
+	if err != nil {
+		h.LoginPage(w, r, errorMsg)
+		return
+	}
 }
 
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +133,12 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	session.Values["user_id"] = user.ID
 	session.Save(r, w)
+
+	nextURL := r.URL.Query().Get("next")
+	if nextURL != "" {
+		http.Redirect(w, r, nextURL, http.StatusFound)
+		return
+	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
