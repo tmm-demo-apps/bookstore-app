@@ -26,23 +26,24 @@ type CartViewData struct {
 
 func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "cart-session")
-	if session.Values["id"] == nil {
+
+	userID, userOk := session.Values["user_id"].(int)
+	sessionID, sessionOk := session.Values["id"].(string)
+
+	if !userOk && !sessionOk {
 		session.Values["id"] = uuid.New().String()
-	}
-	session.Save(r, w)
-
-	bookID, err := strconv.Atoi(r.FormValue("book_id"))
-	if err != nil {
-		http.Error(w, "Invalid book ID", http.StatusBadRequest)
-		return
+		session.Save(r, w)
+		sessionID = session.Values["id"].(string)
 	}
 
-	_, err = h.DB.Exec("INSERT INTO cart_items (session_id, book_id, quantity) VALUES ($1, $2, $3)",
-		session.Values["id"], bookID, 1)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Internal Server Error", 500)
-		return
+	bookID, _ := strconv.Atoi(r.FormValue("book_id"))
+
+	if userOk {
+		_, err := h.DB.Exec("INSERT INTO cart_items (user_id, book_id, quantity) VALUES ($1, $2, 1)", userID, bookID)
+		if err != nil { http.Error(w, "Internal Server Error", 500); return }
+	} else {
+		_, err := h.DB.Exec("INSERT INTO cart_items (session_id, book_id, quantity) VALUES ($1, $2, 1)", sessionID, bookID)
+		if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	}
 
 	w.Header().Set("HX-Trigger", "cart-updated")

@@ -6,7 +6,7 @@
     <article>
         <header><h1>Login</h1></header>
         {{if .Error}}
-            <p style="color: red;">Incorrect email address or password. Please verify they are correct or create an account if a new customer.</p>
+            <p><mark>{{.Error}}</mark></p>
         {{end}}
         <form action="/login/process" method="POST">
             <label for="email">Email</label>
@@ -16,7 +16,7 @@
 
             <label for="show-password">
                 <input type="checkbox" id="show-password" onclick="togglePassword()">
-                Show Password
+                Show password
             </label>
 
             <button type="submit">Login</button>

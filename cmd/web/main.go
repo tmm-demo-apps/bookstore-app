@@ -47,7 +47,9 @@ func main() {
 
 	mux.HandleFunc("/signup", h.SignupPage)
 	mux.HandleFunc("/signup/process", h.Signup)
-	mux.HandleFunc("/login", h.LoginPage)
+	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		h.LoginPage(w, r, "")
+	})
 	mux.HandleFunc("/login/process", h.Login)
 	mux.HandleFunc("/logout", h.Logout)
 
