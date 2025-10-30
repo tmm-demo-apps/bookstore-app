@@ -21,9 +21,9 @@ func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.DB.Query(`
-		SELECT ci.id, b.title, b.author, b.price, b.id
+		SELECT ci.id, p.name, p.description, p.price, p.id
 		FROM cart_items ci
-		JOIN books b ON ci.book_id = b.id
+		JOIN products p ON ci.product_id = p.id
 		WHERE ci.session_id = $1`, sessionID)
 	if err != nil {
 		log.Println(err)
@@ -36,13 +36,13 @@ func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
 	var total float64
 	for rows.Next() {
 		var item CartItemView
-		if err := rows.Scan(&item.CartItemID, &item.Book.Title, &item.Book.Author, &item.Book.Price, &item.Book.ID); err != nil {
+		if err := rows.Scan(&item.CartItemID, &item.Product.Name, &item.Product.Description, &item.Product.Price, &item.Product.ID); err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)
 			return
 		}
 		items = append(items, item)
-		total += item.Book.Price
+		total += item.Product.Price
 	}
 
 	data := CheckoutViewData{
@@ -86,8 +86,8 @@ func (h *Handlers) ProcessOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO order_items (order_id, book_id, quantity, price)
-		SELECT $1, book_id, quantity, (SELECT price FROM books WHERE id = book_id)
+		INSERT INTO order_items (order_id, product_id, quantity, price)
+		SELECT $1, product_id, quantity, (SELECT price FROM products WHERE id = product_id)
 		FROM cart_items WHERE session_id = $2`, orderID, sessionID)
 	if err != nil {
 		tx.Rollback()

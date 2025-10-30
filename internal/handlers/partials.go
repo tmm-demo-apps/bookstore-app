@@ -34,9 +34,9 @@ func (h *Handlers) CartSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.DB.Query(`
-		SELECT b.title, b.price
+		SELECT p.name, p.price
 		FROM cart_items ci
-		JOIN books b ON ci.book_id = b.id
+		JOIN products p ON ci.product_id = p.id
 		WHERE ci.session_id = $1`, sessionID)
 	if err != nil {
 		log.Println(err)
@@ -44,14 +44,14 @@ func (h *Handlers) CartSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var items []models.Book
+	var items []models.Product
 	for rows.Next() {
-		var book models.Book
-		if err := rows.Scan(&book.Title, &book.Price); err != nil {
+		var p models.Product
+		if err := rows.Scan(&p.Name, &p.Price); err != nil {
 			log.Println(err)
 			return
 		}
-		items = append(items, book)
+		items = append(items, p)
 	}
 
 	ts, err := template.ParseFiles("./templates/partials/cart-summary.html")

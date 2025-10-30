@@ -7,7 +7,7 @@ CREATE TABLE orders (
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(id),
-    book_id INTEGER REFERENCES books(id),
+    product_id INTEGER REFERENCES products(id),
     quantity INTEGER NOT NULL,
     price DECIMAL(10, 2) NOT NULL
 );

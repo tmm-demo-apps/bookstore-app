@@ -1,27 +1,27 @@
 {{template "base.html" .}}
 
-{{define "title"}}Books{{end}}
+{{define "title"}}Products{{end}}
 
 {{define "content"}}
-    <h1>Books</h1>
+    <h1>Products</h1>
     <table>
         <thead>
             <tr>
-                <th>Title</th>
-                <th>Author</th>
+                <th>Name</th>
+                <th>Description</th>
                 <th>Price</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
-            {{range .Books}}
+            {{range .Products}}
             <tr>
-                <td>{{.Title}}</td>
-                <td>{{.Author}}</td>
+                <td>{{.Name}}</td>
+                <td>{{.Description}}</td>
                 <td>${{.Price}}</td>
                 <td>
                     <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;">
-                        <input type="hidden" name="book_id" value="{{.ID}}">
+                        <input type="hidden" name="product_id" value="{{.ID}}">
                         <button type="submit" class="outline">Add to Cart</button>
                     </form>
                 </td>

@@ -16,9 +16,9 @@
             <tbody>
                 {{range .Items}}
                 <tr>
-                    <td>{{.Book.Title}}</td>
-                    <td>{{.Book.Author}}</td>
-                    <td>${{.Book.Price}}</td>
+                    <td>{{.Product.Name}}</td>
+                    <td>{{.Product.Description}}</td>
+                    <td>${{.Product.Price}}</td>
                 </tr>
                 {{end}}
             </tbody>

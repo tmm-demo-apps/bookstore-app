@@ -15,7 +15,7 @@ var store = sessions.NewCookieStore([]byte("something-very-secret"))
 // CartItemView is used to pass cart item data to the template.
 type CartItemView struct {
 	CartItemID int
-	Book       models.Book
+	Product    models.Product
 }
 
 type CartViewData struct {
@@ -36,13 +36,13 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 		sessionID = session.Values["id"].(string)
 	}
 
-	bookID, _ := strconv.Atoi(r.FormValue("book_id"))
+	productID, err := strconv.Atoi(r.FormValue("product_id"))
 
 	if userOk {
-		_, err := h.DB.Exec("INSERT INTO cart_items (user_id, book_id, quantity) VALUES ($1, $2, 1)", userID, bookID)
+		_, err := h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, 1)", userID, productID)
 		if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	} else {
-		_, err := h.DB.Exec("INSERT INTO cart_items (session_id, book_id, quantity) VALUES ($1, $2, 1)", sessionID, bookID)
+		_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, 1)", sessionID, productID)
 		if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	}
 
@@ -79,9 +79,9 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.DB.Query(`
-		SELECT ci.id, b.title, b.author, b.price
+		SELECT ci.id, p.name, p.description, p.price
 		FROM cart_items ci
-		JOIN books b ON ci.book_id = b.id
+		JOIN products p ON ci.product_id = p.id
 		WHERE ci.session_id = $1`, sessionID)
 	if err != nil {
 		log.Println(err)
@@ -94,13 +94,13 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	var total float64
 	for rows.Next() {
 		var item CartItemView
-		if err := rows.Scan(&item.CartItemID, &item.Book.Title, &item.Book.Author, &item.Book.Price); err != nil {
+		if err := rows.Scan(&item.CartItemID, &item.Product.Name, &item.Product.Description, &item.Product.Price); err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)
 			return
 		}
 		items = append(items, item)
-		total += item.Book.Price
+		total += item.Product.Price
 	}
 
 	data := CartViewData{

@@ -17,9 +17,9 @@
             <tbody>
                 {{range .Items}}
                 <tr>
-                    <td>{{.Book.Title}}</td>
-                    <td>{{.Book.Author}}</td>
-                    <td>${{.Book.Price}}</td>
+                    <td>{{.Product.Name}}</td>
+                    <td>{{.Product.Description}}</td>
+                    <td>${{.Product.Price}}</td>
                     <td>
                         <form hx-post="/cart/remove" hx-swap="none" style="margin-bottom: 0;">
                             <input type="hidden" name="cart_item_id" value="{{.CartItemID}}">
