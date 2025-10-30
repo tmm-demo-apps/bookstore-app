@@ -1,15 +1,13 @@
 package handlers
 
 import (
-	"database/sql"
+	"DemoApp/internal/models"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
-
-	"DemoApp/internal/models"
 )
 
 var store = sessions.NewCookieStore([]byte("something-very-secret"))

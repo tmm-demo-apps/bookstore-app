@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"html/template"
 	"log"
 	"net/http"

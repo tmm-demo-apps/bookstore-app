@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"DemoApp/internal/models"
-	"database/sql"
 	"html/template"
 	"log"
 	"net/http"
