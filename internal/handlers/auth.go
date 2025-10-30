@@ -4,6 +4,8 @@ import (
 	"DemoApp/internal/models"
 	"html/template"
 	"net/http"
+	"strings"
+	"unicode"
 )
 
 func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
@@ -15,6 +17,31 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
+	// --- Validation ---
+	if !strings.Contains(email, "@") {
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		return
+	}
+
+	var (
+		hasMinLen = len(password) >= 8
+		hasNumber = false
+		hasLetter = false
+	)
+	for _, char := range password {
+		switch {
+		case unicode.IsNumber(char):
+			hasNumber = true
+		case unicode.IsLetter(char):
+			hasLetter = true
+		}
+	}
+	if !hasMinLen || !hasNumber || !hasLetter {
+		http.Error(w, "Password does not meet requirements", http.StatusBadRequest)
+		return
+	}
+	// --- End Validation ---
+
 	var user models.User
 	err := user.SetPassword(password)
 	if err != nil {
@@ -22,13 +49,18 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.DB.Exec("INSERT INTO users (email, password_hash) VALUES ($1, $2)", email, user.PasswordHash)
+	err = h.DB.QueryRow("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id", email, user.PasswordHash).Scan(&user.ID)
 	if err != nil {
 		http.Error(w, "Could not create user", 500)
 		return
 	}
 
-	http.Redirect(w, r, "/login", http.StatusFound)
+	// Log the user in automatically
+	session, _ := h.Store.Get(r, "cart-session")
+	session.Values["user_id"] = user.ID
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {

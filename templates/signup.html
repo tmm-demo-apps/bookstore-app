@@ -7,10 +7,27 @@
         <header><h1>Sign Up</h1></header>
         <form action="/signup/process" method="POST">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" name="email" placeholder="email@example.com" required>
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required>
+            <small>Password must be at least 8 characters long and contain at least one letter and one number.</small>
+            
+            <label for="show-password">
+                <input type="checkbox" id="show-password" onclick="togglePassword()">
+                Show Password
+            </label>
+
             <button type="submit">Sign Up</button>
         </form>
     </article>
+    <script>
+        function togglePassword() {
+            var x = document.getElementById("password");
+            if (x.type === "password") {
+                x.type = "text";
+            } else {
+                x.type = "password";
+            }
+        }
+    </script>
 {{end}}
