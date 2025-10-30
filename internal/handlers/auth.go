@@ -32,8 +32,10 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
+	error := r.URL.Query().Get("error")
+	data := struct{ Error bool }{Error: error != ""}
 	ts, _ := template.ParseFiles("./templates/base.html", "./templates/login.html")
-	ts.Execute(w, nil)
+	ts.Execute(w, data)
 }
 
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
@@ -43,13 +45,8 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	err := h.DB.QueryRow("SELECT id, password_hash FROM users WHERE email = $1", email).Scan(&user.ID, &user.PasswordHash)
-	if err != nil {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
-		return
-	}
-
-	if !user.CheckPassword(password) {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+	if err != nil || !user.CheckPassword(password) {
+		http.Redirect(w, r, "/login?error=true", http.StatusSeeOther)
 		return
 	}
 

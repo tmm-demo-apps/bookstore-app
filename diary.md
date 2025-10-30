@@ -20,9 +20,15 @@ Create a demo shopping cart application for selling books, designed for Kubernet
     - Fixed several build failures due to a Go version mismatch between the `go.mod` file and the Docker image, eventually standardizing on Go 1.23.
     - Added missing package dependencies (`github.com/google/uuid`) to resolve build errors.
 - **Kubernetes Security**: Refactored the Kubernetes manifests and application code to use Kubernetes Secrets for managing database credentials, removing sensitive data from version control.
-- **User Management**: Implemented a complete user management system, including registration, login, and logout. The application now supports user accounts with secure password hashing and persistent sessions.
+- **User Management & Refactoring**: Implemented a complete user management system (registration, login, logout) with secure password hashing. As part of this, all Go handlers were refactored to use a centralized `Handlers` struct for cleaner code and better dependency management.
+
+### Current Focus: User Management Enhancements
+We are now working on a series of improvements to the user management and cart systems based on user feedback. The current tasks are to fix the login functionality and improve error handling.
 
 ### Next Steps
+- Implement auto-login after signup.
+- Add password strength and email validation to the signup process.
+- Implement a "show/hide password" feature.
+- Allow anonymous users to use the shopping cart.
 - **Future Enhancements**:
     - Expanded book selection and categorization.
-    - Associate shopping carts with user accounts.
