@@ -44,24 +44,50 @@
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
-        // Cart dropdown hover behavior with delay
+        // Cart dropdown hover behavior
         let cartCloseTimer;
         const cartDropdown = document.getElementById('cart-dropdown');
+        const cartSummaryContainer = document.getElementById('cart-summary-container');
         
         if (cartDropdown) {
-            // When mouse leaves the entire details element, close after a short delay
-            cartDropdown.addEventListener('mouseleave', function() {
-                cartCloseTimer = setTimeout(() => {
-                    cartDropdown.removeAttribute('open');
-                }, 100); // 100ms delay allows smooth transition to dropdown content
-            });
+            let isOverCart = false;
+            let isOverDropdown = false;
             
-            // When mouse enters the dropdown, cancel any pending close
-            cartDropdown.addEventListener('mouseenter', function() {
+            // Track when mouse is over the summary (cart button)
+            const summary = cartDropdown.querySelector('summary');
+            summary.addEventListener('mouseenter', function() {
+                isOverCart = true;
                 if (cartCloseTimer) {
                     clearTimeout(cartCloseTimer);
                 }
             });
+            
+            summary.addEventListener('mouseleave', function() {
+                isOverCart = false;
+                scheduleClose();
+            });
+            
+            // Track when mouse is over the dropdown list
+            cartSummaryContainer.addEventListener('mouseenter', function() {
+                isOverDropdown = true;
+                if (cartCloseTimer) {
+                    clearTimeout(cartCloseTimer);
+                }
+            });
+            
+            cartSummaryContainer.addEventListener('mouseleave', function() {
+                isOverDropdown = false;
+                scheduleClose();
+            });
+            
+            function scheduleClose() {
+                // Wait a bit to see if mouse moves to the other element
+                cartCloseTimer = setTimeout(() => {
+                    if (!isOverCart && !isOverDropdown) {
+                        cartDropdown.removeAttribute('open');
+                    }
+                }, 150);
+            }
         }
     </script>
 </body>
