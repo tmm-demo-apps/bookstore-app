@@ -44,50 +44,47 @@
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
-        // Cart dropdown hover behavior
-        let cartCloseTimer;
+        // Cart dropdown hover behavior - close when clicking outside or hovering elsewhere
         const cartDropdown = document.getElementById('cart-dropdown');
-        const cartSummaryContainer = document.getElementById('cart-summary-container');
         
         if (cartDropdown) {
-            let isOverCart = false;
-            let isOverDropdown = false;
-            
-            // Track when mouse is over the summary (cart button)
-            const summary = cartDropdown.querySelector('summary');
-            summary.addEventListener('mouseenter', function() {
-                isOverCart = true;
-                if (cartCloseTimer) {
-                    clearTimeout(cartCloseTimer);
+            // Close when clicking anywhere outside the dropdown
+            document.addEventListener('click', function(e) {
+                if (!cartDropdown.contains(e.target)) {
+                    cartDropdown.removeAttribute('open');
                 }
             });
             
-            summary.addEventListener('mouseleave', function() {
-                isOverCart = false;
-                scheduleClose();
-            });
+            // Use a simpler approach: check if mouse is over cart elements
+            let closeTimer;
             
-            // Track when mouse is over the dropdown list
-            cartSummaryContainer.addEventListener('mouseenter', function() {
-                isOverDropdown = true;
-                if (cartCloseTimer) {
-                    clearTimeout(cartCloseTimer);
-                }
-            });
-            
-            cartSummaryContainer.addEventListener('mouseleave', function() {
-                isOverDropdown = false;
-                scheduleClose();
-            });
-            
-            function scheduleClose() {
-                // Wait a bit to see if mouse moves to the other element
-                cartCloseTimer = setTimeout(() => {
-                    if (!isOverCart && !isOverDropdown) {
-                        cartDropdown.removeAttribute('open');
-                    }
-                }, 150);
+            function isMouseOverCart(element) {
+                if (!element) return false;
+                // Check if element is the cart dropdown or inside it
+                return element.id === 'cart-dropdown' || 
+                       element.closest('#cart-dropdown') !== null;
             }
+            
+            // Track mouse movement over the entire document
+            document.addEventListener('mouseover', function(e) {
+                if (cartDropdown.hasAttribute('open')) {
+                    if (isMouseOverCart(e.target)) {
+                        // Mouse is over cart, cancel any pending close
+                        if (closeTimer) {
+                            clearTimeout(closeTimer);
+                            closeTimer = null;
+                        }
+                    } else {
+                        // Mouse is NOT over cart, schedule close
+                        if (!closeTimer) {
+                            closeTimer = setTimeout(() => {
+                                cartDropdown.removeAttribute('open');
+                                closeTimer = null;
+                            }, 200);
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
