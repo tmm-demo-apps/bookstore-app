@@ -24,9 +24,15 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
 - **Generalization**: Refactored the entire application from a specific "bookstore" into a generic, reusable e-commerce template. This involved renaming models, handlers, database tables, and updating the UI to use generic "product" terminology.
 - **Checkout Login Flow**: Implemented a forced-login flow at checkout. Unauthenticated users are now redirected to the login page and are returned to the checkout process after a successful login.
 - **Project Rollback**: Reverted the project state to commit `47a98fd` to undo a series of buggy changes related to the shopping cart's dynamic features. We are now at a stable state where user management is functional, and the basic cart works.
+- **Dynamic Cart Features**: Successfully implemented cart hover preview and fixed critical caching issues:
+    - **Hover Preview**: Cart summary now loads on hover without requiring a click. Removed the 'once' flag so the preview refreshes each time.
+    - **Caching Fix**: Added proper cache-control headers (`no-cache, no-store, must-revalidate`) to all cart endpoints to prevent browsers from serving stale cart data.
+    - **User/Session Support**: Updated all cart handlers (`CartCount`, `CartSummary`, `ViewCart`) to properly support both authenticated users (via `user_id`) and anonymous users (via `session_id`).
+    - **Auto-refresh**: Cart count and summary now automatically update when items are added or removed using htmx's `cart-updated` event.
+    - **Loading Fix**: Resolved the issue where "Loading..." text persisted until hovered by triggering the cart summary load on mouseenter event.
 
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.
     - User management (settings, profile, etc.).
-    - **Dynamic Cart Features (Attempted)**: A previous attempt to implement a dynamic cart count and hover-summary using htmx and anonymous session IDs was reverted due to significant bugs in the session handling logic, which may have been compounded by browser caching issues. This is a desirable feature to retry in the future, likely by associating carts directly with logged-in users.
+    - Order history page for users to view past orders.
