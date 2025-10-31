@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{block "title" .}}Bookstore{{end}}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 </head>
 <body>
     <main class="container">
@@ -14,11 +17,16 @@
             </ul>
             <ul>
                 <li>
-                    <details role="list" dir="rtl" id="cart-dropdown">
+                    <details role="list" dir="rtl" id="cart-dropdown" 
+                             hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }">
                         <summary aria-haspopup="listbox" role="link" class="secondary">
-                            Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body"></span>
+                            Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body" hx-headers='{"Cache-Control": "no-cache"}'></span>
                         </summary>
-                        <ul role="listbox" id="cart-summary-container" hx-get="/partials/cart-summary" hx-trigger="mouseenter, cart-updated from:body" hx-swap="innerHTML">
+                        <ul role="listbox" id="cart-summary-container" 
+                            hx-get="/partials/cart-summary" 
+                            hx-trigger="refresh, cart-updated from:body" 
+                            hx-swap="innerHTML"
+                            hx-headers='{"Cache-Control": "no-cache"}'>
                             <li><em>Loading...</em></li>
                         </ul>
                     </details>

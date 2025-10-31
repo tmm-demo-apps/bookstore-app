@@ -26,6 +26,11 @@ type CartViewData struct {
 }
 
 func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
+	// Prevent caching
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+
 	session, _ := h.Store.Get(r, "cart-session")
 
 	userID, userOk := session.Values["user_id"].(int)
@@ -52,6 +57,11 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
+	// Prevent caching
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+
 	cartItemID, err := strconv.Atoi(r.FormValue("cart_item_id"))
 	if err != nil {
 		http.Error(w, "Invalid cart item ID", http.StatusBadRequest)
@@ -71,6 +81,11 @@ func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
+	// Prevent caching
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+
 	session, _ := h.Store.Get(r, "cart-session")
 	
 	// Check if user is authenticated
