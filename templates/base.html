@@ -18,8 +18,7 @@
             <ul>
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
-                             hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }"
-                             hx-on:mouseleave="this.removeAttribute('open')">
+                             hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }">
                         <summary aria-haspopup="listbox" role="link" class="secondary"
                                  hx-on:mouseenter="htmx.trigger('#cart-summary-container', 'loadcart'); this.parentElement.setAttribute('open', '');">
                             Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body" hx-headers='{"Cache-Control": "no-cache"}'></span>
@@ -44,5 +43,26 @@
         {{block "content" .}}{{end}}
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        // Cart dropdown hover behavior with delay
+        let cartCloseTimer;
+        const cartDropdown = document.getElementById('cart-dropdown');
+        
+        if (cartDropdown) {
+            // When mouse leaves the entire details element, close after a short delay
+            cartDropdown.addEventListener('mouseleave', function() {
+                cartCloseTimer = setTimeout(() => {
+                    cartDropdown.removeAttribute('open');
+                }, 100); // 100ms delay allows smooth transition to dropdown content
+            });
+            
+            // When mouse enters the dropdown, cancel any pending close
+            cartDropdown.addEventListener('mouseenter', function() {
+                if (cartCloseTimer) {
+                    clearTimeout(cartCloseTimer);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
