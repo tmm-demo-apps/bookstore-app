@@ -25,7 +25,10 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
 - **Checkout Login Flow**: Implemented a forced-login flow at checkout. Unauthenticated users are now redirected to the login page and are returned to the checkout process after a successful login.
 - **Project Rollback**: Reverted the project state to commit `47a98fd` to undo a series of buggy changes related to the shopping cart's dynamic features. We are now at a stable state where user management is functional, and the basic cart works.
 - **Dynamic Cart Features**: Successfully implemented cart hover preview and fixed critical caching issues:
-    - **Hover Preview**: Cart summary now loads immediately when dropdown opens, no click required.
+    - **Hover-to-Open Preview**: Cart dropdown now opens automatically when hovering over the cart button, with cart data loading immediately. Implemented by:
+        - Moving `mouseenter` event handler from hidden `<ul>` to visible `<summary>` element
+        - Using custom `loadcart` event to trigger both dropdown opening and data loading
+        - Ensures hover works even when dropdown is closed (the key issue with previous attempts)
     - **Comprehensive Caching Fix**: 
         - Added cache-control meta tags to base HTML template
         - Added cache-control headers to all cart endpoints (`AddToCart`, `RemoveFromCart`, `ViewCart`, `CartCount`, `CartSummary`)
@@ -33,7 +36,8 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
         - This multi-layered approach ensures fresh cart data without requiring users to clear browser cache
     - **User/Session Support**: Updated all cart handlers to properly support both authenticated users (via `user_id`) and anonymous users (via `session_id`).
     - **Auto-refresh**: Cart count and summary now automatically update when items are added or removed using htmx's `cart-updated` event.
-    - **Loading Fix**: Fixed "Loading..." text by using `hx-on:toggle` event on the details element to trigger cart load immediately when dropdown opens, rather than waiting for mouseenter on the list.
+    - **Loading Fix**: Fixed "Loading..." text by using `hx-on:toggle` event on the details element to trigger cart load immediately when dropdown is clicked open.
+    - **Testing**: Created `test_cart.html` file for debugging hover events and validating functionality.
 
 ### Next Steps
 - **Future Enhancements**:
