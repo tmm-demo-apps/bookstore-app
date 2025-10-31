@@ -28,7 +28,8 @@
             <ul>
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
-                             hx-on:toggle="logEvent('dropdown toggled')">
+                             hx-on:toggle="logEvent('dropdown toggled')"
+                             hx-on:mouseleave="logEvent('mouseleave on dropdown'); this.removeAttribute('open')">
                         <summary aria-haspopup="listbox" role="link" class="secondary" id="cart-summary"
                                  hx-on:mouseenter="logEvent('mouseenter on summary'); htmx.trigger('#cart-summary-container', 'loadcart'); this.parentElement.setAttribute('open', '');">
                             Cart <span id="cart-count">(0)</span>
@@ -61,6 +62,7 @@
                 <li>Check the test log below to see if events are firing</li>
                 <li>The dropdown should open automatically on hover</li>
                 <li>Cart data should load via AJAX</li>
+                <li><strong>Move your mouse away</strong> - dropdown should close automatically</li>
             </ol>
         </div>
     </main>

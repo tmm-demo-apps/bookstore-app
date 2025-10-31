@@ -18,7 +18,8 @@
             <ul>
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
-                             hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }">
+                             hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }"
+                             hx-on:mouseleave="this.removeAttribute('open')">
                         <summary aria-haspopup="listbox" role="link" class="secondary"
                                  hx-on:mouseenter="htmx.trigger('#cart-summary-container', 'loadcart'); this.parentElement.setAttribute('open', '');">
                             Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body" hx-headers='{"Cache-Control": "no-cache"}'></span>
