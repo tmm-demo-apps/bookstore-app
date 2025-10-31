@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart Hover Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        #test-results {
+            margin-top: 2rem;
+            padding: 1rem;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+        }
+        .test-pass { color: green; }
+        .test-fail { color: red; }
+        .test-pending { color: orange; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Cart Hover Test</h1>
+        
+        <nav>
+            <ul>
+                <li><strong>Test Store</strong></li>
+            </ul>
+            <ul>
+                <li>
+                    <details role="list" dir="rtl" id="cart-dropdown" 
+                             hx-on:toggle="logEvent('dropdown toggled')">
+                        <summary aria-haspopup="listbox" role="link" class="secondary" id="cart-summary"
+                                 hx-on:mouseenter="logEvent('mouseenter on summary'); htmx.trigger('#cart-summary-container', 'loadcart'); this.parentElement.setAttribute('open', '');">
+                            Cart <span id="cart-count">(0)</span>
+                        </summary>
+                        <ul role="listbox" id="cart-summary-container" 
+                            hx-get="http://localhost:8080/partials/cart-summary" 
+                            hx-trigger="loadcart, refresh, cart-updated from:body" 
+                            hx-swap="innerHTML"
+                            hx-on::before-request="logEvent('Loading cart data...')"
+                            hx-on::after-request="logEvent('Cart data loaded')">
+                            <li><em>Loading...</em></li>
+                        </ul>
+                    </details>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="test-results">
+            <h3>Test Log:</h3>
+            <ul id="event-log">
+                <li class="test-pending">Waiting for events...</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <h3>Manual Test Instructions:</h3>
+            <ol>
+                <li>Make sure the app is running at <code>http://localhost:8080</code></li>
+                <li>Hover over the "Cart" text above</li>
+                <li>Check the test log below to see if events are firing</li>
+                <li>The dropdown should open automatically on hover</li>
+                <li>Cart data should load via AJAX</li>
+            </ol>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        const eventLog = document.getElementById('event-log');
+        let eventCount = 0;
+
+        function logEvent(message) {
+            eventCount++;
+            const timestamp = new Date().toLocaleTimeString();
+            const li = document.createElement('li');
+            li.className = 'test-pass';
+            li.textContent = `[${timestamp}] ${eventCount}. ${message}`;
+            
+            // Clear "waiting" message on first event
+            if (eventCount === 1) {
+                eventLog.innerHTML = '';
+            }
+            
+            eventLog.appendChild(li);
+            console.log(message);
+        }
+
+        // Test if htmx is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof htmx !== 'undefined') {
+                logEvent('✓ htmx loaded successfully');
+            } else {
+                const li = document.createElement('li');
+                li.className = 'test-fail';
+                li.textContent = '✗ htmx NOT loaded';
+                eventLog.appendChild(li);
+            }
+        });
+
+        // Listen for htmx events
+        document.addEventListener('htmx:beforeRequest', function(evt) {
+            logEvent('htmx:beforeRequest - ' + evt.detail.pathInfo.requestPath);
+        });
+
+        document.addEventListener('htmx:afterRequest', function(evt) {
+            logEvent('htmx:afterRequest - Status: ' + evt.detail.xhr.status);
+        });
+
+        document.addEventListener('htmx:responseError', function(evt) {
+            const li = document.createElement('li');
+            li.className = 'test-fail';
+            li.textContent = 'htmx:responseError - Check if server is running';
+            eventLog.appendChild(li);
+        });
+    </script>
+</body>
+</html>
+
