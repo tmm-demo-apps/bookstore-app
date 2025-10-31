@@ -1,9 +1,9 @@
-# Project Diary: 12-Factor Bookstore App
+# Project Diary: 12-Factor E-commerce Template
 
 ## October 30, 2025
 
 ### Project Goal
-Create a demo shopping cart application for selling books, designed for Kubernetes using the 12-factor app methodology.
+Create a reusable 12-factor e-commerce template, designed for Kubernetes using the 12-factor app methodology.
 
 ### What We've Done So Far
 - **Project Initialization:** Set up a Go project with a standard directory structure and initialized a local Git repository for version control.
@@ -23,8 +23,10 @@ Create a demo shopping cart application for selling books, designed for Kubernet
 - **User Management & Refactoring**: Implemented a complete user management system (registration, login, logout) with secure password hashing. As part of this, all Go handlers were refactored to use a centralized `Handlers` struct for cleaner code. This work also included several bug fixes and UX improvements, such as streamlining the signup flow, adding form validations, and fixing a major regression that prevented books from being displayed on the main page.
 - **Generalization**: Refactored the entire application from a specific "bookstore" into a generic, reusable e-commerce template. This involved renaming models, handlers, database tables, and updating the UI to use generic "product" terminology.
 - **Checkout Login Flow**: Implemented a forced-login flow at checkout. Unauthenticated users are now redirected to the login page and are returned to the checkout process after a successful login.
+- **Project Rollback**: Reverted the project state to commit `47a98fd` to undo a series of buggy changes related to the shopping cart's dynamic features. We are now at a stable state where user management is functional, and the basic cart works.
 
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.
-    - Associate shopping carts with user accounts.
+    - User management (settings, profile, etc.).
+    - **Dynamic Cart Features (Attempted)**: A previous attempt to implement a dynamic cart count and hover-summary using htmx and anonymous session IDs was reverted due to significant bugs in the session handling logic, which may have been compounded by browser caching issues. This is a desirable feature to retry in the future, likely by associating carts directly with logged-in users.

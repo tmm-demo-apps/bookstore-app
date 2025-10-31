@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"DemoApp/internal/models"
+	"database/sql"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"html/template"
@@ -71,18 +72,40 @@ func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, "cart-session")
-	sessionID := session.Values["id"]
-	if sessionID == nil {
+	
+	// Check if user is authenticated
+	userID, userOk := session.Values["user_id"].(int)
+	sessionID, sessionOk := session.Values["id"].(string)
+
+	var rows *sql.Rows
+	var err error
+
+	if userOk && userID > 0 {
+		// Query by user_id for authenticated users
+		rows, err = h.DB.Query(`
+			SELECT ci.id, p.name, p.description, p.price
+			FROM cart_items ci
+			JOIN products p ON ci.product_id = p.id
+			WHERE ci.user_id = $1`, userID)
+	} else if sessionOk && sessionID != "" {
+		// Query by session_id for anonymous users
+		rows, err = h.DB.Query(`
+			SELECT ci.id, p.name, p.description, p.price
+			FROM cart_items ci
+			JOIN products p ON ci.product_id = p.id
+			WHERE ci.session_id = $1`, sessionID)
+	} else {
+		// No session or user - show empty cart
+		data := CartViewData{
+			IsAuthenticated: h.IsAuthenticated(r),
+			Items:           nil,
+			Total:           0,
+		}
 		ts, _ := template.ParseFiles("./templates/base.html", "./templates/cart.html")
-		ts.ExecuteTemplate(w, "cart.html", nil)
+		ts.ExecuteTemplate(w, "cart.html", data)
 		return
 	}
 
-	rows, err := h.DB.Query(`
-		SELECT ci.id, p.name, p.description, p.price
-		FROM cart_items ci
-		JOIN products p ON ci.product_id = p.id
-		WHERE ci.session_id = $1`, sessionID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)

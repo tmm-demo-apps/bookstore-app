@@ -14,11 +14,11 @@
             </ul>
             <ul>
                 <li>
-                    <details role="list" dir="rtl">
+                    <details role="list" dir="rtl" id="cart-dropdown">
                         <summary aria-haspopup="listbox" role="link" class="secondary">
                             Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body"></span>
                         </summary>
-                        <ul role="listbox" hx-get="/partials/cart-summary" hx-trigger="mouseenter once" hx-swap="innerHTML">
+                        <ul role="listbox" id="cart-summary-container" hx-get="/partials/cart-summary" hx-trigger="mouseenter, cart-updated from:body" hx-swap="innerHTML">
                             <li><em>Loading...</em></li>
                         </ul>
                     </details>

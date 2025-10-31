@@ -4,12 +4,12 @@ If I (the AI assistant) have "amnesia" or we are starting a new session, please 
 
 ---
 
-Hello! We are continuing our work on the 12-factor demo bookstore application.
+Hello! We are continuing our work on the 12-factor demo e-commerce application.
 
 Here's a summary of the project:
-*   **Goal:** A 12-factor shopping cart application that sells books, designed to run in Kubernetes.
+*   **Goal:** A reusable 12-factor e-commerce template, designed to run in Kubernetes.
 *   **Tech Stack:** Go, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
-*   **Completed Features:** User management, a full shopping cart, a PII-free checkout process, and a modern UI.
+*   **Completed Features:** Generalization into a template, user management, a full shopping cart, a PII-free checkout process, and a modern UI.
 *   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, you commit the changes to our local Git repository and update the `diary.md` file.
 
 Here is the high-level file structure:
