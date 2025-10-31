@@ -44,14 +44,15 @@
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
-        // Cart dropdown hover behavior
+        // Cart dropdown hover behavior - simplified approach
         const cartDropdown = document.getElementById('cart-dropdown');
         const cartSummary = cartDropdown ? cartDropdown.querySelector('summary') : null;
         const cartList = document.getElementById('cart-summary-container');
         
-        if (cartDropdown && cartSummary) {
+        if (cartDropdown && cartSummary && cartList) {
             let closeTimer = null;
-            let isHovering = false;
+            let mouseOverSummary = false;
+            let mouseOverList = false;
             
             // Close when clicking anywhere outside
             document.addEventListener('click', function(e) {
@@ -60,58 +61,44 @@
                 }
             });
             
-            // When mouse enters summary, keep track
+            function tryClose() {
+                if (closeTimer) clearTimeout(closeTimer);
+                closeTimer = setTimeout(function() {
+                    // Only close if mouse is over neither element
+                    if (!mouseOverSummary && !mouseOverList) {
+                        cartDropdown.removeAttribute('open');
+                    }
+                    closeTimer = null;
+                }, 200);
+            }
+            
+            // Summary events
             cartSummary.addEventListener('mouseenter', function() {
-                isHovering = true;
+                mouseOverSummary = true;
                 if (closeTimer) {
                     clearTimeout(closeTimer);
                     closeTimer = null;
                 }
             });
             
-            // When mouse leaves summary, start timer
-            cartSummary.addEventListener('mouseleave', function(e) {
-                isHovering = false;
-                // Check if we're moving into the dropdown list
-                const relatedTarget = e.relatedTarget;
-                if (relatedTarget && (relatedTarget === cartList || cartList.contains(relatedTarget))) {
-                    // Moving to dropdown, don't close
-                    return;
-                }
-                startCloseTimer();
+            cartSummary.addEventListener('mouseleave', function() {
+                mouseOverSummary = false;
+                tryClose();
             });
             
-            // When mouse enters dropdown list
-            if (cartList) {
-                cartList.addEventListener('mouseenter', function() {
-                    isHovering = true;
-                    if (closeTimer) {
-                        clearTimeout(closeTimer);
-                        closeTimer = null;
-                    }
-                });
-                
-                cartList.addEventListener('mouseleave', function(e) {
-                    isHovering = false;
-                    // Check if we're moving back to summary
-                    const relatedTarget = e.relatedTarget;
-                    if (relatedTarget && (relatedTarget === cartSummary || cartSummary.contains(relatedTarget))) {
-                        // Moving back to summary, don't close
-                        return;
-                    }
-                    startCloseTimer();
-                });
-            }
-            
-            function startCloseTimer() {
-                if (closeTimer) return; // Already scheduled
-                closeTimer = setTimeout(function() {
-                    if (!isHovering && cartDropdown.hasAttribute('open')) {
-                        cartDropdown.removeAttribute('open');
-                    }
+            // List events
+            cartList.addEventListener('mouseenter', function() {
+                mouseOverList = true;
+                if (closeTimer) {
+                    clearTimeout(closeTimer);
                     closeTimer = null;
-                }, 300);
-            }
+                }
+            });
+            
+            cartList.addEventListener('mouseleave', function() {
+                mouseOverList = false;
+                tryClose();
+            });
         }
     </script>
 </body>
