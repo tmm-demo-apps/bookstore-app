@@ -44,47 +44,74 @@
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
-        // Cart dropdown hover behavior - close when clicking outside or hovering elsewhere
+        // Cart dropdown hover behavior
         const cartDropdown = document.getElementById('cart-dropdown');
+        const cartSummary = cartDropdown ? cartDropdown.querySelector('summary') : null;
+        const cartList = document.getElementById('cart-summary-container');
         
-        if (cartDropdown) {
-            // Close when clicking anywhere outside the dropdown
+        if (cartDropdown && cartSummary) {
+            let closeTimer = null;
+            let isHovering = false;
+            
+            // Close when clicking anywhere outside
             document.addEventListener('click', function(e) {
                 if (!cartDropdown.contains(e.target)) {
                     cartDropdown.removeAttribute('open');
                 }
             });
             
-            // Use a simpler approach: check if mouse is over cart elements
-            let closeTimer;
-            
-            function isMouseOverCart(element) {
-                if (!element) return false;
-                // Check if element is the cart dropdown or inside it
-                return element.id === 'cart-dropdown' || 
-                       element.closest('#cart-dropdown') !== null;
-            }
-            
-            // Track mouse movement over the entire document
-            document.addEventListener('mouseover', function(e) {
-                if (cartDropdown.hasAttribute('open')) {
-                    if (isMouseOverCart(e.target)) {
-                        // Mouse is over cart, cancel any pending close
-                        if (closeTimer) {
-                            clearTimeout(closeTimer);
-                            closeTimer = null;
-                        }
-                    } else {
-                        // Mouse is NOT over cart, schedule close
-                        if (!closeTimer) {
-                            closeTimer = setTimeout(() => {
-                                cartDropdown.removeAttribute('open');
-                                closeTimer = null;
-                            }, 200);
-                        }
-                    }
+            // When mouse enters summary, keep track
+            cartSummary.addEventListener('mouseenter', function() {
+                isHovering = true;
+                if (closeTimer) {
+                    clearTimeout(closeTimer);
+                    closeTimer = null;
                 }
             });
+            
+            // When mouse leaves summary, start timer
+            cartSummary.addEventListener('mouseleave', function(e) {
+                isHovering = false;
+                // Check if we're moving into the dropdown list
+                const relatedTarget = e.relatedTarget;
+                if (relatedTarget && (relatedTarget === cartList || cartList.contains(relatedTarget))) {
+                    // Moving to dropdown, don't close
+                    return;
+                }
+                startCloseTimer();
+            });
+            
+            // When mouse enters dropdown list
+            if (cartList) {
+                cartList.addEventListener('mouseenter', function() {
+                    isHovering = true;
+                    if (closeTimer) {
+                        clearTimeout(closeTimer);
+                        closeTimer = null;
+                    }
+                });
+                
+                cartList.addEventListener('mouseleave', function(e) {
+                    isHovering = false;
+                    // Check if we're moving back to summary
+                    const relatedTarget = e.relatedTarget;
+                    if (relatedTarget && (relatedTarget === cartSummary || cartSummary.contains(relatedTarget))) {
+                        // Moving back to summary, don't close
+                        return;
+                    }
+                    startCloseTimer();
+                });
+            }
+            
+            function startCloseTimer() {
+                if (closeTimer) return; // Already scheduled
+                closeTimer = setTimeout(function() {
+                    if (!isHovering && cartDropdown.hasAttribute('open')) {
+                        cartDropdown.removeAttribute('open');
+                    }
+                    closeTimer = null;
+                }, 300);
+            }
         }
     </script>
 </body>
