@@ -25,10 +25,11 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
 - **Checkout Login Flow**: Implemented a forced-login flow at checkout. Unauthenticated users are now redirected to the login page and are returned to the checkout process after a successful login.
 - **Project Rollback**: Reverted the project state to commit `47a98fd` to undo a series of buggy changes related to the shopping cart's dynamic features. We are now at a stable state where user management is functional, and the basic cart works.
 - **Dynamic Cart Features**: Successfully implemented cart hover preview and fixed critical caching issues:
-    - **Hover-to-Open Preview**: Cart dropdown now opens automatically when hovering over the cart button, with cart data loading immediately. Closes automatically when mouse moves away. Implemented by:
+    - **Hover-to-Open Preview**: Cart dropdown now opens automatically when hovering over the cart button, with cart data loading immediately. Closes automatically when mouse moves away from the cart area. Implemented by:
         - Moving `mouseenter` event handler from hidden `<ul>` to visible `<summary>` element
         - Using custom `loadcart` event to trigger both dropdown opening and data loading
-        - Adding `mouseleave` event on `details` element to auto-close dropdown
+        - JavaScript-based `mouseleave` handler with 100ms delay timer for smooth transitions
+        - Timer allows hovering over dropdown content without premature closing
         - Ensures hover works even when dropdown is closed (the key issue with previous attempts)
         - Creates a smooth, traditional dropdown menu UX
     - **Comprehensive Caching Fix**: 
