@@ -17,6 +17,7 @@ var store = sessions.NewCookieStore([]byte("something-very-secret"))
 type CartItemView struct {
 	CartItemID int
 	Product    models.Product
+	Quantity   int
 }
 
 type CartViewData struct {
@@ -96,19 +97,21 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if userOk && userID > 0 {
-		// Query by user_id for authenticated users
+		// Query by user_id for authenticated users - group by product and sum quantities
 		rows, err = h.DB.Query(`
-			SELECT ci.id, p.name, p.description, p.price
+			SELECT MIN(ci.id) as id, p.name, p.description, p.price, SUM(ci.quantity) as quantity
 			FROM cart_items ci
 			JOIN products p ON ci.product_id = p.id
-			WHERE ci.user_id = $1`, userID)
+			WHERE ci.user_id = $1
+			GROUP BY p.id, p.name, p.description, p.price`, userID)
 	} else if sessionOk && sessionID != "" {
-		// Query by session_id for anonymous users
+		// Query by session_id for anonymous users - group by product and sum quantities
 		rows, err = h.DB.Query(`
-			SELECT ci.id, p.name, p.description, p.price
+			SELECT MIN(ci.id) as id, p.name, p.description, p.price, SUM(ci.quantity) as quantity
 			FROM cart_items ci
 			JOIN products p ON ci.product_id = p.id
-			WHERE ci.session_id = $1`, sessionID)
+			WHERE ci.session_id = $1
+			GROUP BY p.id, p.name, p.description, p.price`, sessionID)
 	} else {
 		// No session or user - show empty cart
 		data := CartViewData{
@@ -132,13 +135,13 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	var total float64
 	for rows.Next() {
 		var item CartItemView
-		if err := rows.Scan(&item.CartItemID, &item.Product.Name, &item.Product.Description, &item.Product.Price); err != nil {
+		if err := rows.Scan(&item.CartItemID, &item.Product.Name, &item.Product.Description, &item.Product.Price, &item.Quantity); err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)
 			return
 		}
 		items = append(items, item)
-		total += item.Product.Price
+		total += item.Product.Price * float64(item.Quantity)
 	}
 
 	data := CartViewData{

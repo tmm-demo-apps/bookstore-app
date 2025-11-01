@@ -1,8 +1,9 @@
 {{if .}}
     {{range .}}
-        <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; gap: 1.5rem;">
-            <strong style="font-size: 0.875rem; flex: 1;">${{printf "%.2f" .Price}}</strong>
-            <span style="font-size: 0.875rem; text-align: right;">{{.Name}}</span>
+        <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; gap: 1rem;">
+            <strong style="font-size: 0.875rem; white-space: nowrap;">${{printf "%.2f" .Price}}</strong>
+            <span style="font-size: 0.875rem; flex: 1;">{{.Name}}</span>
+            <span style="font-size: 0.875rem; color: var(--muted-color); white-space: nowrap;">×{{.Quantity}}</span>
         </li>
     {{end}}
     <li style="padding: 0.75rem 1rem; border-top: 1px solid var(--muted-border-color);">
