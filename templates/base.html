@@ -62,38 +62,40 @@
             });
             
             function tryClose() {
-                console.log('tryClose() summary=' + mouseOverSummary + ', list=' + mouseOverList);
                 if (closeTimer) clearTimeout(closeTimer);
                 closeTimer = setTimeout(function() {
-                    console.log('Close timer fired! summary=' + mouseOverSummary + ', list=' + mouseOverList);
                     if (!mouseOverSummary && !mouseOverList && cartDropdown.hasAttribute('open')) {
-                        console.log('CLOSING');
                         cartDropdown.removeAttribute('open');
                     }
                     closeTimer = null;
-                }, 300); // Longer delay
+                }, 300);
             }
             
             function tryOpen() {
-                console.log('tryOpen() called, already open=' + cartDropdown.hasAttribute('open'));
                 if (openTimer) clearTimeout(openTimer);
                 openTimer = setTimeout(function() {
-                    console.log('Open timer fired! summary=' + mouseOverSummary + ', list=' + mouseOverList);
                     if (mouseOverSummary && !cartDropdown.hasAttribute('open')) {
-                        console.log('OPENING');
                         htmx.trigger('#cart-summary-container', 'loadcart');
                         cartDropdown.setAttribute('open', '');
                     }
                     openTimer = null;
-                }, 150); // Small delay before opening
+                }, 150);
             }
             
             // Summary events
-            cartSummary.addEventListener('mouseenter', function() {
-                console.log('ENTER summary');
+            cartSummary.addEventListener('mouseenter', function(e) {
+                // Verify mouse is actually over the summary by checking bounding box
+                // This prevents false positive mouseenter events from Pico CSS positioning
+                const rect = cartSummary.getBoundingClientRect();
+                const actuallyOver = e.clientX >= rect.left && e.clientX <= rect.right && 
+                                   e.clientY >= rect.top && e.clientY <= rect.bottom;
+                
+                if (!actuallyOver) {
+                    return; // Ignore false positive
+                }
+                
                 mouseOverSummary = true;
                 if (closeTimer) {
-                    console.log('Canceling close timer');
                     clearTimeout(closeTimer);
                     closeTimer = null;
                 }
@@ -101,7 +103,6 @@
             });
             
             cartSummary.addEventListener('mouseleave', function() {
-                console.log('LEAVE summary');
                 mouseOverSummary = false;
                 if (openTimer) {
                     clearTimeout(openTimer);
@@ -112,10 +113,8 @@
             
             // List events
             cartList.addEventListener('mouseenter', function() {
-                console.log('ENTER list');
                 mouseOverList = true;
                 if (closeTimer) {
-                    console.log('Canceling close timer');
                     clearTimeout(closeTimer);
                     closeTimer = null;
                 }
@@ -126,7 +125,6 @@
             });
             
             cartList.addEventListener('mouseleave', function() {
-                console.log('LEAVE list');
                 mouseOverList = false;
                 tryClose();
             });
