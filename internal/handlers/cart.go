@@ -18,6 +18,7 @@ type CartItemView struct {
 	CartItemID int
 	Product    models.Product
 	Quantity   int
+	Subtotal   float64
 }
 
 type CartViewData struct {
@@ -140,8 +141,9 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", 500)
 			return
 		}
+		item.Subtotal = item.Product.Price * float64(item.Quantity)
 		items = append(items, item)
-		total += item.Product.Price * float64(item.Quantity)
+		total += item.Subtotal
 	}
 
 	data := CartViewData{
