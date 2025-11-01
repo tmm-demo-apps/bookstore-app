@@ -26,12 +26,15 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
 - **Project Rollback**: Reverted the project state to commit `47a98fd` to undo a series of buggy changes related to the shopping cart's dynamic features. We are now at a stable state where user management is functional, and the basic cart works.
 - **Dynamic Cart Features**: Successfully implemented cart hover preview and fixed critical caching issues:
     - **Hover-to-Open Preview**: Cart dropdown now opens automatically when hovering over the cart button, with cart data loading immediately. Closes automatically when mouse moves away from the cart area. Implemented by:
-        - Moving `mouseenter` event handler from hidden `<ul>` to visible `<summary>` element
-        - Using custom `loadcart` event to trigger both dropdown opening and data loading
-        - JavaScript-based `mouseleave` handler with 100ms delay timer for smooth transitions
-        - Timer allows hovering over dropdown content without premature closing
-        - Ensures hover works even when dropdown is closed (the key issue with previous attempts)
-        - Creates a smooth, traditional dropdown menu UX
+        - Moved all hover logic to JavaScript (removed htmx mouseenter handler)
+        - Separate timers for opening (150ms delay) and closing (300ms delay)
+        - Boolean flags track mouse position over summary and list elements
+        - **Critical fix**: Verify mouse position against element bounding box to detect false positive `mouseenter` events
+        - Pico CSS's dropdown positioning was causing spurious events when mouse left dropdown list
+        - Now checks if mouse coordinates are actually within summary bounds before opening
+        - Prevents infinite open/close loop and allows proper hover-away closing
+        - Click outside also closes the dropdown
+        - Creates a smooth, professional dropdown menu UX
     - **Comprehensive Caching Fix**: 
         - Added cache-control meta tags to base HTML template
         - Added cache-control headers to all cart endpoints (`AddToCart`, `RemoveFromCart`, `ViewCart`, `CartCount`, `CartSummary`)
@@ -39,8 +42,6 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
         - This multi-layered approach ensures fresh cart data without requiring users to clear browser cache
     - **User/Session Support**: Updated all cart handlers to properly support both authenticated users (via `user_id`) and anonymous users (via `session_id`).
     - **Auto-refresh**: Cart count and summary now automatically update when items are added or removed using htmx's `cart-updated` event.
-    - **Loading Fix**: Fixed "Loading..." text by using `hx-on:toggle` event on the details element to trigger cart load immediately when dropdown is clicked open.
-    - **Testing**: Created `test_cart.html` file for debugging hover events and validating functionality.
 
 ### Next Steps
 - **Future Enhancements**:
