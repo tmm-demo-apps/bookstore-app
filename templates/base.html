@@ -19,8 +19,7 @@
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
                              hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }">
-                        <summary aria-haspopup="listbox" role="link" class="secondary"
-                                 hx-on:mouseenter="htmx.trigger('#cart-summary-container', 'loadcart'); this.parentElement.setAttribute('open', '');">
+                        <summary aria-haspopup="listbox" role="link" class="secondary">
                             Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body" hx-headers='{"Cache-Control": "no-cache"}'></span>
                         </summary>
                         <ul role="listbox" id="cart-summary-container" 
@@ -51,6 +50,7 @@
         
         if (cartDropdown && cartSummary && cartList) {
             let closeTimer = null;
+            let openTimer = null;
             let mouseOverSummary = false;
             let mouseOverList = false;
             
@@ -62,40 +62,71 @@
             });
             
             function tryClose() {
+                console.log('tryClose() summary=' + mouseOverSummary + ', list=' + mouseOverList);
                 if (closeTimer) clearTimeout(closeTimer);
                 closeTimer = setTimeout(function() {
-                    // Only close if mouse is over neither element
-                    if (!mouseOverSummary && !mouseOverList) {
+                    console.log('Close timer fired! summary=' + mouseOverSummary + ', list=' + mouseOverList);
+                    if (!mouseOverSummary && !mouseOverList && cartDropdown.hasAttribute('open')) {
+                        console.log('CLOSING');
                         cartDropdown.removeAttribute('open');
                     }
                     closeTimer = null;
-                }, 200);
+                }, 300); // Longer delay
+            }
+            
+            function tryOpen() {
+                console.log('tryOpen() called, already open=' + cartDropdown.hasAttribute('open'));
+                if (openTimer) clearTimeout(openTimer);
+                openTimer = setTimeout(function() {
+                    console.log('Open timer fired! summary=' + mouseOverSummary + ', list=' + mouseOverList);
+                    if (mouseOverSummary && !cartDropdown.hasAttribute('open')) {
+                        console.log('OPENING');
+                        htmx.trigger('#cart-summary-container', 'loadcart');
+                        cartDropdown.setAttribute('open', '');
+                    }
+                    openTimer = null;
+                }, 150); // Small delay before opening
             }
             
             // Summary events
             cartSummary.addEventListener('mouseenter', function() {
+                console.log('ENTER summary');
                 mouseOverSummary = true;
                 if (closeTimer) {
+                    console.log('Canceling close timer');
                     clearTimeout(closeTimer);
                     closeTimer = null;
                 }
+                tryOpen();
             });
             
             cartSummary.addEventListener('mouseleave', function() {
+                console.log('LEAVE summary');
                 mouseOverSummary = false;
+                if (openTimer) {
+                    clearTimeout(openTimer);
+                    openTimer = null;
+                }
                 tryClose();
             });
             
             // List events
             cartList.addEventListener('mouseenter', function() {
+                console.log('ENTER list');
                 mouseOverList = true;
                 if (closeTimer) {
+                    console.log('Canceling close timer');
                     clearTimeout(closeTimer);
                     closeTimer = null;
+                }
+                if (openTimer) {
+                    clearTimeout(openTimer);
+                    openTimer = null;
                 }
             });
             
             cartList.addEventListener('mouseleave', function() {
+                console.log('LEAVE list');
                 mouseOverList = false;
                 tryClose();
             });
