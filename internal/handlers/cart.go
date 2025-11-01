@@ -58,6 +58,35 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
+	// Prevent caching
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+
+	cartItemID, err := strconv.Atoi(r.FormValue("cart_item_id"))
+	if err != nil {
+		http.Error(w, "Invalid cart item ID", http.StatusBadRequest)
+		return
+	}
+
+	quantity, err := strconv.Atoi(r.FormValue("quantity"))
+	if err != nil || quantity < 1 || quantity > 99 {
+		http.Error(w, "Invalid quantity", http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.DB.Exec("UPDATE cart_items SET quantity = $1 WHERE id = $2", quantity, cartItemID)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
+
+	w.Header().Set("HX-Trigger", "cart-updated")
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	// Prevent caching
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
