@@ -43,6 +43,60 @@ Create a reusable 12-factor e-commerce template, designed for Kubernetes using t
     - **User/Session Support**: Updated all cart handlers to properly support both authenticated users (via `user_id`) and anonymous users (via `session_id`).
     - **Auto-refresh**: Cart count and summary now automatically update when items are added or removed using htmx's `cart-updated` event.
 
+## November 1, 2025
+
+### Cart Quantity System & Advanced Features
+Implemented a comprehensive quantity management system for the shopping cart with full UI/UX enhancements:
+
+#### Quantity Consolidation
+- **Database-level Aggregation**: Modified cart queries to use `GROUP BY` and `SUM(quantity)` to consolidate duplicate products into single line items
+- **Subtotal Calculation**: Added `Subtotal` field to `CartItemView` struct, calculated as `Price * Quantity` in the Go handler
+- **Display Updates**: Both cart page and dropdown summary now show quantity for each product
+
+#### Interactive Quantity Editor
+- **Integrated Quantity Controls**: Designed seamless +/- buttons with text input field:
+    - Removed individual button borders for a cohesive look
+    - Used `inline-flex` layout with shared border and border-radius
+    - Transparent backgrounds that inherit from card background
+    - Buttons and input visually integrated as a single component
+- **Dynamic JavaScript Updates**:
+    - `adjustQuantity()` function reads current input value and adjusts by ±1
+    - `updateQuantity()` function validates (1-99 range) and sends update to server via fetch
+    - Input validation prevents non-numeric characters
+    - Page reloads after successful update to refresh all totals
+- **Cross-browser Compatibility**: 
+    - Replaced deprecated `onkeypress` with modern `oninput` event
+    - Used regex (`/[^0-9]/g`) to strip non-numeric characters in real-time
+    - Added `inputmode="numeric"` and `pattern="[0-9]*"` attributes
+    - Fixed Firefox compatibility issue where quantity field wasn't editable
+
+#### Cart Count Fix
+- **Total Quantity Display**: Changed cart icon badge from counting rows (`COUNT(id)`) to summing quantities (`SUM(quantity)`)
+- **Real-time Updates**: Cart icon now correctly reflects total item count after quantity adjustments
+- **Example**: Cart with 3× Product A and 2× Product B shows (5), not (2)
+
+#### Backend Support
+- **New Endpoint**: Added `/cart/update` route and `UpdateCartQuantity` handler
+- **SQL Updates**: `UPDATE cart_items SET quantity = $1 WHERE id = $2`
+- **Event Triggering**: Sets `HX-Trigger: cart-updated` header to refresh cart count and summary
+- **Validation**: Server-side quantity limits (1-99) prevent invalid values
+
+#### UI Refinements
+- **Dropdown Order**: Reordered cart summary display to show `ProductName | ×Qty | $Price`
+- **Seamless Design**: Removed boxy containers and bright blue buttons from dropdown for a more integrated look
+- **Consistent Styling**: Used CSS variables (`var(--muted-color)`, `var(--muted-border-color)`) for theme consistency
+
+#### Bug Fixes
+- **Login Cart Error**: Fixed "pq: column ci.user_id does not exist" by applying migration `005_add_user_id_to_cart.sql`
+- **Template Function Error**: Resolved "function mul not defined" by moving subtotal calculation from template to Go handler
+- **Stale Quantity Bug**: Fixed +/- buttons using static template values by implementing dynamic JavaScript that reads current input value
+
+### Technical Implementation Details
+- **Go Template Limitations**: Addressed lack of arithmetic functions by pre-calculating values in handlers
+- **HTMX Integration**: Leveraged `hx-trigger` with custom events for coordinated UI updates
+- **Session Management**: Maintained support for both authenticated (`user_id`) and anonymous (`session_id`) carts throughout all quantity features
+- **Cache Prevention**: Continued comprehensive cache-control strategy across all new endpoints
+
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.
