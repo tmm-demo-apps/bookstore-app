@@ -31,11 +31,11 @@ func (h *Handlers) CartCount(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if userOk && userID > 0 {
-		// Query by user_id for authenticated users
-		err = h.DB.QueryRow("SELECT COUNT(id) FROM cart_items WHERE user_id = $1", userID).Scan(&count)
+		// Sum quantities for authenticated users
+		err = h.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = $1", userID).Scan(&count)
 	} else if sessionOk && sessionID != "" {
-		// Query by session_id for anonymous users
-		err = h.DB.QueryRow("SELECT COUNT(id) FROM cart_items WHERE session_id = $1", sessionID).Scan(&count)
+		// Sum quantities for anonymous users
+		err = h.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE session_id = $1", sessionID).Scan(&count)
 	} else {
 		fmt.Fprint(w, "(0)")
 		return

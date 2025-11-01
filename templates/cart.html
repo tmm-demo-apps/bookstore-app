@@ -26,8 +26,7 @@
                         <div style="display: inline-flex; align-items: stretch; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; background: var(--card-background-color);">
                             <button type="button" 
                                     style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
-                                    onclick="updateQuantity({{.CartItemID}}, {{.Quantity}} - 1)"
-                                    {{if eq .Quantity 1}}disabled style="opacity: 0.3; cursor: not-allowed; border: none; background: transparent; padding: 0.35rem 0.6rem;"{{end}}>−</button>
+                                    onclick="adjustQuantity({{.CartItemID}}, -1)">−</button>
                             <input type="text" value="{{.Quantity}}" 
                                    id="qty-{{.CartItemID}}"
                                    style="width: 45px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.35rem 0.25rem; background: transparent; font-size: 0.9rem;"
@@ -35,7 +34,7 @@
                                    onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                             <button type="button"
                                     style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
-                                    onclick="updateQuantity({{.CartItemID}}, {{.Quantity}} + 1)">+</button>
+                                    onclick="adjustQuantity({{.CartItemID}}, 1)">+</button>
                         </div>
                     </td>
                     <td>${{printf "%.2f" .Subtotal}}</td>
@@ -63,6 +62,13 @@
     <a href="/">Continue Shopping</a>
     
     <script>
+        function adjustQuantity(cartItemId, change) {
+            const input = document.getElementById('qty-' + cartItemId);
+            const currentQty = parseInt(input.value) || 1;
+            const newQty = currentQty + change;
+            updateQuantity(cartItemId, newQty);
+        }
+        
         function updateQuantity(cartItemId, newQuantity) {
             newQuantity = parseInt(newQuantity);
             if (newQuantity < 1) newQuantity = 1;
