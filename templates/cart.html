@@ -31,7 +31,9 @@
                                    id="qty-{{.CartItemID}}"
                                    style="width: 45px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.35rem 0.25rem; background: transparent; font-size: 0.9rem;"
                                    onchange="updateQuantity({{.CartItemID}}, this.value)"
-                                   onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                   inputmode="numeric"
+                                   pattern="[0-9]*">
                             <button type="button"
                                     style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
                                     onclick="adjustQuantity({{.CartItemID}}, 1)">+</button>
