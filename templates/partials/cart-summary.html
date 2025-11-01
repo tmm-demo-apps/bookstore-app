@@ -1,14 +1,22 @@
 {{if .}}
-    <li>
-        <article>
-            <h6>Cart Summary</h6>
+    <li style="padding: 0;">
+        <article style="margin: 0; padding: 1rem; min-width: 250px;">
+            <header style="margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--muted-border-color);">
+                <strong style="font-size: 0.9rem; text-transform: uppercase; color: var(--primary);">Cart Items</strong>
+            </header>
             {{range .}}
-                <p>{{.Name}} - ${{.Price}}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0.25rem 0;">
+                    <span style="font-size: 0.9rem; flex: 1;">{{.Name}}</span>
+                    <strong style="font-size: 0.9rem; color: var(--primary); margin-left: 1rem;">${{printf "%.2f" .Price}}</strong>
+                </div>
             {{end}}
-            <hr>
-            <a href="/cart">Go to Cart</a>
+            <footer style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--muted-border-color); text-align: center;">
+                <a href="/cart" role="button" style="width: 100%; margin: 0;">View Full Cart</a>
+            </footer>
         </article>
     </li>
 {{else}}
-    <li><em>Your cart is empty</em></li>
+    <li style="padding: 1rem; min-width: 200px; text-align: center;">
+        <em style="color: var(--muted-color);">Your cart is empty</em>
+    </li>
 {{end}}
