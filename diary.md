@@ -211,8 +211,109 @@ Enhanced the product listing page with the same quantity management controls use
 - Unique partial indexes (with WHERE clauses) allow NULL values while preventing duplicates
 - All handlers now guarantee single-row-per-product invariant
 
+### Checkout Flow Bug Fix
+**Problem Discovered**: "Proceed to Checkout" button wasn't working for authenticated users. Checkout page showed empty cart despite items being present.
+
+#### Root Cause
+1. **CheckoutPage Handler**: Only queried cart items using `session_id`, but authenticated users' cart items have `user_id` set
+2. **Missing Quantity Support**: Checkout didn't display or calculate quantities properly
+3. **ProcessOrder Handler**: Also only used `session_id`, couldn't find items for authenticated users
+
+#### Fix Implemented
+
+**CheckoutPage Updates**:
+- Added logic to check both `user_id` (authenticated) and `session_id` (anonymous)
+- Updated SQL queries to use `GROUP BY` and `SUM(quantity)` for consolidated display
+- Added quantity and subtotal calculations
+- Redirects to cart if empty (better UX)
+- Now displays: Product, Description, Price, Quantity, Subtotal, Total
+
+**ProcessOrder Updates**:
+- Added user authentication check
+- Support for both `user_id` and `session_id` based cart clearing
+- Updated order item insertion to use `SUM(quantity)` with `GROUP BY`
+- Ensures proper cart cleanup for authenticated users
+
+**Template Updates** (checkout.html):
+- Added Quantity and Subtotal columns
+- Updated total calculation to show accurate sum
+- Changed terminology from "Title/Author" to "Product/Description"
+
+#### Testing Results
+- ✅ Checkout page loads with items (authenticated users)
+- ✅ Quantities displayed correctly
+- ✅ Subtotals calculated: price × quantity
+- ✅ Total calculated: sum of all subtotals
+- ✅ Order processing works
+- ✅ Cart cleared after order completion
+
+---
+
+## Testing Strategy Implementation
+
+### Problem Statement
+We realized with each change we were breaking something else. Need systematic testing to prevent regressions.
+
+### Solution: Comprehensive Testing Framework
+
+**Created TESTING.md** - Complete test plan including:
+1. **Smoke Tests**: Quick tests after every change (13 core tests)
+2. **Regression Tests**: Verify previously fixed bugs don't resurface
+3. **Integration Tests**: Cross-component and cross-browser testing
+4. **Database Integrity Tests**: SQL queries to verify constraints
+5. **Manual Test Script**: 10-minute end-to-end flow for commits
+
+**Created test-smoke.sh** - Automated smoke test script:
+- Uses curl to test all endpoints
+- Creates test users automatically
+- Verifies database integrity
+- Checks for duplicate cart items
+- Validates unique constraints exist
+- Color-coded pass/fail output
+- Exit code 0 = all pass, 1 = failures
+
+**Test Categories**:
+```
+✅ Product Listing (1 test)
+✅ Anonymous Cart Operations (4 tests)
+✅ Authenticated Cart Operations (3 tests)
+✅ Checkout Flow (1 test)
+✅ Database Connectivity (1 test)
+✅ Duplicate Prevention (1 test)
+✅ Constraint Verification (1 test)
+---
+Total: 13 automated tests
+```
+
+#### Usage
+```bash
+# Run smoke tests
+./test-smoke.sh
+
+# Run before every commit
+./test-smoke.sh && git commit -m "message"
+```
+
+#### Test Results (November 4, 2025)
+All 13 smoke tests **PASSED** ✅
+- Server responding
+- Products page loading
+- Cart operations working (anonymous + authenticated)
+- No duplicate cart items in database
+- Unique constraints in place
+- Checkout flow functional
+
+### Testing Workflow Going Forward
+1. **Before coding**: Review TESTING.md for affected areas
+2. **During coding**: Think about test cases
+3. **After coding**: Run `./test-smoke.sh`
+4. **Before commit**: Run full smoke tests + manual spot checks
+5. **After commit**: Note any new test cases needed
+
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.
     - User management (settings, profile, etc.).
     - Order history page for users to view past orders.
+    - Consider adding automated integration tests (Selenium/Playwright)
+    - Add load testing for performance benchmarks

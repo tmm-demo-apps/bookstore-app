@@ -8,9 +8,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>Title</th>
-                    <th>Author</th>
+                    <th>Product</th>
+                    <th>Description</th>
                     <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Subtotal</th>
                 </tr>
             </thead>
             <tbody>
@@ -18,14 +20,16 @@
                 <tr>
                     <td>{{.Product.Name}}</td>
                     <td>{{.Product.Description}}</td>
-                    <td>${{.Product.Price}}</td>
+                    <td>${{printf "%.2f" .Product.Price}}</td>
+                    <td>{{.Quantity}}</td>
+                    <td>${{printf "%.2f" .Subtotal}}</td>
                 </tr>
                 {{end}}
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="2">Total</th>
-                    <th>${{.Total}}</th>
+                    <th colspan="4">Total</th>
+                    <th>${{printf "%.2f" .Total}}</th>
                 </tr>
             </tfoot>
         </table>

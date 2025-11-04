@@ -1,0 +1,212 @@
+#!/bin/bash
+
+# Smoke Test Script for E-commerce Application
+# Run this after every code change to verify core functionality
+
+set -e  # Exit on any error
+
+BASE_URL="http://localhost:8080"
+COOKIE_JAR=$(mktemp)
+TEST_EMAIL="smoke_test_$(date +%s)@example.com"
+TEST_PASSWORD="TestPassword123!"
+
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Test counter
+TESTS_RUN=0
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+function log_test() {
+    echo -e "${YELLOW}[TEST]${NC} $1"
+    TESTS_RUN=$((TESTS_RUN + 1))
+}
+
+function log_pass() {
+    echo -e "${GREEN}[PASS]${NC} $1"
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+}
+
+function log_fail() {
+    echo -e "${RED}[FAIL]${NC} $1"
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+}
+
+function cleanup() {
+    rm -f "$COOKIE_JAR"
+}
+
+trap cleanup EXIT
+
+echo "========================================="
+echo "E-commerce Application Smoke Tests"
+echo "========================================="
+echo ""
+
+# Test 1: Server is running
+log_test "Checking if server is running..."
+if curl -s "$BASE_URL" > /dev/null; then
+    log_pass "Server is running"
+else
+    log_fail "Server is not responding"
+    exit 1
+fi
+
+# Test 2: Products page loads
+log_test "Loading products page..."
+RESPONSE=$(curl -s "$BASE_URL")
+if echo "$RESPONSE" | grep -q "Products"; then
+    log_pass "Products page loaded"
+else
+    log_fail "Products page did not load correctly"
+fi
+
+# Test 3: Cart page is accessible
+log_test "Loading cart page..."
+RESPONSE=$(curl -s "$BASE_URL/cart")
+if echo "$RESPONSE" | grep -q "Shopping Cart"; then
+    log_pass "Cart page loaded"
+else
+    log_fail "Cart page did not load correctly"
+fi
+
+# Test 4: Add item to cart (anonymous)
+log_test "Adding item to cart as anonymous user..."
+RESPONSE=$(curl -s -X POST \
+    -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+    -d "product_id=1&quantity=2" \
+    -w "%{http_code}" \
+    "$BASE_URL/cart/add")
+if echo "$RESPONSE" | grep -q "204"; then
+    log_pass "Item added to cart"
+else
+    log_fail "Failed to add item to cart (HTTP $RESPONSE)"
+fi
+
+# Test 5: Cart count shows items
+log_test "Checking cart count..."
+RESPONSE=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/partials/cart-count")
+if echo "$RESPONSE" | grep -qE "\([1-9][0-9]*\)"; then
+    log_pass "Cart count shows items: $RESPONSE"
+else
+    log_fail "Cart count incorrect: $RESPONSE"
+fi
+
+# Test 6: View cart shows items
+log_test "Viewing cart..."
+RESPONSE=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/cart")
+if echo "$RESPONSE" | grep -q "Shopping Cart"; then
+    log_pass "Cart page shows items"
+else
+    log_fail "Cart page empty or error"
+fi
+
+# Test 7: User registration
+log_test "Registering new user..."
+RESPONSE=$(curl -s -X POST \
+    -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+    -d "email=$TEST_EMAIL&password=$TEST_PASSWORD" \
+    -w "%{http_code}" \
+    -L \
+    "$BASE_URL/signup/process")
+if echo "$RESPONSE" | grep -q "200"; then
+    log_pass "User registered successfully"
+else
+    log_fail "User registration failed"
+fi
+
+# Test 8: User login
+log_test "Logging in..."
+RESPONSE=$(curl -s -X POST \
+    -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+    -d "email=$TEST_EMAIL&password=$TEST_PASSWORD" \
+    -w "%{http_code}" \
+    -L \
+    "$BASE_URL/login/process")
+if echo "$RESPONSE" | grep -q "200"; then
+    log_pass "User logged in successfully"
+else
+    log_fail "User login failed"
+fi
+
+# Test 9: Add item to cart (authenticated)
+log_test "Adding item to cart as authenticated user..."
+RESPONSE=$(curl -s -X POST \
+    -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+    -d "product_id=2&quantity=3" \
+    -w "%{http_code}" \
+    "$BASE_URL/cart/add")
+if echo "$RESPONSE" | grep -q "204"; then
+    log_pass "Item added to cart (authenticated)"
+else
+    log_fail "Failed to add item to cart (authenticated)"
+fi
+
+# Test 10: Checkout page accessible
+log_test "Loading checkout page..."
+RESPONSE=$(curl -s -b "$COOKIE_JAR" -w "%{http_code}" "$BASE_URL/checkout")
+if echo "$RESPONSE" | grep -q "Order Summary"; then
+    log_pass "Checkout page loaded"
+else
+    log_fail "Checkout page did not load"
+fi
+
+# Test 11: Database connectivity
+log_test "Checking database connectivity..."
+DB_TEST=$(docker compose exec -T db psql -U user -d bookstore -c "SELECT 1;" 2>&1)
+if echo "$DB_TEST" | grep -q "1 row"; then
+    log_pass "Database is accessible"
+else
+    log_fail "Database connection failed"
+fi
+
+# Test 12: Check for duplicate cart items
+log_test "Checking for duplicate cart items in database..."
+DUPLICATES=$(docker compose exec -T db psql -U user -d bookstore -t -c "
+    SELECT COUNT(*) FROM (
+        SELECT user_id, product_id, COUNT(*) 
+        FROM cart_items 
+        WHERE user_id IS NOT NULL 
+        GROUP BY user_id, product_id 
+        HAVING COUNT(*) > 1
+    ) dups;" | tr -d ' \n')
+if [ "$DUPLICATES" = "0" ]; then
+    log_pass "No duplicate cart items found"
+else
+    log_fail "Found $DUPLICATES duplicate cart items!"
+fi
+
+# Test 13: Verify unique constraints exist
+log_test "Checking database constraints..."
+CONSTRAINTS=$(docker compose exec -T db psql -U user -d bookstore -t -c "
+    SELECT COUNT(*) FROM pg_indexes 
+    WHERE tablename = 'cart_items' 
+    AND indexname LIKE 'idx_cart_items_%';" | tr -d ' \n')
+if [ "$CONSTRAINTS" -ge "2" ]; then
+    log_pass "Cart item unique constraints exist"
+else
+    log_fail "Missing cart item unique constraints"
+fi
+
+# Summary
+echo ""
+echo "========================================="
+echo "Test Summary"
+echo "========================================="
+echo "Tests Run:    $TESTS_RUN"
+echo -e "Tests Passed: ${GREEN}$TESTS_PASSED${NC}"
+echo -e "Tests Failed: ${RED}$TESTS_FAILED${NC}"
+echo "========================================="
+
+if [ $TESTS_FAILED -eq 0 ]; then
+    echo -e "${GREEN}All tests passed!${NC}"
+    exit 0
+else
+    echo -e "${RED}Some tests failed!${NC}"
+    exit 1
+fi
+
