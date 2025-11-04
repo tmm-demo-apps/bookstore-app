@@ -10,6 +10,7 @@
                 <th>Name</th>
                 <th>Description</th>
                 <th>Price</th>
+                <th>Quantity</th>
                 <th></th>
             </tr>
         </thead>
@@ -20,8 +21,25 @@
                 <td>{{.Description}}</td>
                 <td>${{.Price}}</td>
                 <td>
-                    <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;">
+                    <div style="display: inline-flex; align-items: stretch; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; background: var(--card-background-color);">
+                        <button type="button" 
+                                style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
+                                onclick="adjustProductQuantity({{.ID}}, -1)">−</button>
+                        <input type="text" value="1" 
+                               id="product-qty-{{.ID}}"
+                               style="width: 45px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.35rem 0.25rem; background: transparent; font-size: 0.9rem;"
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                               inputmode="numeric"
+                               pattern="[0-9]*">
+                        <button type="button"
+                                style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
+                                onclick="adjustProductQuantity({{.ID}}, 1)">+</button>
+                    </div>
+                </td>
+                <td>
+                    <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;" onsubmit="setQuantity(event, {{.ID}})">
                         <input type="hidden" name="product_id" value="{{.ID}}">
+                        <input type="hidden" name="quantity" id="form-qty-{{.ID}}" value="1">
                         <button type="submit" class="outline">Add to Cart</button>
                     </form>
                 </td>
@@ -29,4 +47,31 @@
             {{end}}
         </tbody>
     </table>
+    
+    <script>
+        function adjustProductQuantity(productId, change) {
+            const input = document.getElementById('product-qty-' + productId);
+            const currentQty = parseInt(input.value) || 1;
+            let newQty = currentQty + change;
+            
+            // Enforce limits
+            if (newQty < 1) newQty = 1;
+            if (newQty > 99) newQty = 99;
+            
+            input.value = newQty;
+        }
+        
+        function setQuantity(event, productId) {
+            const input = document.getElementById('product-qty-' + productId);
+            const formInput = document.getElementById('form-qty-' + productId);
+            let quantity = parseInt(input.value) || 1;
+            
+            // Enforce limits
+            if (quantity < 1) quantity = 1;
+            if (quantity > 99) quantity = 99;
+            
+            formInput.value = quantity;
+            input.value = quantity;
+        }
+    </script>
 {{end}}

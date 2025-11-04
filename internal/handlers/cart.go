@@ -45,12 +45,25 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	productID, err := strconv.Atoi(r.FormValue("product_id"))
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get quantity from form, default to 1 if not provided
+	quantity := 1
+	if qtyStr := r.FormValue("quantity"); qtyStr != "" {
+		qty, err := strconv.Atoi(qtyStr)
+		if err == nil && qty >= 1 && qty <= 99 {
+			quantity = qty
+		}
+	}
 
 	if userOk {
-		_, err := h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, 1)", userID, productID)
+		_, err := h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, quantity)
 		if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	} else {
-		_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, 1)", sessionID, productID)
+		_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, quantity)
 		if err != nil { http.Error(w, "Internal Server Error", 500); return }
 	}
 

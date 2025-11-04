@@ -1,16 +1,16 @@
 # Project Diary: 12-Factor E-commerce Template
 
 ## 🎯 Quick Status Summary
-**Last Updated:** November 1, 2025  
+**Last Updated:** November 4, 2025  
 **Project Status:** ✅ Fully Functional  
-**Recent Focus:** Advanced shopping cart features with quantity management
+**Recent Focus:** Product page quantity controls
 
 ### What's Working
 - ✅ User authentication (register, login, logout)
-- ✅ Product catalog display
+- ✅ Product catalog display with quantity controls
 - ✅ Shopping cart (add, remove, view)
 - ✅ Hover-to-open cart preview with auto-close
-- ✅ Quantity management with +/- buttons and manual input
+- ✅ Quantity management with +/- buttons and manual input (cart & products)
 - ✅ Cart count badge showing total quantities
 - ✅ PII-free checkout process
 - ✅ Cross-browser compatibility (Chrome, Firefox)
@@ -128,6 +128,37 @@ Implemented a comprehensive quantity management system for the shopping cart wit
 - **HTMX Integration**: Leveraged `hx-trigger` with custom events for coordinated UI updates
 - **Session Management**: Maintained support for both authenticated (`user_id`) and anonymous (`session_id`) carts throughout all quantity features
 - **Cache Prevention**: Continued comprehensive cache-control strategy across all new endpoints
+
+## November 4, 2025
+
+### Product Page Quantity Controls
+Enhanced the product listing page with the same quantity management controls used in the cart:
+
+#### Frontend Implementation
+- **Quantity Controls on Products**: Added integrated +/- buttons with text input to each product row
+- **Visual Consistency**: Used identical styling to cart page (inline-flex layout, shared border, transparent backgrounds)
+- **JavaScript Functions**:
+  - `adjustProductQuantity()` - Increments/decrements quantity with 1-99 limits
+  - `setQuantity()` - Validates and syncs quantity value to hidden form input on submit
+  - Input validation with regex to strip non-numeric characters
+  - Same cross-browser compatibility (inputmode="numeric", pattern="[0-9]*")
+
+#### Backend Enhancement
+- **Updated `AddToCart` Handler**: Now accepts optional `quantity` parameter from form
+- **Smart Defaults**: Quantity defaults to 1 if not provided (backward compatible)
+- **Validation**: Server-side enforcement of 1-99 quantity limits
+- **Error Handling**: Added proper error checking for invalid product IDs
+
+#### User Experience
+- **Multi-item Adding**: Users can now add multiple quantities of a product in one action
+- **Intuitive Interface**: Familiar +/- button pattern from cart page
+- **Real-time Feedback**: Cart count badge updates immediately via htmx `cart-updated` event
+- **No Page Reload**: Seamless addition to cart without leaving product page
+
+#### Technical Details
+- Modified `INSERT` statements in `AddToCart` to use variable quantity instead of hardcoded `1`
+- Added hidden form field `quantity` that syncs with visible input on form submit
+- Form submission via htmx with `hx-post="/cart/add"` maintains existing cart update flow
 
 ### Next Steps
 - **Future Enhancements**:
