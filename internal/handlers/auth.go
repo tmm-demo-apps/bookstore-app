@@ -4,6 +4,7 @@ import (
 	"DemoApp/internal/models"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"strings"
 	"unicode"
@@ -73,6 +74,17 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 
 	// Log the user in by setting the session
 	session, _ := h.Store.Get(r, "cart-session")
+	
+	// Merge anonymous cart with new user account
+	if sessionID, ok := session.Values["id"].(string); ok && sessionID != "" {
+		err := h.mergeAnonymousCart(sessionID, userID)
+		if err != nil {
+			log.Printf("Error merging cart during signup: %v", err)
+			// Continue with signup even if cart merge fails
+		}
+		delete(session.Values, "id") // Remove anonymous session ID
+	}
+	
 	session.Values["user_id"] = userID
 	session.Save(r, w)
 
@@ -83,6 +95,87 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// mergeAnonymousCart merges items from an anonymous session cart into the user's cart
+// This handles the case where a user adds items while not logged in, then logs in
+func (h *Handlers) mergeAnonymousCart(sessionID string, userID int) error {
+	// First, get all products from anonymous cart (outside transaction)
+	type cartProduct struct {
+		ProductID int
+		Quantity  int
+	}
+	
+	rows, err := h.DB.Query(`
+		SELECT product_id, SUM(quantity) as total_quantity
+		FROM cart_items
+		WHERE session_id = $1
+		GROUP BY product_id`, sessionID)
+	if err != nil {
+		return err
+	}
+	
+	var anonymousProducts []cartProduct
+	for rows.Next() {
+		var cp cartProduct
+		if err := rows.Scan(&cp.ProductID, &cp.Quantity); err != nil {
+			rows.Close()
+			return err
+		}
+		anonymousProducts = append(anonymousProducts, cp)
+	}
+	rows.Close()
+	
+	// If no anonymous cart items, nothing to merge
+	if len(anonymousProducts) == 0 {
+		return nil
+	}
+
+	// Now process each product in a transaction
+	tx, err := h.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, ap := range anonymousProducts {
+		// Check if user already has this product in their cart
+		var existingQty int
+		err = tx.QueryRow(`
+			SELECT COALESCE(SUM(quantity), 0) 
+			FROM cart_items 
+			WHERE user_id = $1 AND product_id = $2`, userID, ap.ProductID).Scan(&existingQty)
+		if err != nil {
+			return err
+		}
+
+		// Delete all existing rows for this product+user combination
+		_, err = tx.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, ap.ProductID)
+		if err != nil {
+			return err
+		}
+
+		// Calculate new quantity (merge quantities, cap at 99)
+		newQty := existingQty + ap.Quantity
+		if newQty > 99 {
+			newQty = 99
+		}
+
+		// Insert single consolidated row
+		_, err = tx.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", 
+			userID, ap.ProductID, newQty)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete all items from the anonymous cart
+	_, err = tx.Exec("DELETE FROM cart_items WHERE session_id = $1", sessionID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func validatePassword(password string) error {
@@ -131,9 +224,13 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Associate guest cart with user account
-	if sessionID, ok := session.Values["id"].(string); ok {
-		h.DB.Exec("UPDATE cart_items SET user_id = $1, session_id = NULL WHERE session_id = $2", user.ID, sessionID)
+	// Merge anonymous cart with user account
+	if sessionID, ok := session.Values["id"].(string); ok && sessionID != "" {
+		err := h.mergeAnonymousCart(sessionID, user.ID)
+		if err != nil {
+			log.Printf("Error merging cart: %v", err)
+			// Continue with login even if cart merge fails
+		}
 		delete(session.Values, "id") // Remove anonymous session ID
 	}
 

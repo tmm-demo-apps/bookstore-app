@@ -310,6 +310,59 @@ All 13 smoke tests **PASSED** ✅
 4. **Before commit**: Run full smoke tests + manual spot checks
 5. **After commit**: Note any new test cases needed
 
+### Cart Merging on Login/Signup
+**Problem Discovered**: When users add items to cart while not logged in, then login or signup, their anonymous cart items were lost. This is poor UX - users expect their cart to persist.
+
+#### Root Cause
+The Login handler had basic cart transfer logic (`UPDATE cart_items SET user_id = ... WHERE session_id = ...`), but this:
+1. **Failed silently**: If the user already had the same products in their cart, it created duplicates (violating unique constraints)
+2. **Replaced instead of merged**: Didn't add quantities together
+3. **Only in Login**: Signup handler had no cart merging at all
+
+#### Solution: Intelligent Cart Merging
+
+**Created `mergeAnonymousCart()` helper function**:
+- Queries anonymous cart items (grouped by product with summed quantities)
+- For each product:
+  - Checks if user already has that product
+  - Deletes all existing rows for that product+user
+  - Calculates merged quantity (existing + anonymous, capped at 99)
+  - Inserts single consolidated row
+- Deletes anonymous cart items
+- All wrapped in transaction for atomicity
+
+**Technical Implementation**:
+- Query anonymous cart OUTSIDE transaction (avoid PostgreSQL protocol error)
+- Store results in slice of structs
+- Process each product inside transaction
+- Delete-then-insert pattern ensures no duplicates
+- Works with existing unique constraints
+
+**Applied to both**:
+- **Login handler**: Merges cart when existing user logs in
+- **Signup handler**: Merges cart when new user registers
+
+#### User Experience
+**Before**: 
+- Anonymous: Add Product A (qty 3) → Login → Cart empty 😞
+
+**After**:
+- Anonymous: Add Product A (qty 3) → Login → Cart shows Product A (qty 3) ✅
+- Better: Already have Product A (qty 2) → Add Product A (qty 3) as anonymous → Login → Cart shows Product A (qty 5) ✅
+
+#### Testing
+Added 2 new automated tests (now 15 total):
+1. **Test 14**: Cart merge on signup (anonymous → new user)
+2. **Test 15**: Cart merge with existing items (quantities add together)
+
+**All 15 smoke tests passing** ✅
+
+#### Edge Cases Handled
+- No anonymous cart: No-op, continues normally
+- Quantity overflow: Caps at 99
+- Merge failure: Logs error, continues with login (graceful degradation)
+- Database constraints: Delete-then-insert avoids unique constraint violations
+
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.

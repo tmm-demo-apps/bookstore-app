@@ -192,6 +192,69 @@ else
     log_fail "Missing cart item unique constraints"
 fi
 
+# Test 14: Cart merging on login (anonymous → authenticated)
+log_test "Testing cart merge on login..."
+# Create new cookies for fresh session
+MERGE_COOKIE=$(mktemp)
+MERGE_EMAIL="merge_test_$(date +%s)@example.com"
+
+# Add items as anonymous user
+curl -s -X POST -b "$MERGE_COOKIE" -c "$MERGE_COOKIE" \
+    -d "product_id=1&quantity=3" "$BASE_URL/cart/add" > /dev/null
+
+# Register and auto-login (this should merge the cart)
+curl -s -X POST -b "$MERGE_COOKIE" -c "$MERGE_COOKIE" \
+    -d "email=$MERGE_EMAIL&password=$TEST_PASSWORD" \
+    "$BASE_URL/signup/process" > /dev/null
+
+# Check cart count (should still have items)
+CART_COUNT=$(curl -s -b "$MERGE_COOKIE" "$BASE_URL/partials/cart-count")
+if echo "$CART_COUNT" | grep -qE "\([1-9][0-9]*\)"; then
+    log_pass "Cart merged on signup: $CART_COUNT"
+else
+    log_fail "Cart not merged on signup"
+fi
+
+# Cleanup
+rm -f "$MERGE_COOKIE"
+
+# Test 15: Cart merging with existing items
+log_test "Testing cart merge with existing user cart..."
+MERGE2_COOKIE=$(mktemp)
+MERGE2_EMAIL="merge2_test_$(date +%s)@example.com"
+
+# Register user
+curl -s -X POST -b "$MERGE2_COOKIE" -c "$MERGE2_COOKIE" \
+    -d "email=$MERGE2_EMAIL&password=$TEST_PASSWORD" \
+    "$BASE_URL/signup/process" > /dev/null
+
+# Add item to authenticated cart
+curl -s -X POST -b "$MERGE2_COOKIE" -c "$MERGE2_COOKIE" \
+    -d "product_id=1&quantity=2" "$BASE_URL/cart/add" > /dev/null
+
+# Logout
+curl -s -b "$MERGE2_COOKIE" -c "$MERGE2_COOKIE" "$BASE_URL/logout" > /dev/null
+
+# Add different quantity as anonymous
+curl -s -X POST -b "$MERGE2_COOKIE" -c "$MERGE2_COOKIE" \
+    -d "product_id=1&quantity=3" "$BASE_URL/cart/add" > /dev/null
+
+# Login (should merge: 2 + 3 = 5)
+curl -s -X POST -b "$MERGE2_COOKIE" -c "$MERGE2_COOKIE" \
+    -d "email=$MERGE2_EMAIL&password=$TEST_PASSWORD" \
+    "$BASE_URL/login/process" > /dev/null
+
+# Check cart count (should be 5)
+MERGED_COUNT=$(curl -s -b "$MERGE2_COOKIE" "$BASE_URL/partials/cart-count")
+if echo "$MERGED_COUNT" | grep -q "(5)"; then
+    log_pass "Cart quantities merged correctly: $MERGED_COUNT"
+else
+    log_fail "Cart quantities not merged correctly: $MERGED_COUNT (expected (5))"
+fi
+
+# Cleanup
+rm -f "$MERGE2_COOKIE"
+
 # Summary
 echo ""
 echo "========================================="

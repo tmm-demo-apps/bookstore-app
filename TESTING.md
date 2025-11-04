@@ -67,15 +67,33 @@ Tests that verify previously fixed bugs don't resurface.
 - [ ] Complete order
 - [ ] Verify cart is cleared
 
+#### Bug: Anonymous Cart Not Merged on Login (Fixed Nov 4, 2025)
+- [ ] Add items to cart as anonymous user
+- [ ] Login or signup
+- [ ] Verify anonymous cart items appear in authenticated cart
+- [ ] Verify quantities are merged (not replaced) if items already existed
+- [ ] Verify no duplicate rows in database
+
 ### 3. Integration Tests
 Test interactions between components.
 
-#### Anonymous to Authenticated Flow
-- [ ] Add items to cart as anonymous user
-- [ ] Note cart count
-- [ ] Register/Login
-- [ ] Verify cart is still populated (ideally - not currently implemented)
+#### Anonymous to Authenticated Flow (Cart Merge)
+- [ ] Add items to cart as anonymous user (qty 3)
+- [ ] Note cart count shows (3)
+- [ ] Register new account or Login
+- [ ] Verify cart is still populated with (3) items
+- [ ] Add same product again
+- [ ] Verify quantity increases (not duplicate row)
 - [ ] Complete checkout
+
+#### Cart Merge with Existing Cart
+- [ ] Login as existing user
+- [ ] Add Product A qty 2 to cart
+- [ ] Logout
+- [ ] As anonymous, add Product A qty 3 to cart
+- [ ] Login again
+- [ ] Verify cart shows Product A qty 5 (merged: 2+3)
+- [ ] Verify only one cart row in database for Product A
 
 #### Cross-Browser Tests
 - [ ] Test in Chrome
