@@ -160,6 +160,57 @@ Enhanced the product listing page with the same quantity management controls use
 - Added hidden form field `quantity` that syncs with visible input on form submit
 - Form submission via htmx with `hx-post="/cart/add"` maintains existing cart update flow
 
+### Critical Bug Fix: Duplicate Cart Items
+**Problem Discovered**: When adjusting quantities in the cart, values were jumping erratically (e.g., 28→35→40). Investigation revealed the root cause: multiple duplicate rows existed in the database for the same product+user combination.
+
+#### Root Cause Analysis
+1. **Original Bug**: `AddToCart` handler always executed `INSERT`, creating new rows instead of checking for existing items
+2. **Display Masking**: `ViewCart` used `GROUP BY` with `SUM(quantity)` to consolidate display, hiding the underlying duplicates
+3. **Update Failure**: `UpdateCartQuantity` only updated one row (using `MIN(ci.id)`), leaving other duplicates untouched
+4. **Result**: Cart displayed consolidated view, but updates affected only partial data
+
+#### Comprehensive Fix Implemented
+
+**Backend Changes (cart.go)**:
+1. **AddToCart** - Complete rewrite with deduplication:
+   - Checks for existing cart items: `SELECT SUM(quantity) WHERE user_id/session_id AND product_id`
+   - If exists: `DELETE` all duplicates, then `INSERT` single consolidated row with updated quantity
+   - If new: `INSERT` fresh row
+   - Prevents duplicates at the source
+
+2. **UpdateCartQuantity** - Consolidation logic:
+   - Queries cart item to get `product_id`, `user_id`, `session_id`
+   - Uses `sql.NullInt64` and `sql.NullString` for proper NULL handling
+   - `DELETE` all duplicate rows for product+user/session combination
+   - `INSERT` single row with new quantity
+   - Ensures atomic consolidation on every update
+
+3. **RemoveFromCart** - Complete removal:
+   - Queries cart item metadata (product_id, user_id, session_id)
+   - `DELETE` all duplicates for that product+user/session
+   - Prevents partial removal bugs
+
+**Database Changes (Migration 006)**:
+- Created `006_consolidate_duplicate_cart_items.sql` migration
+- Consolidated 73 duplicate rows from existing cart data
+- Added unique constraints to prevent future duplicates:
+  - `idx_cart_items_user_product` - UNIQUE (user_id, product_id) WHERE user_id IS NOT NULL
+  - `idx_cart_items_session_product` - UNIQUE (session_id, product_id) WHERE session_id IS NOT NULL
+- Database now enforces one row per product per user/session at schema level
+
+#### Testing Results
+- ✅ Existing duplicates cleaned up (73 rows consolidated)
+- ✅ Quantity adjustments now work correctly
+- ✅ AddToCart properly updates existing items instead of creating duplicates
+- ✅ RemoveFromCart removes all instances of a product
+- ✅ Database constraints prevent future duplicate creation
+
+#### Technical Notes
+- Used `sql.NullInt64` and `sql.NullString` for nullable foreign keys
+- Delete-then-insert pattern ensures atomic consolidation
+- Unique partial indexes (with WHERE clauses) allow NULL values while preventing duplicates
+- All handlers now guarantee single-row-per-product invariant
+
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.

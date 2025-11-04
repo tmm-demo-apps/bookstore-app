@@ -60,11 +60,67 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userOk {
-		_, err := h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, quantity)
-		if err != nil { http.Error(w, "Internal Server Error", 500); return }
+		// Check if item already exists for this user and product
+		var existingQty int
+		err := h.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID).Scan(&existingQty)
+		
+		if err == nil && existingQty > 0 {
+			// Update existing item(s) - first, consolidate all duplicates into one
+			_, err = h.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID)
+			if err != nil { 
+				log.Println(err)
+				http.Error(w, "Internal Server Error", 500)
+				return 
+			}
+			// Insert single consolidated row with updated quantity
+			newQty := existingQty + quantity
+			if newQty > 99 { newQty = 99 }
+			_, err = h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, newQty)
+			if err != nil { 
+				log.Println(err)
+				http.Error(w, "Internal Server Error", 500)
+				return 
+			}
+		} else {
+			// Insert new item
+			_, err = h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, quantity)
+			if err != nil { 
+				log.Println(err)
+				http.Error(w, "Internal Server Error", 500)
+				return 
+			}
+		}
 	} else {
-		_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, quantity)
-		if err != nil { http.Error(w, "Internal Server Error", 500); return }
+		// Check if item already exists for this session and product
+		var existingQty int
+		err = h.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID).Scan(&existingQty)
+		
+		if err == nil && existingQty > 0 {
+			// Update existing item(s) - first, consolidate all duplicates into one
+			_, err = h.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID)
+			if err != nil { 
+				log.Println(err)
+				http.Error(w, "Internal Server Error", 500)
+				return 
+			}
+			// Insert single consolidated row with updated quantity
+			newQty := existingQty + quantity
+			if newQty > 99 { newQty = 99 }
+			_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, newQty)
+			if err != nil { 
+				log.Println(err)
+				http.Error(w, "Internal Server Error", 500)
+				return 
+			}
+		} else {
+			// Insert new item
+			_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, quantity)
+			if err != nil { 
+				log.Println(err)
+				http.Error(w, "Internal Server Error", 500)
+				return 
+			}
+		}
 	}
 
 	w.Header().Set("HX-Trigger", "cart-updated")
@@ -89,7 +145,40 @@ func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.DB.Exec("UPDATE cart_items SET quantity = $1 WHERE id = $2", quantity, cartItemID)
+	// Get the product_id and user/session info for this cart item
+	var productID int
+	var userID sql.NullInt64
+	var sessionID sql.NullString
+	err = h.DB.QueryRow("SELECT product_id, user_id, session_id FROM cart_items WHERE id = $1", cartItemID).Scan(&productID, &userID, &sessionID)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Cart item not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete all duplicate rows for this product and user/session
+	if userID.Valid {
+		_, err = h.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID.Int64, productID)
+	} else if sessionID.Valid {
+		_, err = h.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID.String, productID)
+	} else {
+		http.Error(w, "Invalid cart item", http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
+
+	// Insert single consolidated row with new quantity
+	if userID.Valid {
+		_, err = h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID.Int64, productID, quantity)
+	} else {
+		_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID.String, productID, quantity)
+	}
+
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)
@@ -112,7 +201,27 @@ func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.DB.Exec("DELETE FROM cart_items WHERE id = $1", cartItemID)
+	// Get the product_id and user/session info for this cart item
+	var productID int
+	var userID sql.NullInt64
+	var sessionID sql.NullString
+	err = h.DB.QueryRow("SELECT product_id, user_id, session_id FROM cart_items WHERE id = $1", cartItemID).Scan(&productID, &userID, &sessionID)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Cart item not found", http.StatusNotFound)
+		return
+	}
+
+	// Delete all duplicate rows for this product and user/session
+	if userID.Valid {
+		_, err = h.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID.Int64, productID)
+	} else if sessionID.Valid {
+		_, err = h.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID.String, productID)
+	} else {
+		http.Error(w, "Invalid cart item", http.StatusBadRequest)
+		return
+	}
+
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)
