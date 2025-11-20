@@ -10,31 +10,31 @@ import (
 type ProductListViewData struct {
 	IsAuthenticated bool
 	Products        []models.Product
+	SearchQuery     string
 }
 
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.DB.Query("SELECT id, name, description, price FROM products")
+	query := r.URL.Query().Get("q")
+	
+	var products []models.Product
+	var err error
+
+	if query != "" {
+		products, err = h.Repo.Products().SearchProducts(query, 0)
+	} else {
+		products, err = h.Repo.Products().ListProducts()
+	}
+
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	defer rows.Close()
-
-	var products []models.Product
-	for rows.Next() {
-		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price); err != nil {
-			log.Println(err)
-			http.Error(w, "Internal Server Error", 500)
-			return
-		}
-		products = append(products, p)
-	}
 
 	data := ProductListViewData{
 		IsAuthenticated: h.IsAuthenticated(r),
 		Products:        products,
+		SearchQuery:     query,
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/products.html")

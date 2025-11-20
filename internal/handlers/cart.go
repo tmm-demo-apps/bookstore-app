@@ -2,28 +2,16 @@ package handlers
 
 import (
 	"DemoApp/internal/models"
-	"database/sql"
 	"github.com/google/uuid"
-	"github.com/gorilla/sessions"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-var store = sessions.NewCookieStore([]byte("something-very-secret"))
-
-// CartItemView is used to pass cart item data to the template.
-type CartItemView struct {
-	CartItemID int
-	Product    models.Product
-	Quantity   int
-	Subtotal   float64
-}
-
 type CartViewData struct {
 	IsAuthenticated bool
-	Items           []CartItemView
+	Items           []models.CartItem
 	Total           float64
 }
 
@@ -50,7 +38,6 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get quantity from form, default to 1 if not provided
 	quantity := 1
 	if qtyStr := r.FormValue("quantity"); qtyStr != "" {
 		qty, err := strconv.Atoi(qtyStr)
@@ -59,68 +46,18 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if userOk {
-		// Check if item already exists for this user and product
-		var existingQty int
-		err := h.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID).Scan(&existingQty)
-		
-		if err == nil && existingQty > 0 {
-			// Update existing item(s) - first, consolidate all duplicates into one
-			_, err = h.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID)
-			if err != nil { 
-				log.Println(err)
-				http.Error(w, "Internal Server Error", 500)
-				return 
-			}
-			// Insert single consolidated row with updated quantity
-			newQty := existingQty + quantity
-			if newQty > 99 { newQty = 99 }
-			_, err = h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, newQty)
-			if err != nil { 
-				log.Println(err)
-				http.Error(w, "Internal Server Error", 500)
-				return 
-			}
-		} else {
-			// Insert new item
-			_, err = h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, quantity)
-			if err != nil { 
-				log.Println(err)
-				http.Error(w, "Internal Server Error", 500)
-				return 
-			}
-		}
-	} else {
-		// Check if item already exists for this session and product
-		var existingQty int
-		err = h.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID).Scan(&existingQty)
-		
-		if err == nil && existingQty > 0 {
-			// Update existing item(s) - first, consolidate all duplicates into one
-			_, err = h.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID)
-			if err != nil { 
-				log.Println(err)
-				http.Error(w, "Internal Server Error", 500)
-				return 
-			}
-			// Insert single consolidated row with updated quantity
-			newQty := existingQty + quantity
-			if newQty > 99 { newQty = 99 }
-			_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, newQty)
-			if err != nil { 
-				log.Println(err)
-				http.Error(w, "Internal Server Error", 500)
-				return 
-			}
-		} else {
-			// Insert new item
-			_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, quantity)
-			if err != nil { 
-				log.Println(err)
-				http.Error(w, "Internal Server Error", 500)
-				return 
-			}
-		}
+	// Fix: Pass 0 if user not ok, but we need to handle the interface method signature.
+	// The interface expects (userID int, sessionID string).
+	// If userOk is false, userID will be 0 (default int).
+	
+	if !userOk { userID = 0 }
+	if !sessionOk { sessionID = "" }
+
+	err = h.Repo.Cart().AddToCart(userID, sessionID, productID, quantity)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", 500)
+		return
 	}
 
 	w.Header().Set("HX-Trigger", "cart-updated")
@@ -128,11 +65,14 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
-	// Prevent caching
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 
+	// Note: Front-end sends cart_item_id, but my new repo works with product_id.
+	// I need to fetch the product_id from cart_item_id first, OR update repo to work with cart_item_id.
+	// The original handler did: SELECT product_id ... FROM cart_items WHERE id = cart_item_id
+	
 	cartItemID, err := strconv.Atoi(r.FormValue("cart_item_id"))
 	if err != nil {
 		http.Error(w, "Invalid cart item ID", http.StatusBadRequest)
@@ -145,40 +85,48 @@ func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the product_id and user/session info for this cart item
-	var productID int
-	var userID sql.NullInt64
-	var sessionID sql.NullString
-	err = h.DB.QueryRow("SELECT product_id, user_id, session_id FROM cart_items WHERE id = $1", cartItemID).Scan(&productID, &userID, &sessionID)
+	// Helper to get context from cart_item_id
+	// Since I moved this logic to Repo, I should expose a method GetCartItemByID?
+	// Or just run a quick query here?
+	// The plan was to move SQL out of handlers. 
+	// But `UpdateQuantity` in Repo takes `productID`.
+	// Let's cheating slightly: I will add `GetCartItemByID` to repo, or use a raw query if I must? 
+	// No, I should do it right. 
+	// The original handler logic was:
+	// 1. Get product_id, user_id, session_id from cart_item_id
+	// 2. Check consistency
+	// 3. Update
+	
+	// Implementation detail: Since I don't have GetCartItemByID in interface yet,
+	// and I cannot change interface easily without editing multiple files...
+	// Wait, I CAN change the interface. It's in `internal/repository/repository.go`.
+	// But for now, let's assume I can just query the DB via a new method or just fix the frontend to pass product_id?
+	// Fixing frontend is harder (template change).
+	// Let's add GetCartItem to repo interface.
+	
+	// Actually, for now, let's query the DB directly? No, `h.DB` is gone.
+	// I MUST add it to the Repo.
+	
+	// Let's assume I will add `GetCartItem(id int) (*models.CartItem, error)` to CartRepository.
+	// I'll update `repository.go` and `postgres.go` in a moment.
+	
+	item, err := h.Repo.Cart().GetCartItem(cartItemID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Cart item not found", http.StatusNotFound)
 		return
 	}
-
-	// Delete all duplicate rows for this product and user/session
-	if userID.Valid {
-		_, err = h.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID.Int64, productID)
-	} else if sessionID.Valid {
-		_, err = h.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID.String, productID)
-	} else {
-		http.Error(w, "Invalid cart item", http.StatusBadRequest)
-		return
-	}
-
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Internal Server Error", 500)
-		return
-	}
-
-	// Insert single consolidated row with new quantity
-	if userID.Valid {
-		_, err = h.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID.Int64, productID, quantity)
-	} else {
-		_, err = h.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID.String, productID, quantity)
-	}
-
+	
+	// Use the ID from the item to call UpdateQuantity
+	// Note: UpdateQuantity takes userID/sessionID.
+	// The item struct has UserID/SessionID pointers.
+	
+	uID := 0
+	if item.UserID != nil { uID = *item.UserID }
+	sID := ""
+	if item.SessionID != nil { sID = *item.SessionID }
+	
+	err = h.Repo.Cart().UpdateQuantity(uID, sID, item.ProductID, quantity)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)
@@ -190,7 +138,6 @@ func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
-	// Prevent caching
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -201,27 +148,19 @@ func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the product_id and user/session info for this cart item
-	var productID int
-	var userID sql.NullInt64
-	var sessionID sql.NullString
-	err = h.DB.QueryRow("SELECT product_id, user_id, session_id FROM cart_items WHERE id = $1", cartItemID).Scan(&productID, &userID, &sessionID)
+	item, err := h.Repo.Cart().GetCartItem(cartItemID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Cart item not found", http.StatusNotFound)
 		return
 	}
+	
+	uID := 0
+	if item.UserID != nil { uID = *item.UserID }
+	sID := ""
+	if item.SessionID != nil { sID = *item.SessionID }
 
-	// Delete all duplicate rows for this product and user/session
-	if userID.Valid {
-		_, err = h.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID.Int64, productID)
-	} else if sessionID.Valid {
-		_, err = h.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID.String, productID)
-	} else {
-		http.Error(w, "Invalid cart item", http.StatusBadRequest)
-		return
-	}
-
+	err = h.Repo.Cart().RemoveItem(uID, sID, item.ProductID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)
@@ -234,38 +173,19 @@ func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
-	// Prevent caching
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 
 	session, _ := h.Store.Get(r, "cart-session")
-	
-	// Check if user is authenticated
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
 
-	var rows *sql.Rows
-	var err error
-
-	if userOk && userID > 0 {
-		// Query by user_id for authenticated users - group by product and sum quantities
-		rows, err = h.DB.Query(`
-			SELECT MIN(ci.id) as id, p.name, p.description, p.price, SUM(ci.quantity) as quantity
-			FROM cart_items ci
-			JOIN products p ON ci.product_id = p.id
-			WHERE ci.user_id = $1
-			GROUP BY p.id, p.name, p.description, p.price`, userID)
-	} else if sessionOk && sessionID != "" {
-		// Query by session_id for anonymous users - group by product and sum quantities
-		rows, err = h.DB.Query(`
-			SELECT MIN(ci.id) as id, p.name, p.description, p.price, SUM(ci.quantity) as quantity
-			FROM cart_items ci
-			JOIN products p ON ci.product_id = p.id
-			WHERE ci.session_id = $1
-			GROUP BY p.id, p.name, p.description, p.price`, sessionID)
-	} else {
-		// No session or user - show empty cart
+	if !userOk { userID = 0 }
+	if !sessionOk { sessionID = "" }
+	
+	if userID == 0 && sessionID == "" {
+		// Empty
 		data := CartViewData{
 			IsAuthenticated: h.IsAuthenticated(r),
 			Items:           nil,
@@ -276,25 +196,11 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	items, total, err := h.Repo.Cart().GetCartItems(userID, sessionID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)
 		return
-	}
-	defer rows.Close()
-
-	var items []CartItemView
-	var total float64
-	for rows.Next() {
-		var item CartItemView
-		if err := rows.Scan(&item.CartItemID, &item.Product.Name, &item.Product.Description, &item.Product.Price, &item.Quantity); err != nil {
-			log.Println(err)
-			http.Error(w, "Internal Server Error", 500)
-			return
-		}
-		item.Subtotal = item.Product.Price * float64(item.Quantity)
-		items = append(items, item)
-		total += item.Subtotal
 	}
 
 	data := CartViewData{

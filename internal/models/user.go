@@ -2,12 +2,16 @@ package models
 
 import (
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type User struct {
 	ID           int
 	Email        string
 	PasswordHash string
+	FullName     *string
+	Role         string
+	CreatedAt    time.Time
 }
 
 func (u *User) SetPassword(password string) error {

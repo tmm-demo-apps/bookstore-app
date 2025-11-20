@@ -1,0 +1,38 @@
+{{define "title"}}My Orders{{end}}
+
+{{define "content"}}
+<article>
+    <header>
+        <h1>Order History</h1>
+    </header>
+
+    {{if .Orders}}
+        <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">Order ID</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" align="right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Orders}}
+                <tr>
+                    <th scope="row">#{{.ID}}</th>
+                    <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+                    <td>{{.Status}}</td>
+                    <td align="right">${{printf "%.2f" .TotalAmount}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        </figure>
+    {{else}}
+        <p>You haven't placed any orders yet.</p>
+        <a href="/" role="button">Start Shopping</a>
+    {{end}}
+</article>
+{{end}}
+

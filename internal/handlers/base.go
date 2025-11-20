@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"database/sql"
+	"DemoApp/internal/repository"
 	"net/http"
 
 	"github.com/gorilla/sessions"
 )
 
 type Handlers struct {
-	DB    *sql.DB
+	Repo  repository.Repository
 	Store *sessions.CookieStore
 }
 

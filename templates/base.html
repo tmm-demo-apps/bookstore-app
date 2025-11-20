@@ -8,14 +8,49 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <style>
+        /* Custom Header Styles */
+        .header-nav {
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+        .search-bar {
+            flex-grow: 1;
+            margin: 0 2rem !important;
+        }
+        .search-bar input {
+            margin-bottom: 0 !important;
+            height: 2.5rem;
+        }
+        
+        /* Responsive Utils */
+        @media (min-width: 992px) {
+            .mobile-only { display: none !important; }
+        }
+        @media (max-width: 991px) {
+            .desktop-only { display: none !important; }
+            .search-bar { display: none; } /* Simplified for now, could be collapsible */
+        }
+    </style>
 </head>
 <body>
     <main class="container">
-        <nav>
+        <nav class="header-nav">
             <ul>
-                <li><strong><a href="/">Demo Store</a></strong></li>
+                <li><strong><a href="/" class="contrast">Demo Store</a></strong></li>
             </ul>
+            
+            <!-- Search Bar -->
+            <ul class="search-bar">
+                <li style="width: 100%;">
+                    <form action="/" method="get" style="margin-bottom: 0; width: 100%;">
+                        <input type="search" name="q" placeholder="Search products..." aria-label="Search">
+                    </form>
+                </li>
+            </ul>
+
             <ul>
+                <!-- Cart -->
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
                              hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }">
@@ -31,12 +66,39 @@
                         </ul>
                     </details>
                 </li>
+
+                <!-- Desktop Menu -->
                 {{if .IsAuthenticated}}
-                    <li><a href="/logout">Logout</a></li>
+                    <li class="desktop-only">
+                        <details role="list" dir="rtl">
+                            <summary aria-haspopup="listbox" role="link" class="secondary">Account</summary>
+                            <ul role="listbox">
+                                <li><a href="/orders">My Orders</a></li>
+                                <li><a href="/logout">Logout</a></li>
+                            </ul>
+                        </details>
+                    </li>
                 {{else}}
-                    <li><a href="/login">Login</a></li>
-                    <li><a href="/signup" role="button">Sign Up</a></li>
+                    <li class="desktop-only"><a href="/login">Login</a></li>
+                    <li class="desktop-only"><a href="/signup" role="button">Sign Up</a></li>
                 {{end}}
+
+                <!-- Mobile Menu -->
+                <li class="mobile-only">
+                    <details role="list" dir="rtl">
+                        <summary aria-haspopup="listbox" role="link" class="secondary">☰</summary>
+                        <ul role="listbox">
+                             <li><a href="/">Home</a></li>
+                             {{if .IsAuthenticated}}
+                                <li><a href="/orders">My Orders</a></li>
+                                <li><a href="/logout">Logout</a></li>
+                             {{else}}
+                                <li><a href="/login">Login</a></li>
+                                <li><a href="/signup">Sign Up</a></li>
+                             {{end}}
+                        </ul>
+                    </details>
+                 </li>
             </ul>
         </nav>
         {{block "content" .}}{{end}}
