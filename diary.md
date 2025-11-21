@@ -1,11 +1,16 @@
 # Project Diary: 12-Factor E-commerce Template
 
 ## 🎯 Quick Status Summary
-**Last Updated:** November 4, 2025  
-**Project Status:** ✅ Fully Functional  
-**Recent Focus:** Product page quantity controls
+**Last Updated:** November 21, 2025  
+**Project Status:** ✅ Phase 1 Complete + Cart Fixes  
+**Recent Focus:** Cart Ordering & Duplicate Item Bugs
 
 ### What's Working
+- ✅ **Modern Architecture:** Refactored data layer into a `Repository Pattern` (Hexagonal Architecture ready).
+- ✅ **Advanced Schema:** Added Categories, SKUs, Stock Levels, User Roles, and Order History linkage.
+- ✅ **Search:** Full product search functionality (SQL-based, ready for Elasticsearch swap).
+- ✅ **Responsive UI:** New header with mobile "Hamburger" menu and search bar.
+- ✅ **User Features:** "My Orders" page to view purchase history.
 - ✅ User authentication (register, login, logout)
 - ✅ Product catalog display with quantity controls
 - ✅ Shopping cart (add, remove, view)
@@ -29,6 +34,40 @@ The cart system is polished and production-ready. Consider:
 - Order history for logged-in users
 - Payment integration
 - Admin panel for product management
+
+---
+
+## November 20, 2025
+
+### Phase 1: Retail Foundation & Data Prep
+We executed a major architectural overhaul to prepare the application for enterprise VCF demos.
+
+#### 1. Repository Pattern Refactoring
+Moved all raw SQL queries from Handlers into a structured `internal/repository` package.
+- **Why?**: Allows us to swap the backend database (e.g., Postgres -> MariaDB) or Search Engine (SQL -> Elasticsearch) by just changing the interface implementation, without touching the UI code.
+- **Interfaces**: Defined `ProductRepository`, `OrderRepository`, `CartRepository`, `UserRepository`.
+- **Implementation**: Created `PostgresRepository` that implements all interfaces.
+
+#### 2. Schema Expansion
+Upgraded the database schema to support realistic retail scenarios:
+- **Categories**: Created `categories` table (Fiction, Non-Fiction, Tech, etc.).
+- **Products**: Added `sku`, `stock_quantity`, `image_url`, `category_id`, `status`.
+- **Users**: Added `full_name`, `role` (customer/admin), `created_at`.
+- **Orders**: Added `user_id` (linked to Users table), `total_amount`, `status`, `shipping_info` (JSONB).
+
+#### 3. New Features
+- **Search**: Added search bar to header. Backend currently uses SQL `ILIKE`, but is designed to swap for Elasticsearch.
+- **My Orders**: Authenticated users can now see their past orders at `/orders`.
+- **Responsive Header**: Replaced the simple nav with a responsive Grid layout featuring a hamburger menu for mobile devices.
+
+#### 4. Data Seeding
+Created `migrations/008_seed_data.sql` to populate the store with ~20 realistic books across 4 categories with placeholder images.
+
+### Next Steps (Phase 2)
+- Deploy **Redis** for session management.
+- Deploy **Elasticsearch** for advanced search.
+- Deploy **MinIO** for image storage.
+- Create the **Admin Panel** for product management.
 
 ---
 
@@ -122,6 +161,7 @@ Implemented a comprehensive quantity management system for the shopping cart wit
 - **Login Cart Error**: Fixed "pq: column ci.user_id does not exist" by applying migration `005_add_user_id_to_cart.sql`
 - **Template Function Error**: Resolved "function mul not defined" by moving subtotal calculation from template to Go handler
 - **Stale Quantity Bug**: Fixed +/- buttons using static template values by implementing dynamic JavaScript that reads current input value
+- **Logitech Cart Count**: Fixed an issue where cart count would not update when removing items from the cart summary dropdown.
 
 ### Technical Implementation Details
 - **Go Template Limitations**: Addressed lack of arithmetic functions by pre-calculating values in handlers
@@ -363,10 +403,54 @@ Added 2 new automated tests (now 15 total):
 - Merge failure: Logs error, continues with login (graceful degradation)
 - Database constraints: Delete-then-insert avoids unique constraint violations
 
+---
+
+## November 21, 2025
+
+### Bug Fixes: Cart Ordering & Item Management
+
+#### Issues Identified
+1. **Cart items displayed in random order** - Items appeared in database insertion order instead of alphabetically
+2. **Adding existing items replaced quantity** - Adding a product already in cart would reset quantity instead of incrementing
+3. **Homepage products unordered** - Product list had no ORDER BY clause
+
+#### Root Causes
+- Cart query had `ORDER BY p.name` but wasn't being honored due to browser caching
+- `AddToCart()` function checked existing quantity AFTER deleting items (always returned 0)
+- `ListProducts()` query had no ORDER BY clause
+
+#### Solutions Implemented
+1. **Fixed cart ordering**: Simplified query to remove unnecessary `GROUP BY` and `MIN()` aggregation since duplicates are now prevented
+2. **Fixed AddToCart logic**: Moved existing quantity check BEFORE delete operation to properly accumulate quantities
+3. **Added product ordering**: Added `ORDER BY name` to `ListProducts()` query for consistent alphabetical display
+4. **Fixed template field reference**: Changed `.CartItemID` to `.ID` to match `models.CartItem` struct
+
+#### Technical Details
+```sql
+-- New simplified cart query (no duplicates = no need for GROUP BY)
+SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
+FROM cart_items ci
+JOIN products p ON ci.product_id = p.id
+WHERE ci.user_id = $1
+ORDER BY p.name
+```
+
+**AddToCart Flow (Fixed)**:
+1. Query existing quantity
+2. Calculate new quantity (existing + new)
+3. Delete old rows
+4. Insert single consolidated row
+
+#### Testing Results
+✅ Cart items maintain alphabetical order when adding/removing  
+✅ Adding duplicate items increments quantity correctly  
+✅ Homepage products display alphabetically  
+✅ No duplicate cart items created  
+✅ Quantities properly accumulated across multiple adds
+
 ### Next Steps
 - **Future Enhancements**:
     - Expanded product selection and categorization.
     - User management (settings, profile, etc.).
-    - Order history page for users to view past orders.
     - Consider adding automated integration tests (Selenium/Playwright)
     - Add load testing for performance benchmarks
