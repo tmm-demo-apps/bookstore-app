@@ -2,7 +2,6 @@ package repository
 
 import (
 	"DemoApp/internal/models"
-	"database/sql"
 )
 
 type ProductRepository interface {

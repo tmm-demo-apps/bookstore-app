@@ -39,7 +39,7 @@ type postgresProductRepo struct {
 func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 	// Updated query for new schema
 	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
-	          FROM products WHERE status = 'active'`
+	          FROM products WHERE status = 'active' ORDER BY name`
 	rows, err := r.DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 	}
 	if err != nil {
 		tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -228,18 +228,18 @@ func (r *postgresCartRepo) GetCartItems(userID int, sessionID string) ([]models.
 
 	if userID > 0 {
 		rows, err = r.DB.Query(`
-			SELECT MIN(ci.id) as id, ci.product_id, p.name, p.description, p.price, SUM(ci.quantity) as quantity
+			SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
 			FROM cart_items ci
 			JOIN products p ON ci.product_id = p.id
 			WHERE ci.user_id = $1
-			GROUP BY ci.product_id, p.name, p.description, p.price`, userID)
+			ORDER BY p.name`, userID)
 	} else {
 		rows, err = r.DB.Query(`
-			SELECT MIN(ci.id) as id, ci.product_id, p.name, p.description, p.price, SUM(ci.quantity) as quantity
+			SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
 			FROM cart_items ci
 			JOIN products p ON ci.product_id = p.id
 			WHERE ci.session_id = $1
-			GROUP BY ci.product_id, p.name, p.description, p.price`, sessionID)
+			ORDER BY p.name`, sessionID)
 	}
 
 	if err != nil {
@@ -289,38 +289,42 @@ func (r *postgresCartRepo) GetCartItem(id int) (*models.CartItem, error) {
 }
 
 func (r *postgresCartRepo) AddToCart(userID int, sessionID string, productID, quantity int) error {
-	// Same implementation as before
+	// First, get existing quantity BEFORE deleting
 	var existingQty int
 	var err error
-	
 	if userID > 0 {
 		err = r.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID).Scan(&existingQty)
 	} else {
 		err = r.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID).Scan(&existingQty)
 	}
+	if err != nil {
+		existingQty = 0
+	}
 
-	if err == nil && existingQty > 0 {
-		if userID > 0 {
-			_, err = r.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID)
-		} else {
-			_, err = r.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID)
-		}
-		if err != nil { return err }
+	// Calculate new quantity
+	newQty := existingQty + quantity
+	if newQty > 99 {
+		newQty = 99
+	}
+	if newQty < 1 {
+		newQty = 1
+	}
 
-		newQty := existingQty + quantity
-		if newQty > 99 { newQty = 99 }
-		
-		if userID > 0 {
-			_, err = r.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, newQty)
-		} else {
-			_, err = r.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, newQty)
-		}
+	// Delete ALL existing rows for this product (to handle duplicates)
+	if userID > 0 {
+		_, err = r.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID)
 	} else {
-		if userID > 0 {
-			_, err = r.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, quantity)
-		} else {
-			_, err = r.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, quantity)
-		}
+		_, err = r.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Insert new consolidated row with combined quantity
+	if userID > 0 {
+		_, err = r.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, newQty)
+	} else {
+		_, err = r.DB.Exec("INSERT INTO cart_items (session_id, product_id, quantity) VALUES ($1, $2, $3)", sessionID, productID, newQty)
 	}
 	return err
 }
