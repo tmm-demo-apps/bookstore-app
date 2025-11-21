@@ -23,20 +23,20 @@
                     <td>{{.Product.Description}}</td>
                     <td>${{printf "%.2f" .Product.Price}}</td>
                     <td>
-                        <div style="display: inline-flex; align-items: stretch; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; background: var(--card-background-color);">
+                        <div style="display: inline-flex; align-items: stretch; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; background: var(--card-background-color);" data-cart-item-id="{{.ID}}">
                             <button type="button" 
-                                    style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
-                                    onclick="adjustQuantity({{.ID}}, -1)">−</button>
+                                    class="qty-decrease"
+                                    style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;">−</button>
                             <input type="text" value="{{.Quantity}}" 
+                                   class="qty-input"
                                    id="qty-{{.ID}}"
                                    style="width: 45px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.35rem 0.25rem; background: transparent; font-size: 0.9rem;"
-                                   onchange="updateQuantity({{.ID}}, this.value)"
                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                    inputmode="numeric"
                                    pattern="[0-9]*">
                             <button type="button"
-                                    style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
-                                    onclick="adjustQuantity({{.ID}}, 1)">+</button>
+                                    class="qty-increase"
+                                    style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;">+</button>
                         </div>
                     </td>
                     <td>${{printf "%.2f" .Subtotal}}</td>
@@ -64,12 +64,36 @@
     <a href="/">Continue Shopping</a>
     
     <script>
-        function adjustQuantity(cartItemId, change) {
-            const input = document.getElementById('qty-' + cartItemId);
-            const currentQty = parseInt(input.value) || 1;
-            const newQty = currentQty + change;
-            updateQuantity(cartItemId, newQty);
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Event delegation for quantity buttons
+            document.querySelectorAll('.qty-decrease').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const container = this.closest('[data-cart-item-id]');
+                    const cartItemId = container.dataset.cartItemId;
+                    const input = container.querySelector('.qty-input');
+                    const currentQty = parseInt(input.value) || 1;
+                    updateQuantity(cartItemId, currentQty - 1);
+                });
+            });
+            
+            document.querySelectorAll('.qty-increase').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const container = this.closest('[data-cart-item-id]');
+                    const cartItemId = container.dataset.cartItemId;
+                    const input = container.querySelector('.qty-input');
+                    const currentQty = parseInt(input.value) || 1;
+                    updateQuantity(cartItemId, currentQty + 1);
+                });
+            });
+            
+            document.querySelectorAll('.qty-input').forEach(function(input) {
+                input.addEventListener('change', function() {
+                    const container = this.closest('[data-cart-item-id]');
+                    const cartItemId = container.dataset.cartItemId;
+                    updateQuantity(cartItemId, this.value);
+                });
+            });
+        });
         
         function updateQuantity(cartItemId, newQuantity) {
             newQuantity = parseInt(newQuantity);
@@ -82,7 +106,7 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: 'cart_item_id=' + cartItemId + '&quantity=' + newQuantity
-            }).then(response => {
+            }).then(function(response) {
                 if (response.ok) {
                     window.location.reload();
                 }
