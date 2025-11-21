@@ -7,7 +7,7 @@ If I (the AI assistant) have "amnesia" or we are starting a new session, please 
 Hello! We are continuing our work on the 12-factor demo e-commerce application.
 
 ## Project Overview
-*   **Goal:** A reusable 12-factor e-commerce template designed to showcase VMware Cloud Foundation (VCF) 9.0 capabilities, designed to run in Kubernetes.
+*   **Goal:** A demo platform to showcase **VMware Cloud Foundation (VCF) 9.0** capabilities through a real-world e-commerce application. See [`PLANNING.md`](PLANNING.md) for complete vision and three-phase roadmap.
 *   **Tech Stack:** Go 1.24, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
 *   **Current Status:** Phase 1 Complete + Cart Fixes. Fully functional e-commerce application with Repository Pattern architecture, advanced cart features, user authentication, search, and "My Orders" page.
 *   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, you commit the changes to our local Git repository and update the `diary.md` file.
@@ -52,6 +52,7 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 ├── migrations/                          # SQL migrations (8 files including schema expansions)
 ├── kubernetes/                          # K8s manifests (app, postgres, secrets)
 ├── diary.md                             # **READ THIS FIRST** - Complete project history
+├── PLANNING.md                          # **Project vision, roadmap, VCF integration strategy**
 ├── CONTINUITY.md                        # This file
 ├── Dockerfile                           # Multi-stage Go build
 ├── docker-compose.yml                   # Local dev environment
@@ -158,10 +159,9 @@ See `diary.md` for complete list. Key priorities:
 
 **🎯 RESTORE PROCEDURE (After Amnesia)**
 
-**Your first and most important task is to read the `diary.md` file.** It contains:
-- Complete project history in reverse chronological order (latest at top)
-- Detailed technical explanations of all implementations
-- Bug fixes with root cause analysis
-- Next steps and priorities for Phase 2
+**Priority reading order**:
+1. **`PLANNING.md`** - Project vision, VCF 9.0 goals, three-phase roadmap, and feature brainstorming
+2. **`diary.md`** - Complete project history in reverse chronological order (latest at top), detailed technical explanations, bug fixes
+3. **`CONTINUITY.md`** - This file (quick reference)
 
-After reviewing the diary, ask the user what they'd like to work on next, or suggest working on one of the items from "Next Steps (Phase 2)" in the diary.
+After reviewing these documents, ask the user what they'd like to work on next, or suggest working on one of the Phase 2 items from `PLANNING.md`.

@@ -1,9 +1,12 @@
 # Project Diary: 12-Factor E-commerce Template
 
+> **📋 See [`PLANNING.md`](PLANNING.md) for complete project vision, roadmap, and VCF 9.0 integration strategy**
+
 ## 🎯 Quick Status Summary
 **Last Updated:** November 21, 2025  
 **Project Status:** ✅ Phase 1 Complete + Cart Fixes  
-**Recent Focus:** Cart Ordering & Duplicate Item Bugs
+**Recent Focus:** Cart Ordering & Duplicate Item Bugs  
+**Project Goal**: Demo platform to showcase VMware Cloud Foundation (VCF) 9.0 capabilities through real-world e-commerce application
 
 ### What's Working
 - ✅ **Modern Architecture:** Refactored data layer into a `Repository Pattern` (Hexagonal Architecture ready).
