@@ -7,17 +7,19 @@ If I (the AI assistant) have "amnesia" or we are starting a new session, please 
 Hello! We are continuing our work on the 12-factor demo e-commerce application.
 
 ## Project Overview
-*   **Goal:** A reusable 12-factor e-commerce template, designed to run in Kubernetes.
+*   **Goal:** A reusable 12-factor e-commerce template designed to showcase VMware Cloud Foundation (VCF) 9.0 capabilities, designed to run in Kubernetes.
 *   **Tech Stack:** Go 1.24, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
-*   **Current Status:** Fully functional e-commerce application with advanced cart features, user authentication, and quantity management.
+*   **Current Status:** Phase 1 Complete + Cart Fixes. Fully functional e-commerce application with Repository Pattern architecture, advanced cart features, user authentication, search, and "My Orders" page.
 *   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, you commit the changes to our local Git repository and update the `diary.md` file.
 
 ## Key Technologies & Patterns
+*   **Repository Pattern**: All data access abstracted through interfaces in `internal/repository/`, allowing easy database swapping
 *   **HTMX**: For dynamic content loading without full page reloads (cart count, cart summary, etc.)
 *   **Pico.css**: Minimalist CSS framework for consistent, modern UI styling
 *   **Go Templates**: Server-side HTML rendering with conditional logic
 *   **Session Management**: Using `gorilla/sessions` for both authenticated users (`user_id`) and anonymous carts (`session_id`)
 *   **PostgreSQL**: Database with migrations in `migrations/` directory
+*   **12-Factor Methodology**: Externalized config, stateless processes, explicit dependencies
 
 ## File Structure
 ```
@@ -25,22 +27,29 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 ├── cmd/web/main.go                      # Main application entrypoint, route definitions
 ├── internal/
 │   ├── handlers/
+│   │   ├── base.go                      # Base handler struct, authentication helper
 │   │   ├── cart.go                      # Cart operations (add, remove, view, update quantity)
 │   │   ├── partials.go                  # HTMX partials (cart count, cart summary)
-│   │   ├── products.go                  # Product listing
-│   │   ├── users.go                     # User auth (login, register, logout)
-│   │   └── checkout.go                  # Checkout flow
-│   └── models/
-│       ├── product.go                   # Product model
-│       └── user.go                      # User model
+│   │   ├── products.go                  # Product listing & search
+│   │   ├── auth.go                      # User auth (login, register, logout)
+│   │   ├── checkout.go                  # Checkout flow
+│   │   └── orders.go                    # Order history page
+│   ├── models/
+│   │   ├── product.go                   # Product & Category models
+│   │   ├── user.go                      # User model with roles
+│   │   ├── cart.go                      # CartItem model
+│   │   └── order.go                     # Order & OrderItem models
+│   └── repository/
+│       ├── repository.go                # Repository interfaces (Product, Order, Cart, User)
+│       └── postgres.go                  # PostgreSQL implementation of all repositories
 ├── templates/
-│   ├── base.html                        # Base template with nav, cart dropdown with hover logic
-│   ├── partials/
-│   │   └── cart-summary.html            # Cart dropdown content
-│   ├── index.html                       # Product listing page
+│   ├── base.html                        # Base template with responsive header, search, cart dropdown
+│   ├── products.html                    # Product listing page with search
 │   ├── cart.html                        # Full cart page with quantity editor
+│   ├── orders.html                      # Order history page
+│   ├── checkout.html                    # Checkout page
 │   └── ...
-├── migrations/                          # SQL migrations (including cart user_id support)
+├── migrations/                          # SQL migrations (8 files including schema expansions)
 ├── kubernetes/                          # K8s manifests (app, postgres, secrets)
 ├── diary.md                             # **READ THIS FIRST** - Complete project history
 ├── CONTINUITY.md                        # This file
@@ -49,37 +58,55 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 └── go.mod
 ```
 
-## Recent Accomplishments (November 1, 2025)
+## Recent Accomplishments (November 20-21, 2025)
 
-### Advanced Cart System - FULLY WORKING
-We spent significant effort perfecting the shopping cart experience:
+### Phase 1: Repository Pattern & Schema Expansion ✅
+Major architectural overhaul completed:
 
-1. **Hover-to-Open Cart Preview** ✅
-   - Cart dropdown opens automatically on hover (150ms delay)
-   - Closes automatically when mouse leaves (300ms delay)
-   - **Critical Fix**: Bounding box verification prevents false `mouseenter` events from Pico CSS positioning
-   - JavaScript in `templates/base.html` with `mouseOverSummary` and `mouseOverList` flags
+1. **Repository Pattern Refactoring** ✅
+   - All SQL queries moved from handlers to `internal/repository/`
+   - Defined interfaces: ProductRepository, OrderRepository, CartRepository, UserRepository
+   - PostgreSQL implementation in `postgres.go`
+   - Easy to swap databases (e.g., PostgreSQL → MariaDB) without touching handler code
 
-2. **Cart Quantity Management** ✅
-   - Products consolidated by `GROUP BY` in SQL (duplicate products show as one line with quantity)
-   - Integrated +/- buttons with editable text input
-   - Dynamic updates via `adjustQuantity()` and `updateQuantity()` JavaScript functions
-   - Backend endpoint: `/cart/update` updates quantity and triggers `cart-updated` event
-   - Cart icon badge shows total quantity (e.g., "Cart (5)") not product count
+2. **Enhanced Schema** ✅
+   - Added `categories` table (Fiction, Non-Fiction, Tech, Science)
+   - Products: Added `sku`, `stock_quantity`, `image_url`, `category_id`, `status`
+   - Users: Added `full_name`, `role` (customer/admin), `created_at`
+   - Orders: Added `user_id`, `total_amount`, `status`, `shipping_info` (JSONB)
 
-3. **Cross-Browser Compatibility** ✅
-   - Firefox fix: Replaced deprecated `onkeypress` with `oninput` event
-   - Input validation uses regex to strip non-numeric characters
-   - Attributes: `inputmode="numeric"`, `pattern="[0-9]*"`
+3. **New Features** ✅
+   - Search bar in header (SQL ILIKE, ready for Elasticsearch)
+   - "My Orders" page (`/orders`) for authenticated users
+   - Responsive header with hamburger menu for mobile
+   - Data seeding: ~20 realistic books with categories and images
 
-4. **Cache Prevention** ✅
-   - Meta tags in base.html
-   - Cache-control headers on all cart endpoints
-   - `hx-headers='{"Cache-Control": "no-cache"}'` on htmx requests
+### Cart Bug Fixes (November 21, 2025) ✅
+Fixed critical cart ordering and quantity issues:
 
-5. **User/Anonymous Support** ✅
-   - All cart operations support both logged-in users (`user_id`) and anonymous users (`session_id`)
-   - Migration `005_add_user_id_to_cart.sql` added `user_id` column to `cart_items` table
+1. **Alphabetical Ordering** ✅
+   - Cart items now display in alphabetical order by product name
+   - Homepage products also alphabetically ordered
+   - Order remains stable when adding/removing items
+   - Simplified SQL query (removed unnecessary GROUP BY)
+
+2. **Quantity Accumulation** ✅
+   - Adding existing products now increments quantity instead of replacing
+   - Fixed: Query existing quantity BEFORE deleting rows
+   - Delete-then-insert pattern prevents duplicate cart_items
+
+3. **Template Fix** ✅
+   - Changed `.CartItemID` to `.ID` to match `models.CartItem` struct
+
+### Advanced Cart System (Previous Work)
+Fully working cart with sophisticated features:
+
+- **Hover-to-Open Preview**: Automatic dropdown with bounding box verification
+- **Quantity Management**: +/- buttons, editable input, 1-99 range validation
+- **Cross-Browser Compatible**: Works in Chrome, Firefox, Safari
+- **Cache Prevention**: Multi-layered approach (meta tags, headers, htmx)
+- **Cart Merging**: Anonymous cart merges with user account on login/signup
+- **No Duplicates**: Unique constraints + delete-then-insert pattern
 
 ## How to Run Locally
 ```bash
@@ -105,16 +132,36 @@ git commit -m "descriptive message"
 ```
 
 ## Known Issues / Edge Cases
-- None currently! Cart system is working perfectly across all browsers.
+- None currently! All cart bugs fixed as of November 21, 2025.
+
+## Next Steps (Phase 2)
+See `diary.md` for complete list. Key priorities:
+- **UI**: Sticky header bar, enhanced order history page
+- **Infrastructure**: Redis (sessions), Elasticsearch (search), MinIO (images)
+- **Admin**: Product management panel
 
 ## Important Notes
-- **Always update `diary.md`** after completing features or fixing bugs
+- **Always update `diary.md`** after completing features or fixing bugs (latest entries at TOP)
 - **Test in both Chrome and Firefox** for cross-browser compatibility
-- **Cache issues?** Check both server headers and htmx `hx-headers` attributes
-- **Hover issues?** Remember Pico CSS positioning can trigger false mouseenter events - use bounding box checks
+- **Follow CONTINUITY.md workflow** for git commands and commits
+- **Repository Pattern**: All database queries go through `internal/repository/`, NOT directly in handlers
+- **Cart items**: Must prevent duplicates - use delete-then-insert pattern
+- **Alphabetical ordering**: All product/cart lists should ORDER BY name
+
+## Common Debugging Tips
+- **Cart issues?** Check both `user_id` and `session_id` logic in queries
+- **Cache issues?** Multi-layer approach: meta tags + headers + htmx hx-headers
+- **Ordering issues?** Verify `ORDER BY` clause in SQL and check browser cache
+- **Hover issues?** Pico CSS positioning can trigger false mouseenter - use bounding box checks
 
 ---
 
-**Your first and most important task is to read the `diary.md` file.** It contains a complete history of our progress, detailed technical explanations, and our agreed-upon next steps.
+**🎯 RESTORE PROCEDURE (After Amnesia)**
 
-After you have reviewed the diary, ask the user what they'd like to work on next, or suggest working on one of the "Future Enhancements" listed in the diary.
+**Your first and most important task is to read the `diary.md` file.** It contains:
+- Complete project history in reverse chronological order (latest at top)
+- Detailed technical explanations of all implementations
+- Bug fixes with root cause analysis
+- Next steps and priorities for Phase 2
+
+After reviewing the diary, ask the user what they'd like to work on next, or suggest working on one of the items from "Next Steps (Phase 2)" in the diary.
