@@ -11,9 +11,10 @@
 - ✅ **Search:** Full product search functionality (SQL-based, ready for Elasticsearch swap).
 - ✅ **Responsive UI:** New header with mobile "Hamburger" menu and search bar.
 - ✅ **User Features:** "My Orders" page to view purchase history.
+- ✅ **Cart Ordering:** Items display alphabetically and maintain stable order
 - ✅ User authentication (register, login, logout)
 - ✅ Product catalog display with quantity controls
-- ✅ Shopping cart (add, remove, view)
+- ✅ Shopping cart (add, remove, view) with proper quantity accumulation
 - ✅ Hover-to-open cart preview with auto-close
 - ✅ Quantity management with +/- buttons and manual input (cart & products)
 - ✅ Cart count badge showing total quantities
@@ -23,17 +24,74 @@
 - ✅ Modern UI with Pico.css and htmx
 
 ### Key Technical Achievements
+- **Cart Deduplication:** Delete-then-insert pattern prevents duplicate cart_items
+- **Query Optimization:** Simplified cart queries by removing unnecessary aggregation
 - **Hover Logic:** Solved complex Pico CSS dropdown positioning issue with bounding box verification
-- **Quantity System:** Database aggregation with GROUP BY, dynamic JavaScript updates
+- **Quantity System:** Proper accumulation when adding existing items
 - **Cache Control:** Multi-layered approach (meta tags, headers, htmx attributes)
 - **Firefox Compatibility:** Modern `oninput` event instead of deprecated `onkeypress`
 
-### Ready for Next Phase
-The cart system is polished and production-ready. Consider:
-- Product categories/filtering
-- Order history for logged-in users
-- Payment integration
-- Admin panel for product management
+### Next Steps (Phase 2)
+- **UI Enhancements**:
+    - Add **sticky header bar** that stays at the top when scrolling
+    - Improve **product categories/filtering** UI
+    - Enhance **order history** page for logged-in users with more details
+- **Infrastructure**:
+    - Deploy **Redis** for session management
+    - Deploy **Elasticsearch** for advanced search
+    - Deploy **MinIO** for image storage
+- **Admin Features**:
+    - Create **Admin Panel** for product management
+    - Add product inventory management
+- **Future Considerations**:
+    - Payment integration
+    - Automated integration tests (Selenium/Playwright)
+    - Load testing for performance benchmarks
+
+---
+
+## November 21, 2025
+
+### Bug Fixes: Cart Ordering & Item Management
+
+#### Issues Identified
+1. **Cart items displayed in random order** - Items appeared in database insertion order instead of alphabetically
+2. **Adding existing items replaced quantity** - Adding a product already in cart would reset quantity instead of incrementing
+3. **Homepage products unordered** - Product list had no ORDER BY clause
+
+#### Root Causes
+- Cart query had `ORDER BY p.name` but wasn't being honored due to browser caching
+- `AddToCart()` function checked existing quantity AFTER deleting items (always returned 0)
+- `ListProducts()` query had no ORDER BY clause
+
+#### Solutions Implemented
+1. **Fixed cart ordering**: Simplified query to remove unnecessary `GROUP BY` and `MIN()` aggregation since duplicates are now prevented
+2. **Fixed AddToCart logic**: Moved existing quantity check BEFORE delete operation to properly accumulate quantities
+3. **Added product ordering**: Added `ORDER BY name` to `ListProducts()` query for consistent alphabetical display
+4. **Fixed template field reference**: Changed `.CartItemID` to `.ID` to match `models.CartItem` struct
+
+#### Technical Details
+```sql
+-- New simplified cart query (no duplicates = no need for GROUP BY)
+SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
+FROM cart_items ci
+JOIN products p ON ci.product_id = p.id
+WHERE ci.user_id = $1
+ORDER BY p.name
+```
+
+**AddToCart Flow (Fixed)**:
+1. Query existing quantity
+2. Calculate new quantity (existing + new)
+3. Delete old rows
+4. Insert single consolidated row
+
+#### Testing Results
+✅ Cart items maintain alphabetical order when adding/removing  
+✅ Adding duplicate items increments quantity correctly  
+✅ Homepage products display alphabetically  
+✅ No duplicate cart items created  
+✅ Quantities properly accumulated across multiple adds
 
 ---
 
@@ -62,12 +120,6 @@ Upgraded the database schema to support realistic retail scenarios:
 
 #### 4. Data Seeding
 Created `migrations/008_seed_data.sql` to populate the store with ~20 realistic books across 4 categories with placeholder images.
-
-### Next Steps (Phase 2)
-- Deploy **Redis** for session management.
-- Deploy **Elasticsearch** for advanced search.
-- Deploy **MinIO** for image storage.
-- Create the **Admin Panel** for product management.
 
 ---
 
@@ -402,55 +454,3 @@ Added 2 new automated tests (now 15 total):
 - Quantity overflow: Caps at 99
 - Merge failure: Logs error, continues with login (graceful degradation)
 - Database constraints: Delete-then-insert avoids unique constraint violations
-
----
-
-## November 21, 2025
-
-### Bug Fixes: Cart Ordering & Item Management
-
-#### Issues Identified
-1. **Cart items displayed in random order** - Items appeared in database insertion order instead of alphabetically
-2. **Adding existing items replaced quantity** - Adding a product already in cart would reset quantity instead of incrementing
-3. **Homepage products unordered** - Product list had no ORDER BY clause
-
-#### Root Causes
-- Cart query had `ORDER BY p.name` but wasn't being honored due to browser caching
-- `AddToCart()` function checked existing quantity AFTER deleting items (always returned 0)
-- `ListProducts()` query had no ORDER BY clause
-
-#### Solutions Implemented
-1. **Fixed cart ordering**: Simplified query to remove unnecessary `GROUP BY` and `MIN()` aggregation since duplicates are now prevented
-2. **Fixed AddToCart logic**: Moved existing quantity check BEFORE delete operation to properly accumulate quantities
-3. **Added product ordering**: Added `ORDER BY name` to `ListProducts()` query for consistent alphabetical display
-4. **Fixed template field reference**: Changed `.CartItemID` to `.ID` to match `models.CartItem` struct
-
-#### Technical Details
-```sql
--- New simplified cart query (no duplicates = no need for GROUP BY)
-SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
-FROM cart_items ci
-JOIN products p ON ci.product_id = p.id
-WHERE ci.user_id = $1
-ORDER BY p.name
-```
-
-**AddToCart Flow (Fixed)**:
-1. Query existing quantity
-2. Calculate new quantity (existing + new)
-3. Delete old rows
-4. Insert single consolidated row
-
-#### Testing Results
-✅ Cart items maintain alphabetical order when adding/removing  
-✅ Adding duplicate items increments quantity correctly  
-✅ Homepage products display alphabetically  
-✅ No duplicate cart items created  
-✅ Quantities properly accumulated across multiple adds
-
-### Next Steps
-- **Future Enhancements**:
-    - Expanded product selection and categorization.
-    - User management (settings, profile, etc.).
-    - Consider adding automated integration tests (Selenium/Playwright)
-    - Add load testing for performance benchmarks
