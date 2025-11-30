@@ -56,6 +56,93 @@
 
 ## November 30, 2025
 
+### UI Enhancement: Product Images Throughout Site
+
+**Goal**: Add product images to all shopping pages (products, cart) with modern card-based layouts.
+
+#### Features Implemented
+
+**Products Page (Homepage)**:
+- **Card Grid Layout**: Responsive grid (280px min, auto-fill)
+- **Product Images**: Large 250px images with fallback icons
+- **Visual Cards**: Hover effects (lift + shadow)
+- **Better Information Hierarchy**: Image → Title → Description → Price → Actions
+- **Improved Actions**: Quantity controls + Add to Cart in same row
+
+**Cart Page**:
+- **List-Based Layout**: Horizontal cards showing all info at once
+- **Product Thumbnails**: 100px × 130px images with fallback
+- **Enhanced Summary**: Total displayed in prominent card
+- **Better Empty State**: Icon + helpful message + call-to-action
+- **Mobile Responsive**: Stacks to 2 columns on mobile
+
+**Image Handling**:
+- Fallback to 📦 icon for missing images
+- `onerror` handler for broken image URLs
+- Placeholder background color matches theme
+- Graceful degradation
+
+#### Design Improvements
+
+**Before (Table Layout)**:
+- Plain table rows
+- No images
+- Cramped on mobile
+- Limited visual appeal
+
+**After (Card Layout)**:
+- Modern card design
+- Product images prominent
+- Touch-friendly spacing
+- Professional e-commerce look
+
+**CSS Grid Benefits**:
+- Automatic responsive columns
+- Equal height cards
+- Better spacing control
+- Modern browser support
+
+#### Technical Details
+
+**Products Grid**:
+```css
+grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+gap: 1.5rem;
+```
+- Auto-fills columns based on viewport width
+- Minimum 280px per card
+- Equal distribution of space
+
+**Cart Items**:
+```css
+grid-template-columns: 100px 1fr auto auto auto;
+```
+- Fixed image column (100px)
+- Flexible info column (1fr)
+- Auto-sized action columns
+
+#### Mobile Optimization
+- Products: 240px minimum card width
+- Cart: Stacks to 80px image + details
+- Image heights reduced (250px → 200px, 130px → 100px)
+- Touch-friendly buttons and controls
+
+#### Files Modified
+- `templates/products.html`: Complete redesign with card grid
+- `templates/cart.html`: Card-based list layout
+- Both: Added image handling and fallbacks
+
+#### Test Results
+- ✅ All 15 smoke tests passing
+- ✅ Product grid displays correctly
+- ✅ Images load or show fallback icon
+- ✅ Cart shows product images
+- ✅ Quantity controls still functional
+- ✅ Add to cart works from new layout
+- ✅ Mobile responsive breakpoints work
+
+---
+
 ### UI Enhancement: Order History Page with Full Details
 
 **Goal**: Transform the basic order history page into a rich, detailed view with expandable orders showing all items purchased.

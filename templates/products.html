@@ -3,54 +3,329 @@
 {{define "title"}}Products{{end}}
 
 {{define "content"}}
-    <h1>Products</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th>Quantity</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Products}}
-            <tr>
-                <td>{{.Name}}</td>
-                <td>{{.Description}}</td>
-                <td>${{.Price}}</td>
-                <td>
-                    <div style="display: inline-flex; align-items: stretch; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; background: var(--card-background-color);">
-                        <button type="button" 
-                                style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
-                                onclick="adjustProductQuantity({{.ID}}, -1)">−</button>
-                        <input type="text" value="1" 
-                               id="product-qty-{{.ID}}"
-                               style="width: 45px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.35rem 0.25rem; background: transparent; font-size: 0.9rem;"
-                               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                               inputmode="numeric"
-                               pattern="[0-9]*">
-                        <button type="button"
-                                style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;"
-                                onclick="adjustProductQuantity({{.ID}}, 1)">+</button>
-                    </div>
-                </td>
-                <td>
-                    <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;" onsubmit="setQuantity(event, {{.ID}})">
-                        <input type="hidden" name="product_id" value="{{.ID}}">
-                        <input type="hidden" name="quantity" id="form-qty-{{.ID}}" value="1">
-                        <button type="submit" class="outline">Add to Cart</button>
-                    </form>
-                </td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+<style>
+    .view-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .toggle-buttons {
+        display: inline-flex;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+    
+    .toggle-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--color);
+        transition: background 0.2s;
+    }
+    
+    .toggle-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .toggle-btn:hover:not(.active) {
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    .product-card {
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        background: var(--card-background-color);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .product-image {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .product-image-placeholder {
+        width: 100%;
+        height: 250px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-sectionning-background-color);
+        font-size: 4rem;
+    }
+    
+    .product-info {
+        padding: 1rem;
+    }
+    
+    .product-name {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .product-description {
+        color: var(--muted-color);
+        font-size: 0.9rem;
+        margin: 0 0 0.75rem 0;
+        line-height: 1.4;
+    }
+    
+    .product-price {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+    
+    .product-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .qty-controls {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        background: var(--card-background-color);
+    }
+    
+    .qty-btn {
+        border: none;
+        background: transparent;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        color: var(--muted-color);
+        font-size: 0.9rem;
+        transition: color 0.2s;
+    }
+    
+    .qty-btn:hover {
+        color: var(--color);
+    }
+    
+    .qty-input {
+        width: 40px;
+        text-align: center;
+        border: none;
+        border-left: 1px solid var(--muted-border-color);
+        border-right: 1px solid var(--muted-border-color);
+        padding: 0.25rem 0.25rem;
+        background: transparent;
+        font-size: 0.85rem;
+    }
+    
+    /* Table View Styles */
+    .product-table {
+        display: none;
+    }
+    
+    .product-table.active {
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .product-table th,
+    .product-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--muted-border-color);
+    }
+    
+    .product-table th {
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .product-table .table-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: var(--border-radius);
+    }
+    
+    .product-table .table-image-placeholder {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        font-size: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+        
+        .product-image,
+        .product-image-placeholder {
+            height: 200px;
+        }
+        
+        .toggle-buttons {
+            display: none;
+        }
+    }
+</style>
+
+<div class="view-toggle">
+    <h1 style="margin: 0;">Products</h1>
+    <div class="toggle-buttons">
+        <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn">
+            <span>🔲 Tiles</span>
+        </button>
+        <button class="toggle-btn" onclick="setView('table')" id="table-btn">
+            <span>☰ Table</span>
+        </button>
+    </div>
+</div>
+
+<div class="product-grid" id="product-grid">
+    {{range .Products}}
+    <article class="product-card">
+        {{if .ImageURL}}
+        <img src="{{.ImageURL}}" alt="{{.Name}}" class="product-image" 
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="product-image-placeholder" style="display:none;">📦</div>
+        {{else}}
+        <div class="product-image-placeholder">📦</div>
+        {{end}}
+        
+        <div class="product-info">
+            <h3 class="product-name">{{.Name}}</h3>
+            <p class="product-description">{{.Description}}</p>
+            <div class="product-price">${{printf "%.2f" .Price}}</div>
+            
+            <div class="product-actions">
+                <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
+                    <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
+                    <input type="text" value="1" id="product-qty-{{.ID}}"
+                           style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.25rem; background: transparent; font-size: 0.85rem;"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                           inputmode="numeric" pattern="[0-9]*">
+                    <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+                </div>
+                
+                <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" onsubmit="setQuantity(event, {{.ID}})">
+                    <input type="hidden" name="product_id" value="{{.ID}}">
+                    <input type="hidden" name="quantity" id="form-qty-{{.ID}}" value="1">
+                    <button type="submit" style="width: 100%; padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
+                </form>
+            </div>
+        </div>
+    </article>
+    {{end}}
+</div>
+
+<table class="product-table" id="product-table">
+    <thead>
+        <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Products}}
+        <tr>
+            <td>
+                {{if .ImageURL}}
+                <img src="{{.ImageURL}}" alt="{{.Name}}" class="table-image"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="table-image-placeholder" style="display:none;">📦</div>
+                {{else}}
+                <div class="table-image-placeholder">📦</div>
+                {{end}}
+            </td>
+            <td><strong>{{.Name}}</strong></td>
+            <td>{{.Description}}</td>
+            <td><strong>${{printf "%.2f" .Price}}</strong></td>
+            <td>
+                <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
+                    <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
+                    <input type="text" value="1" id="product-qty-table-{{.ID}}"
+                           style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.25rem; background: transparent; font-size: 0.85rem;"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                           inputmode="numeric" pattern="[0-9]*">
+                    <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+                </div>
+            </td>
+            <td>
+                <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;" onsubmit="setQuantity(event, {{.ID}}, 'table')">
+                    <input type="hidden" name="product_id" value="{{.ID}}">
+                    <input type="hidden" name="quantity" id="form-qty-table-{{.ID}}" value="1">
+                    <button type="submit" class="outline" style="padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
+                </form>
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
     
     <script>
+        // View toggle
+        function setView(view) {
+            const grid = document.getElementById('product-grid');
+            const table = document.getElementById('product-table');
+            const gridBtn = document.getElementById('grid-btn');
+            const tableBtn = document.getElementById('table-btn');
+            
+            if (view === 'grid') {
+                grid.style.display = 'grid';
+                table.classList.remove('active');
+                gridBtn.classList.add('active');
+                tableBtn.classList.remove('active');
+                localStorage.setItem('productView', 'grid');
+            } else {
+                grid.style.display = 'none';
+                table.classList.add('active');
+                gridBtn.classList.remove('active');
+                tableBtn.classList.add('active');
+                localStorage.setItem('productView', 'table');
+            }
+        }
+        
+        // Restore view preference on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedView = localStorage.getItem('productView') || 'grid';
+            setView(savedView);
+        });
+        
         function adjustProductQuantity(productId, change) {
-            const input = document.getElementById('product-qty-' + productId);
+            // Update both grid and table inputs
+            const gridInput = document.getElementById('product-qty-' + productId);
+            const tableInput = document.getElementById('product-qty-table-' + productId);
+            
+            const input = gridInput || tableInput;
             const currentQty = parseInt(input.value) || 1;
             let newQty = currentQty + change;
             
@@ -58,12 +333,17 @@
             if (newQty < 1) newQty = 1;
             if (newQty > 99) newQty = 99;
             
-            input.value = newQty;
+            // Sync both inputs
+            if (gridInput) gridInput.value = newQty;
+            if (tableInput) tableInput.value = newQty;
         }
         
-        function setQuantity(event, productId) {
-            const input = document.getElementById('product-qty-' + productId);
-            const formInput = document.getElementById('form-qty-' + productId);
+        function setQuantity(event, productId, view) {
+            const prefix = view === 'table' ? 'product-qty-table-' : 'product-qty-';
+            const formPrefix = view === 'table' ? 'form-qty-table-' : 'form-qty-';
+            
+            const input = document.getElementById(prefix + productId);
+            const formInput = document.getElementById(formPrefix + productId);
             let quantity = parseInt(input.value) || 1;
             
             // Enforce limits

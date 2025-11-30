@@ -3,65 +3,209 @@
 {{define "title"}}Shopping Cart{{end}}
 
 {{define "content"}}
-    <h1>Your Shopping Cart</h1>
-    {{if .Items}}
-        <table>
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Description</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Subtotal</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .Items}}
-                <tr>
-                    <td>{{.Product.Name}}</td>
-                    <td>{{.Product.Description}}</td>
-                    <td>${{printf "%.2f" .Product.Price}}</td>
-                    <td>
-                        <div style="display: inline-flex; align-items: stretch; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; background: var(--card-background-color);" data-cart-item-id="{{.ID}}">
-                            <button type="button" 
-                                    class="qty-decrease"
-                                    style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;">−</button>
-                            <input type="text" value="{{.Quantity}}" 
-                                   class="qty-input"
-                                   id="qty-{{.ID}}"
-                                   style="width: 45px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.35rem 0.25rem; background: transparent; font-size: 0.9rem;"
-                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                   inputmode="numeric"
-                                   pattern="[0-9]*">
-                            <button type="button"
-                                    class="qty-increase"
-                                    style="border: none; background: transparent; padding: 0.35rem 0.6rem; cursor: pointer; color: var(--color); font-size: 1rem;">+</button>
-                        </div>
-                    </td>
-                    <td>${{printf "%.2f" .Subtotal}}</td>
-                    <td>
-                        <form hx-post="/cart/remove" hx-swap="none" style="margin-bottom: 0;">
-                            <input type="hidden" name="cart_item_id" value="{{.ID}}">
-                            <button type="submit" class="secondary outline">Remove</button>
-                        </form>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th colspan="4">Total</th>
-                    <th>${{printf "%.2f" .Total}}</th>
-                    <th></th>
-                </tr>
-            </tfoot>
-        </table>
-        <a href="/checkout" role="button">Proceed to Checkout</a>
-    {{else}}
-        <p>Your cart is empty.</p>
+<style>
+    .cart-item {
+        display: grid;
+        grid-template-columns: 80px 1fr auto auto auto auto;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        background: var(--card-background-color);
+        align-items: center;
+    }
+    
+    .cart-item-image {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: var(--border-radius);
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .cart-item-image-placeholder {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        font-size: 2rem;
+    }
+    
+    .cart-item-info h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+    }
+    
+    .cart-item-info p {
+        margin: 0;
+        color: var(--muted-color);
+        font-size: 0.85rem;
+        line-height: 1.3;
+    }
+    
+    .cart-item-price {
+        font-size: 1rem;
+        white-space: nowrap;
+    }
+    
+    .cart-qty-controls {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        background: var(--card-background-color);
+    }
+    
+    .cart-qty-btn {
+        border: none;
+        background: transparent;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        color: var(--muted-color);
+        font-size: 0.9rem;
+        transition: color 0.2s;
+    }
+    
+    .cart-qty-btn:hover {
+        color: var(--color);
+    }
+    
+    .cart-qty-input {
+        width: 40px;
+        text-align: center;
+        border: none;
+        border-left: 1px solid var(--muted-border-color);
+        border-right: 1px solid var(--muted-border-color);
+        padding: 0.25rem 0.25rem;
+        background: transparent;
+        font-size: 0.85rem;
+    }
+    
+    .cart-item-subtotal {
+        font-size: 1.1rem;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    
+    .cart-summary {
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        background: var(--card-sectionning-background-color);
+        margin: 2rem 0;
+    }
+    
+    .cart-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+    
+    .empty-cart {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    
+    .empty-cart svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    @media (max-width: 768px) {
+        .cart-item {
+            grid-template-columns: 60px 1fr;
+            gap: 0.75rem;
+            padding: 0.75rem;
+        }
+        
+        .cart-item-image,
+        .cart-item-image-placeholder {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+        
+        .cart-item-price,
+        .cart-qty-controls,
+        .cart-item-subtotal,
+        .cart-item-remove {
+            grid-column: 2;
+        }
+    }
+</style>
+
+<h1>Your Shopping Cart</h1>
+
+{{if .Items}}
+    {{range .Items}}
+    <div class="cart-item">
+        {{if .Product.ImageURL}}
+        <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="cart-item-image"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="cart-item-image-placeholder" style="display:none;">📦</div>
+        {{else}}
+        <div class="cart-item-image-placeholder">📦</div>
+        {{end}}
+        
+        <div class="cart-item-info">
+            <h3>{{.Product.Name}}</h3>
+            <p>{{.Product.Description}}</p>
+        </div>
+        
+        <div class="cart-item-price">
+            ${{printf "%.2f" .Product.Price}}
+        </div>
+        
+        <div class="cart-qty-controls" data-cart-item-id="{{.ID}}" style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
+            <button type="button" class="qty-decrease" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
+            <input type="text" value="{{.Quantity}}" class="qty-input" id="qty-{{.ID}}"
+                   style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.25rem; background: transparent; font-size: 0.85rem;"
+                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                   inputmode="numeric" pattern="[0-9]*">
+            <button type="button" class="qty-increase" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+        </div>
+        
+        <div class="cart-item-subtotal">
+            ${{printf "%.2f" .Subtotal}}
+        </div>
+        
+        <div class="cart-item-remove">
+            <form hx-post="/cart/remove" hx-swap="none" style="margin-bottom: 0;">
+                <input type="hidden" name="cart_item_id" value="{{.ID}}">
+                <button type="submit" class="secondary outline" style="padding: 0.25rem 0.75rem; font-size: 0.85rem;">Remove</button>
+            </form>
+        </div>
+    </div>
     {{end}}
-    <a href="/">Continue Shopping</a>
+    
+    <div class="cart-summary">
+        <div class="cart-total">
+            <span>Total:</span>
+            <span>${{printf "%.2f" .Total}}</span>
+        </div>
+        <a href="/checkout" role="button" style="width: 100%; margin-bottom: 0.5rem;">Proceed to Checkout</a>
+        <a href="/" role="button" class="secondary outline" style="width: 100%;">Continue Shopping</a>
+    </div>
+{{else}}
+    <div class="empty-cart">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <h3>Your cart is empty</h3>
+        <p>Add some products to get started!</p>
+        <a href="/" role="button">Browse Products</a>
+    </div>
+{{end}}
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
