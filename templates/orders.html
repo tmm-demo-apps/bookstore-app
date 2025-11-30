@@ -1,37 +1,220 @@
+{{template "base.html" .}}
+
 {{define "title"}}My Orders{{end}}
 
 {{define "content"}}
+<style>
+    .order-card {
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+    
+    .order-header {
+        padding: 1rem 1.5rem;
+        background: var(--card-background-color);
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        gap: 1rem;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+    
+    .order-header:hover {
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .order-id {
+        font-weight: bold;
+        color: var(--primary);
+    }
+    
+    .order-date {
+        color: var(--muted-color);
+        font-size: 0.9rem;
+    }
+    
+    .order-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+    
+    .status-completed {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-processing {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .order-total {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .order-details {
+        padding: 0 1.5rem 1.5rem 1.5rem;
+        background: var(--card-sectionning-background-color);
+        border-top: 1px solid var(--muted-border-color);
+    }
+    
+    .order-items {
+        margin-top: 1rem;
+    }
+    
+    .order-item {
+        display: grid;
+        grid-template-columns: 60px 1fr auto auto;
+        gap: 1rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--muted-border-color);
+        align-items: center;
+    }
+    
+    .order-item:last-child {
+        border-bottom: none;
+    }
+    
+    .item-image {
+        width: 60px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 4px;
+        background: var(--muted-border-color);
+    }
+    
+    .item-info h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+    }
+    
+    .item-info p {
+        margin: 0;
+        color: var(--muted-color);
+        font-size: 0.9rem;
+    }
+    
+    .item-quantity {
+        color: var(--muted-color);
+    }
+    
+    .item-price {
+        font-weight: bold;
+        text-align: right;
+    }
+    
+    .expand-icon {
+        transition: transform 0.3s;
+        font-size: 1.2rem;
+    }
+    
+    .order-details[open] .expand-icon {
+        transform: rotate(180deg);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    @media (max-width: 768px) {
+        .order-header {
+            grid-template-columns: 1fr auto;
+            gap: 0.5rem;
+        }
+        
+        .order-date {
+            grid-column: 1 / -1;
+        }
+        
+        .order-item {
+            grid-template-columns: 50px 1fr;
+            gap: 0.75rem;
+        }
+        
+        .item-quantity,
+        .item-price {
+            grid-column: 2;
+        }
+    }
+</style>
+
 <article>
     <header>
         <h1>Order History</h1>
     </header>
 
     {{if .Orders}}
-        <figure>
-        <table role="grid">
-            <thead>
-                <tr>
-                    <th scope="col">Order ID</th>
-                    <th scope="col">Date</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" align="right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .Orders}}
-                <tr>
-                    <th scope="row">#{{.ID}}</th>
-                    <td>{{.CreatedAt.Format "Jan 02, 2006"}}</td>
-                    <td>{{.Status}}</td>
-                    <td align="right">${{printf "%.2f" .TotalAmount}}</td>
-                </tr>
+        {{range .Orders}}
+        <details class="order-card">
+            <summary class="order-header">
+                <span class="order-id">Order #{{.ID}}</span>
+                <span class="order-date">{{.CreatedAt.Format "Monday, January 2, 2006 at 3:04 PM"}}</span>
+                <span class="order-status status-{{.Status}}">{{.Status}}</span>
+                <span class="order-total">${{printf "%.2f" .TotalAmount}}</span>
+            </summary>
+            
+            <div class="order-details">
+                {{if .Items}}
+                <div class="order-items">
+                    <h3>Items ({{len .Items}})</h3>
+                    {{range .Items}}
+                    <div class="order-item">
+                        {{if .Product.ImageURL}}
+                        <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="item-image">
+                        {{else}}
+                        <div class="item-image"></div>
+                        {{end}}
+                        
+                        <div class="item-info">
+                            <h4>{{.Product.Name}}</h4>
+                            <p>{{.Product.Description}}</p>
+                        </div>
+                        
+                        <div class="item-quantity">
+                            Qty: {{.Quantity}}
+                        </div>
+                        
+                        <div class="item-price">
+                            ${{printf "%.2f" .Price}}
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{else}}
+                <p style="color: var(--muted-color); margin-top: 1rem;">No items found for this order.</p>
                 {{end}}
-            </tbody>
-        </table>
-        </figure>
+            </div>
+        </details>
+        {{end}}
     {{else}}
-        <p>You haven't placed any orders yet.</p>
-        <a href="/" role="button">Start Shopping</a>
+        <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <h3>No Orders Yet</h3>
+            <p>You haven't placed any orders yet.</p>
+            <a href="/" role="button">Start Shopping</a>
+        </div>
     {{end}}
 </article>
 {{end}}

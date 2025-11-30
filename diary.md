@@ -56,6 +56,106 @@
 
 ## November 30, 2025
 
+### UI Enhancement: Order History Page with Full Details
+
+**Goal**: Transform the basic order history page into a rich, detailed view with expandable orders showing all items purchased.
+
+#### Features Implemented
+
+1. **Card-Based Layout**: Modern card design for each order
+2. **Expandable Details**: Click to expand and see all items in an order
+3. **Rich Product Display**: Shows product images, names, descriptions, quantities, and prices
+4. **Status Badges**: Color-coded status indicators (completed, pending, processing)
+5. **Responsive Design**: Mobile-optimized grid layout
+6. **Enhanced Date Formatting**: Full date with time for better clarity
+7. **Empty State**: Beautiful empty state with icon when no orders exist
+
+#### Technical Implementation
+
+**Repository Enhancement** (`internal/repository/postgres.go`):
+- Modified `GetOrdersByUserID` to eagerly load order items with product details
+- Added JOIN query to fetch products for each order item:
+  ```sql
+  SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price,
+         p.id, p.name, p.description, p.price, p.image_url
+  FROM order_items oi
+  JOIN products p ON oi.product_id = p.id
+  WHERE oi.order_id = $1
+  ```
+- N+1 query pattern (acceptable for order history use case)
+
+**Template Redesign** (`templates/orders.html`):
+- Used HTML5 `<details>` element for native expandable functionality
+- CSS Grid layout for responsive design
+- Status badges with semantic colors
+- Product cards with image thumbnails
+- Mobile-first breakpoints at 768px
+
+**Handler Improvements** (`internal/handlers/orders.go`):
+- Added debug logging for troubleshooting
+- Proper error handling with user-friendly messages
+- Template execution error checking
+
+#### Design Features
+
+**Order Card Structure**:
+- Order ID (clickable to expand)
+- Date (Monday, January 2, 2006 at 3:04 PM)
+- Status badge (color-coded)
+- Total amount (prominent)
+
+**Order Details** (expanded):
+- Item count header
+- Product grid with:
+  - 60x80px image thumbnail
+  - Product name and description
+  - Quantity purchased
+  - Price per item
+
+**Status Color Scheme**:
+- `completed`: Green (#d4edda / #155724)
+- `pending`: Yellow (#fff3cd / #856404)
+- `processing`: Blue (#d1ecf1 / #0c5460)
+
+#### Bug Fixes
+
+**Template Rendering Issue**:
+- **Problem**: `orders.html` missing `{{template "base.html" .}}` directive
+- **Result**: Page rendered empty (no base layout)
+- **Fix**: Added template directive at top of file
+- **Lesson**: All page templates must include base template
+
+#### User Experience
+
+**Before**: Simple table with order ID, date, status, total
+**After**: 
+- Rich, interactive cards
+- Full order details on-demand
+- Visual product display
+- Professional e-commerce look
+
+#### Mobile Optimization
+- Simplified grid layout (2 columns vs 4)
+- Stacked quantity and price info
+- Touch-friendly tap targets
+- Smaller image thumbnails (50px)
+
+#### Files Modified
+- `internal/repository/postgres.go` - Order items loading
+- `templates/orders.html` - Complete redesign
+- `internal/handlers/orders.go` - Debug logging
+
+#### Test Results
+- ✅ All 15 smoke tests passing
+- ✅ Order history loads correctly
+- ✅ Order details expand/collapse
+- ✅ Product images and details display
+- ✅ Status badges render correctly
+- ✅ Empty state shows when no orders
+- ✅ Mobile responsive layout works
+
+---
+
 ### Critical Bug Fixes: Session Cookie & Cart Issues
 
 **Problem**: 3 automated smoke tests were failing:

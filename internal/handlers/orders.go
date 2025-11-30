@@ -27,10 +27,12 @@ func (h *Handlers) MyOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := h.Repo.Orders().GetOrdersByUserID(userID)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error fetching orders for user %d: %v", userID, err)
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
+
+	log.Printf("Found %d orders for user %d", len(orders), userID)
 
 	data := MyOrdersViewData{
 		IsAuthenticated: h.IsAuthenticated(r),
@@ -39,11 +41,15 @@ func (h *Handlers) MyOrders(w http.ResponseWriter, r *http.Request) {
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/orders.html")
 	if err != nil {
-		log.Println(err)
+		log.Printf("Template parse error: %v", err)
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
 
-	ts.ExecuteTemplate(w, "orders.html", data)
+	if err := ts.ExecuteTemplate(w, "orders.html", data); err != nil {
+		log.Printf("Template execution error: %v", err)
+		http.Error(w, "Internal Server Error", 500)
+		return
+	}
 }
 

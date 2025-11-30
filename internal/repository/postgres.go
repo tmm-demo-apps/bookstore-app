@@ -209,6 +209,36 @@ func (r *postgresOrderRepo) GetOrdersByUserID(userID int) ([]models.Order, error
 		if err := rows.Scan(&o.ID, &o.SessionID, &o.UserID, &o.TotalAmount, &o.Status, &o.CreatedAt); err != nil {
 			return nil, err
 		}
+		
+		// Load order items with product details
+		itemRows, err := r.DB.Query(`
+			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price,
+			       p.id, p.name, p.description, p.price, p.image_url
+			FROM order_items oi
+			JOIN products p ON oi.product_id = p.id
+			WHERE oi.order_id = $1
+			ORDER BY oi.id`, o.ID)
+		if err != nil {
+			return nil, err
+		}
+		
+		var items []models.OrderItem
+		for itemRows.Next() {
+			var item models.OrderItem
+			var prod models.Product
+			if err := itemRows.Scan(
+				&item.ID, &item.OrderID, &item.ProductID, &item.Quantity, &item.Price,
+				&prod.ID, &prod.Name, &prod.Description, &prod.Price, &prod.ImageURL,
+			); err != nil {
+				itemRows.Close()
+				return nil, err
+			}
+			item.Product = prod
+			items = append(items, item)
+		}
+		itemRows.Close()
+		
+		o.Items = items
 		orders = append(orders, o)
 	}
 	return orders, nil
