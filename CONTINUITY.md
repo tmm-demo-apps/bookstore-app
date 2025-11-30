@@ -10,7 +10,15 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 *   **Goal:** A demo platform to showcase **VMware Cloud Foundation (VCF) 9.0** capabilities through a real-world e-commerce application. See [`PLANNING.md`](PLANNING.md) for complete vision and three-phase roadmap.
 *   **Tech Stack:** Go 1.24, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
 *   **Current Status:** Phase 1 Complete + Cart Fixes. Fully functional e-commerce application with Repository Pattern architecture, advanced cart features, user authentication, search, and "My Orders" page.
-*   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, you commit the changes to our local Git repository and update the `diary.md` file.
+*   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, we **TEST FIRST** (see `TEST-CHECKLIST.md`), then commit the changes to our local Git repository and update the `diary.md` file.
+
+### Testing Before Commits (MANDATORY)
+**NEVER commit without testing!** Follow this workflow:
+1. Make code changes
+2. Rebuild: `docker compose down && docker compose up --build -d`
+3. Run automated tests: `./test-smoke.sh`
+4. Manual browser test (2-min spot check from `TEST-CHECKLIST.md`)
+5. Only after tests pass: `git add -A && git commit -m "message"`
 
 ## Key Technologies & Patterns
 *   **Repository Pattern**: All data access abstracted through interfaces in `internal/repository/`, allowing easy database swapping

@@ -62,10 +62,32 @@ docker compose exec db psql -U user -d bookstore -c "\d cart_items"
 2. Check console for JavaScript errors (F12)
 3. Verify unique constraints exist in database
 
+## UI/Template Changes - Additional Tests
+
+When modifying templates or CSS, also test:
+
+### Sticky Header (base.html)
+1. **Scroll behavior**: Scroll down page, verify header stays at top
+2. **Shrink animation**: Header should smoothly compact after 50px scroll
+3. **Elements remain functional**: Test cart dropdown, search, and menus while scrolled
+4. **Mobile responsive**: Test on narrow browser window (< 991px)
+5. **No layout shift**: Content shouldn't jump when page loads
+
+### Cart Dropdown (base.html)
+1. **Hover behavior**: Hover over "Cart" - dropdown should open automatically
+2. **Auto-close**: Move mouse away - dropdown should close after 300ms
+3. **Interactive elements**: Click "View Cart" and "Remove" buttons work
+
+### Responsive Design
+1. **Desktop view** (>992px): Search bar visible, desktop menu shows
+2. **Mobile view** (<991px): Hamburger menu visible, search bar hidden
+3. **Resize test**: Resize browser window, verify elements show/hide correctly
+
 ## Files to Check After Changes
 
 | Changed File | Run These Tests |
 |-------------|----------------|
+| `base.html` | UI tests above + full manual flow |
 | `cart.go` | All cart operations + duplicate check |
 | `checkout.go` | Checkout flow (steps 6-10 above) |
 | `products.go` | Product listing + add to cart |

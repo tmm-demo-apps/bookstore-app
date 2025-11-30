@@ -9,11 +9,53 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <style>
-        /* Custom Header Styles */
+        /* Sticky Header Styles */
+        body {
+            padding-top: 80px; /* Reserve space for fixed header */
+        }
+        
+        .header-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--background-color);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header-wrapper.scrolled {
+            padding: 0.25rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            /* Keep same background color as non-scrolled state */
+        }
+        
         .header-nav {
             align-items: center;
             padding: 0.5rem 0;
+            transition: padding 0.3s ease;
+            margin-bottom: 0 !important;
         }
+        
+        .scrolled .header-nav {
+            padding: 0.25rem 0;
+        }
+        
+        .header-nav ul {
+            margin-bottom: 0;
+        }
+        
+        .header-nav .brand {
+            transition: font-size 0.3s ease;
+        }
+        
+        .scrolled .header-nav .brand {
+            font-size: 1.2rem;
+        }
+        
         .search-bar {
             flex-grow: 1;
             margin: 0 2rem !important;
@@ -21,6 +63,16 @@
         .search-bar input {
             margin-bottom: 0 !important;
             height: 2.5rem;
+            transition: height 0.3s ease;
+        }
+        
+        .scrolled .search-bar input {
+            height: 2rem;
+        }
+        
+        /* Main content spacing */
+        main.container {
+            padding-top: 1rem;
         }
         
         /* Responsive Utils */
@@ -30,15 +82,20 @@
         @media (max-width: 991px) {
             .desktop-only { display: none !important; }
             .search-bar { display: none; } /* Simplified for now, could be collapsible */
+            body {
+                padding-top: 70px; /* Smaller padding for mobile */
+            }
         }
     </style>
 </head>
 <body>
-    <main class="container">
-        <nav class="header-nav">
-            <ul>
-                <li><strong><a href="/" class="contrast">Demo Store</a></strong></li>
-            </ul>
+    <!-- Sticky Header -->
+    <div class="header-wrapper" id="header">
+        <div class="container">
+            <nav class="header-nav">
+                <ul>
+                    <li><strong class="brand"><a href="/" class="contrast">Demo Store</a></strong></li>
+                </ul>
             
             <!-- Search Bar -->
             <ul class="search-bar">
@@ -100,11 +157,32 @@
                     </details>
                  </li>
             </ul>
-        </nav>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="container">
         {{block "content" .}}{{end}}
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
+        // Sticky header scroll behavior
+        const header = document.getElementById('header');
+        let lastScrollTop = 0;
+        
+        window.addEventListener('scroll', function() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+        
         // Cart dropdown hover behavior - simplified approach
         const cartDropdown = document.getElementById('cart-dropdown');
         const cartSummary = cartDropdown ? cartDropdown.querySelector('summary') : null;
