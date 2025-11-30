@@ -217,7 +217,7 @@ func (r *postgresOrderRepo) GetOrdersByUserID(userID int) ([]models.Order, error
 			FROM order_items oi
 			JOIN products p ON oi.product_id = p.id
 			WHERE oi.order_id = $1
-			ORDER BY oi.id`, o.ID)
+			ORDER BY p.name`, o.ID)
 		if err != nil {
 			return nil, err
 		}

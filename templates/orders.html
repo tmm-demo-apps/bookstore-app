@@ -180,9 +180,10 @@
                     {{range .Items}}
                     <div class="order-item">
                         {{if .Product.ImageURL}}
-                        <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="item-image">
+                        <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="item-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="item-image" style="display:none; align-items:center; justify-content:center; font-size:0.8rem; color:var(--muted-color);">📦</div>
                         {{else}}
-                        <div class="item-image"></div>
+                        <div class="item-image" style="display:flex; align-items:center; justify-content:center; font-size:2rem;">📦</div>
                         {{end}}
                         
                         <div class="item-info">
