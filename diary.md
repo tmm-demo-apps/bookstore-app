@@ -56,6 +56,104 @@
 
 ## November 30, 2025
 
+### Critical Bug Fixes: Session Cookie & Cart Issues
+
+**Problem**: 3 automated smoke tests were failing:
+1. Cart count showing (0) after adding items
+2. Cart not merged on signup
+3. Cart quantities not merged correctly on login
+
+#### Root Cause Analysis
+
+**Issue #1: Session Cookie Configuration**
+- Gorilla/sessions was setting `Secure; SameSite=None` by default
+- These flags require HTTPS, breaking localhost testing
+- Cookies weren't being sent back to server, so sessions didn't persist
+
+**Issue #2: Session ID Logic Bug**
+- In `AddToCart` handler, new session ID was created and saved
+- But code then checked the OLD `sessionOk` variable (still false)
+- This reset `sessionID` to empty string before database insert
+- Result: Cart items inserted with NULL session_id and NULL user_id
+
+#### Fixes Implemented
+
+**1. Session Configuration** (`cmd/web/main.go`)
+```go
+store.Options = &sessions.Options{
+    Path:     "/",
+    MaxAge:   86400 * 30, // 30 days
+    HttpOnly: true,
+    Secure:   false,      // Allow HTTP for development
+    SameSite: http.SameSiteLaxMode,
+}
+```
+
+**2. AddToCart Session Logic** (`internal/handlers/cart.go`)
+- Fixed session ID creation to update `sessionOk = true` after creating ID
+- Prevents resetting sessionID to empty string
+- Now properly tracks anonymous users with session IDs
+
+**3. Dark Mode Header Fix** (`templates/base.html`)
+- Removed `rgba()` color with white fallback that broke dark mode
+- Header now respects Pico CSS `--background-color` in both scrolled/non-scrolled states
+- Added `-webkit-backdrop-filter` for Safari support
+
+#### Test Results
+✅ **All 15 smoke tests passing!**
+- Cart count works for anonymous users
+- Cart persists across page loads
+- Cart merges correctly on signup (anonymous → authenticated)
+- Cart quantities add together on login (2 + 3 = 5)
+- No duplicate cart items
+- All database constraints verified
+
+#### Technical Details
+
+**Session Cookie Before Fix:**
+```
+Set-Cookie: cart-session=...; Secure; SameSite=None
+```
+→ Browser rejects on HTTP localhost
+
+**Session Cookie After Fix:**
+```
+Set-Cookie: cart-session=...; HttpOnly; SameSite=Lax
+```
+→ Works on localhost, secure for production with HTTPS
+
+**Database State Before Fix:**
+```sql
+SELECT * FROM cart_items;
+ id | session_id | user_id | product_id | quantity
+----|------------|---------|------------|----------
+171 |    NULL    |  NULL   |     1      |    12     ← Orphaned!
+```
+
+**Database State After Fix:**
+```sql
+SELECT * FROM cart_items;
+ id |     session_id      | user_id | product_id | quantity
+----|---------------------|---------|------------|----------
+175 | $uuid-valid-string  |  NULL   |     1      |    2      ← Valid!
+```
+
+#### Files Modified
+- `cmd/web/main.go` - Session cookie configuration
+- `internal/handlers/cart.go` - Fixed session ID logic
+- `templates/base.html` - Dark mode header background
+
+#### Production Notes
+**Important**: Before deploying to production:
+- Set `Secure: true` in session options
+- Ensure HTTPS is enabled
+- Consider using environment variable for secure flag: 
+  ```go
+  Secure: os.Getenv("ENV") == "production"
+  ```
+
+---
+
 ### Phase 2 Kickoff: Sticky Header Implementation
 
 **Goal**: Implement a modern, sticky header that stays at the top when scrolling - a common UX pattern on e-commerce sites like Amazon.

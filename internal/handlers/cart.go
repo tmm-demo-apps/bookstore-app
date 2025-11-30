@@ -26,10 +26,12 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
 
+	// Create session ID if neither user nor session exists
 	if !userOk && !sessionOk {
-		session.Values["id"] = uuid.New().String()
+		sessionID = uuid.New().String()
+		session.Values["id"] = sessionID
 		session.Save(r, w)
-		sessionID = session.Values["id"].(string)
+		sessionOk = true // Mark as valid now
 	}
 
 	productID, err := strconv.Atoi(r.FormValue("product_id"))
@@ -46,10 +48,7 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Fix: Pass 0 if user not ok, but we need to handle the interface method signature.
-	// The interface expects (userID int, sessionID string).
-	// If userOk is false, userID will be 0 (default int).
-	
+	// Pass 0 for userID if not authenticated, empty string for sessionID if not set
 	if !userOk { userID = 0 }
 	if !sessionOk { sessionID = "" }
 

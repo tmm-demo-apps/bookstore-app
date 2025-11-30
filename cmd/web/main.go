@@ -29,6 +29,14 @@ func main() {
 	defer db.Close()
 
 	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	// Configure session options for development (allow HTTP, not just HTTPS)
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 30, // 30 days
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	}
 
 	repo := repository.NewPostgresRepository(db)
 
