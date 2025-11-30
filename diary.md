@@ -4,8 +4,9 @@
 
 ## 🎯 Quick Status Summary
 **Last Updated:** November 30, 2025  
-**Project Status:** ✅ Phase 1 Complete + Phase 2 Started  
-**Recent Focus:** Sticky Header UI Enhancement  
+**Project Status:** ✅ Phase 1 Complete + Phase 2 UI Polish In Progress  
+**Recent Focus:** Product Images, Table/Tile Toggle, Compact Cart, Order History  
+**Next Up:** Individual Product Detail Pages  
 **Project Goal**: Demo platform to showcase VMware Cloud Foundation (VCF) 9.0 capabilities through real-world e-commerce application
 
 ### What's Working
@@ -14,7 +15,10 @@
 - ✅ **Search:** Full product search functionality (SQL-based, ready for Elasticsearch swap).
 - ✅ **Responsive UI:** New header with mobile "Hamburger" menu and search bar.
 - ✅ **Sticky Header:** Fixed position header that shrinks on scroll with smooth transitions
-- ✅ **User Features:** "My Orders" page to view purchase history.
+- ✅ **Product Images:** Cards with images, table/tile toggle, minimal controls
+- ✅ **Order History:** Expandable cards with full order details and product images
+- ✅ **Compact Cart:** Single-row items with 80x80px thumbnails
+- ✅ **User Features:** "My Orders" page to view purchase history
 - ✅ **Cart Ordering:** Items display alphabetically and maintain stable order
 - ✅ User authentication (register, login, logout)
 - ✅ Product catalog display with quantity controls
@@ -55,6 +59,123 @@
 ---
 
 ## November 30, 2025
+
+### UI Polish Session: Product Images, View Toggle, Compact Cart
+
+**Goal**: Complete UI overhaul with product images, flexible viewing options, and compact layouts throughout the shopping experience.
+
+#### Session Summary
+Today we transformed the application from basic table-based views into a modern, image-rich e-commerce experience with multiple viewing options and compact, efficient layouts.
+
+#### Major Features Completed
+
+**1. Product Images & Card Grid**
+- Modern card-based layout with large product images (250px)
+- Responsive grid (auto-fill, 280px minimum)
+- Hover effects (lift + shadow)
+- 📦 fallback icons for missing/broken images
+- Touch-friendly on mobile
+
+**2. Table/Tile View Toggle**
+- Toggle buttons in header (🔲 Tiles / ☰ Table)
+- Tile view: Large cards with images
+- Table view: Compact rows with 60px thumbnails
+- Preference saved in localStorage (persists across sessions)
+- Synchronized quantity controls across both views
+- Mobile: Hides toggle, always shows tiles
+
+**3. Compact Cart Layout**
+- Single-row items (height = 80x80px thumbnail)
+- All info visible at once (no wasted vertical space)
+- Minimal quantity controls
+- Smaller remove button
+- Grid layout: Image | Info | Price | Qty | Subtotal | Remove
+
+**4. Minimal UI Controls**
+- Quantity buttons: 0.25rem padding, 0.9rem font, muted color
+- Input width: 40px (compact)
+- Remove button: 0.25rem padding
+- Add to Cart: Smaller font and padding
+- Hover effects for interaction feedback
+- Inline styles for CSS specificity
+
+**5. Enhanced Order History**
+- Expandable order cards
+- Product images in order items (📦 fallback)
+- Alphabetically sorted items
+- Full product details per order
+
+#### Technical Implementation
+
+**View Toggle System**:
+```javascript
+// Saves preference to localStorage
+// Restores on page load
+// Synchronizes quantity across views
+```
+
+**Image Fallback Pattern**:
+```html
+<img onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+<div class="placeholder" style="display:none;">📦</div>
+```
+
+**Compact Grid Layout**:
+```css
+grid-template-columns: 80px 1fr auto auto auto auto;
+gap: 1rem;
+padding: 1rem;
+```
+
+#### User Testing & Iterations
+
+**Iteration 1**: Card grid with large images
+- Issue: Cart took too much vertical space
+- Fix: Reduced to 80x80px, single-row layout
+
+**Iteration 2**: Minimal controls attempt via CSS classes
+- Issue: Pico CSS overrode button styles
+- Fix: Used inline styles for higher specificity
+
+**Iteration 3**: Quantity controls not shrinking
+- Issue: CSS classes had lower specificity than Pico
+- Fix: Applied inline styles directly to elements
+
+#### Files Modified
+- `templates/products.html`: Grid + table toggle, minimal controls
+- `templates/cart.html`: Compact layout, minimal buttons
+- `templates/orders.html`: Image fallbacks, alphabetical sort
+- `internal/repository/postgres.go`: ORDER BY p.name for order items
+- `diary.md`: This documentation
+
+#### Test Results
+- ✅ All 15 smoke tests passing
+- ✅ View toggle works and persists
+- ✅ Images load with fallbacks
+- ✅ Cart is compact (single-row items)
+- ✅ Controls are minimal but functional
+- ✅ Mobile responsive
+- ✅ User tested and approved
+
+#### Commits Today
+```
+6986c49 feat: Add product images with table/tile toggle and minimal controls
+5d3d407 fix: Order history improvements - images and alphabetical sorting
+1230948 feat: Enhanced order history page with detailed order items
+4199d83 fix: Resolve session cookie and cart bugs (all tests passing)
+7a74ca1 feat: Add sticky header with scroll shrinking behavior
+```
+
+#### Next Steps
+**Tomorrow's Focus: Product Detail Pages**
+- Click on product card → detail page
+- Larger images
+- Full description
+- Related products
+- Reviews (future)
+- Add to cart from detail page
+
+---
 
 ### UI Enhancement: Product Images Throughout Site
 

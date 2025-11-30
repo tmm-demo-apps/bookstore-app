@@ -9,7 +9,7 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 ## Project Overview
 *   **Goal:** A demo platform to showcase **VMware Cloud Foundation (VCF) 9.0** capabilities through a real-world e-commerce application. See [`PLANNING.md`](PLANNING.md) for complete vision and three-phase roadmap.
 *   **Tech Stack:** Go 1.24, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
-*   **Current Status:** Phase 1 Complete + Cart Fixes. Fully functional e-commerce application with Repository Pattern architecture, advanced cart features, user authentication, search, and "My Orders" page.
+*   **Current Status:** Phase 2 UI Polish - Product images, table/tile toggle, compact cart, enhanced order history complete. Next: Product detail pages.
 *   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, we **TEST FIRST** (see `TEST-CHECKLIST.md`), then commit the changes to our local Git repository and update the `diary.md` file.
 
 ### Testing Before Commits (MANDATORY)
@@ -67,7 +67,45 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 └── go.mod
 ```
 
-## Recent Accomplishments (November 20-21, 2025)
+## Recent Accomplishments (November 30, 2025)
+
+### Today's Major UI Overhaul ✅
+Transformed the application into a modern, image-rich e-commerce experience:
+
+1. **Product Images & Layouts** ✅
+   - Card grid with large product images (250px)
+   - Table/Tile view toggle with localStorage persistence
+   - Table view with compact 60px thumbnails
+   - Responsive grid (auto-fill, 280px minimum)
+   - 📦 fallback icons for missing images
+
+2. **Compact Cart** ✅
+   - Single-row layout (height = 80x80px thumbnail)
+   - All info visible: Image | Name | Price | Qty | Subtotal | Remove
+   - No wasted vertical space
+   - Minimal, muted controls
+
+3. **Minimal UI Controls** ✅
+   - Quantity buttons: 0.25rem padding, muted colors
+   - Input width: 40px (compact)
+   - Inline styles for CSS specificity over Pico
+   - Hover effects for feedback
+
+4. **Enhanced Order History** ✅
+   - Expandable cards with full order details
+   - Product images in order items
+   - Alphabetically sorted items
+   - Color-coded status badges
+
+5. **Bug Fixes** ✅
+   - Session cookie configuration (HTTP localhost)
+   - Cart session ID logic
+   - Dark mode header background
+   - Order items alphabetical sorting
+
+**Test Status**: All 15 smoke tests passing ✅
+
+### Earlier Work (November 20-21, 2025)
 
 ### Phase 1: Repository Pattern & Schema Expansion ✅
 Major architectural overhaul completed:
@@ -143,11 +181,37 @@ git commit -m "descriptive message"
 ## Known Issues / Edge Cases
 - None currently! All cart bugs fixed as of November 21, 2025.
 
-## Next Steps (Phase 2)
-See `diary.md` for complete list. Key priorities:
-- **UI**: Sticky header bar, enhanced order history page
+## Next Steps - Tomorrow's Focus 🎯
+
+### **PRIORITY: Product Detail Pages**
+User wants to click on a product and see more details. This is the next feature to implement.
+
+**What to Build:**
+- Route: `/product/:id` or `/products/:id`
+- Handler: `ProductDetailPage` in `internal/handlers/products.go`
+- Template: `templates/product-detail.html`
+- Features needed:
+  - Large product image (400-500px)
+  - Full product description
+  - Price and availability
+  - Quantity selector + Add to Cart
+  - Back to products link
+  - Breadcrumb navigation (Home > Products > Product Name)
+
+**Technical Approach:**
+1. Add route in `cmd/web/main.go`: `mux.HandleFunc("/products/{id}", h.ProductDetail)`
+2. Create handler that fetches product by ID from repository
+3. Design template with large image, full details
+4. Make product cards/rows clickable (wrap in `<a>` tag)
+5. Test: Click product → see details → add to cart → return to list
+
+**Repository Method Exists:**
+- `h.Repo.Products().GetProductByID(id)` already implemented ✅
+
+### Other Phase 2 Priorities (Later)
 - **Infrastructure**: Redis (sessions), Elasticsearch (search), MinIO (images)
 - **Admin**: Product management panel
+- **Microservices**: AI Support Chatbot (Python/FastAPI)
 
 ## Important Notes
 - **Always update `diary.md`** after completing features or fixing bugs (latest entries at TOP)
