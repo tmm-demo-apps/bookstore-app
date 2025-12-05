@@ -3,10 +3,10 @@
 > **📋 See [`PLANNING.md`](PLANNING.md) for complete project vision, roadmap, and VCF 9.0 integration strategy**
 
 ## 🎯 Quick Status Summary
-**Last Updated:** December 5, 2025  
-**Project Status:** ✅ Phase 1 Complete + Phase 2 UI Polish In Progress  
-**Recent Focus:** Product Detail Pages Implementation  
-**Next Up:** Product Categories/Filtering UI, Admin Panel  
+**Last Updated:** December 5, 2025 (Evening)  
+**Project Status:** 🚧 Phase 2 UI Polish - Product Page Layout Compression (In Progress)  
+**Recent Focus:** Compressing product page layout and standardizing button sizes  
+**Next Up:** Fix quantity control height mismatch, reduce card whitespace, then Product Categories/Filtering UI  
 **Project Goal**: Demo platform to showcase VMware Cloud Foundation (VCF) 9.0 capabilities through real-world e-commerce application
 
 ### What's Working
@@ -59,7 +59,139 @@
 
 ---
 
-## December 5, 2025
+## December 5, 2025 (Evening Session)
+
+### WIP: Product Page Layout Compression & Button Standardization
+
+**Goal**: Compress the products listing page to reduce whitespace and create a more polished, professional look with consistent button sizing.
+
+#### Work Completed This Session
+
+**1. Vertical Spacing Reduction** ✅
+- Changed grid gap from varying values to consistent `gap: 0.75rem` (both horizontal and vertical)
+- Removed hardcoded `row-gap: 0` attempts that weren't working
+- Added explicit `margin: 0` to `.product-card` to prevent default margins
+- Made `.product-card` a flex container (`display: flex; flex-direction: column`)
+
+**2. Symmetrical Card Padding** ✅
+- Changed `.product-info` padding from inconsistent values to uniform `padding: 0.75rem` (all sides)
+- Matches the grid gap for visual consistency
+- Creates professional, balanced spacing
+
+**3. Pico CSS-Based Button Sizing** ✅
+- Created `.btn-small` class using Pico CSS variables:
+  - Vertical padding: `calc(var(--form-element-spacing-vertical) * 0.35)`
+  - Horizontal padding: `calc(var(--form-element-spacing-horizontal) * 0.6)`
+  - Font size: `0.8rem`
+  - Line height: `1.2`
+- Applied to "Add to Cart" buttons for compact, consistent sizing
+- Removed hardcoded pixel values in favor of responsive CSS variables
+
+**4. Quantity Control Refactoring** ✅
+- Removed inline styles from HTML template
+- Applied proper CSS classes: `.qty-controls`, `.qty-btn`, `.qty-input`
+- Used same Pico CSS variable approach as buttons:
+  - `.qty-btn` and `.qty-input` padding: `calc(var(--form-element-spacing-vertical) * 0.35)`
+  - Font size: `0.8rem` to match button
+  - Line height: `1.2` for tighter spacing
+- Reduced input width to `2.5rem` for more compact look
+
+#### Issues Encountered (INCOMPLETE)
+
+**Problem 1: Quantity Control Height Mismatch** ❌
+- Despite using identical padding values (`0.35` multiplier) as "Add to Cart" button
+- Quantity controls consistently appear taller than the button
+- Tried multiple approaches:
+  - `align-items: center` on `.product-actions` ✗
+  - `align-items: center` on `.qty-controls` ✗
+  - `height: fit-content` on `.qty-controls` ✗
+  - Added `height: auto` and `margin: 0` to `.qty-input` ✗
+  - Added `line-height: 1.2` to both buttons and input ✗
+- Root cause unknown - possibly:
+  - Input element default browser styles adding height
+  - Border on `.qty-controls` container adding extra pixels
+  - Pico CSS applying additional styles we're not overriding
+  - Something in the flex layout calculation
+
+**Problem 2: White Space Within Cards** 🚧
+- Card internal spacing still feels too loose
+- Need to reduce spacing between:
+  - Image and product name
+  - Product info elements (name, description, price, stock badge)
+  - Stock badge and action buttons
+- Current margins set to `0.25rem` but may need to go smaller
+- Title and description using `webkit-line-clamp` for 2-line truncation (good!)
+
+#### Technical Approach Taken
+
+**Pico CSS Integration**:
+- Using `var(--form-element-spacing-vertical)` and `var(--form-element-spacing-horizontal)`
+- Multiplying by `0.35` for compact sizing (35% of standard form element spacing)
+- This ensures buttons scale properly with Pico theme changes
+- More maintainable than hardcoded pixel values
+
+**CSS Changes Made**:
+```css
+.btn-small {
+    padding: calc(var(--form-element-spacing-vertical) * 0.35) 
+             calc(var(--form-element-spacing-horizontal) * 0.6);
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+.qty-btn {
+    padding: calc(var(--form-element-spacing-vertical) * 0.35) 
+             calc(var(--form-element-spacing-horizontal) * 0.4);
+    /* ... other styles ... */
+}
+
+.qty-input {
+    padding: calc(var(--form-element-spacing-vertical) * 0.35) 0.4rem;
+    /* ... other styles ... */
+}
+```
+
+**Layout Changes**:
+- Grid: `gap: 0.75rem` (consistent horizontal and vertical)
+- Cards: `padding: 0.75rem` in `.product-info`
+- Margins: `0.25rem` between internal elements
+
+#### Files Modified
+- `templates/products.html`: All CSS and HTML changes for layout compression
+
+#### Next Session TODO
+
+**Priority 1: Fix Quantity Control Height** 🎯
+- Debug why height doesn't match despite identical padding
+- Possible solutions to try:
+  1. Use browser dev tools to inspect computed height and identify extra pixels
+  2. Try setting explicit `height` on `.qty-controls` to match button computed height
+  3. Remove border from `.qty-controls` to see if that's adding height
+  4. Check if input element needs `-webkit-appearance: none` or similar reset
+  5. Consider using `vertical-align` property
+  6. Try making `.qty-controls` use same padding as button directly
+
+**Priority 2: Reduce Card Whitespace** 🎯
+- Reduce margins between internal card elements
+- Possibly reduce `.product-info` padding further (0.5rem or 0.6rem)
+- Experiment with tighter spacing without making it cramped
+- Consider reducing gap between image and info section
+
+**Priority 3: Visual Polish** 
+- Ensure all changes work on mobile breakpoint
+- Test in both grid and table views
+- Verify quantity controls functionality still works
+- Check that text is still readable at smaller sizes
+
+#### Testing Status
+- ❓ Smoke tests not run (incomplete feature)
+- ❓ Visual testing incomplete
+- ❓ Mobile responsiveness not verified
+- ⚠️ Known issue: Quantity controls taller than "Add to Cart" button
+
+---
+
+## December 5, 2025 (Afternoon Session)
 
 ### Bug Fixes: Product Detail Page Issues
 

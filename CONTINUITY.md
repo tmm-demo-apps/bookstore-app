@@ -9,7 +9,8 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 ## Project Overview
 *   **Goal:** A demo platform to showcase **VMware Cloud Foundation (VCF) 9.0** capabilities through a real-world e-commerce application. See [`PLANNING.md`](PLANNING.md) for complete vision and three-phase roadmap.
 *   **Tech Stack:** Go 1.24, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
-*   **Current Status:** Phase 2 UI Polish - Product detail pages complete! Next: Category filtering UI.
+*   **Current Status:** 🚧 Phase 2 UI Polish - **INCOMPLETE WORK**: Compressing products page layout and standardizing button sizes.
+*   **Active Issue:** Quantity controls height doesn't match "Add to Cart" button despite identical CSS padding values. Need to debug and fix.
 *   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, we **TEST FIRST** (see `TEST-CHECKLIST.md`), then commit the changes to our local Git repository and update the `diary.md` file.
 
 ### Testing Before Commits (MANDATORY)
@@ -67,7 +68,35 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 └── go.mod
 ```
 
-## Recent Accomplishments (December 5, 2025)
+## Current Work In Progress (December 5, 2025 - Evening)
+
+### 🚧 Products Page Layout Compression (INCOMPLETE)
+
+**What We're Doing**: Compressing the products listing page to reduce whitespace and standardize button sizes for a more polished, professional look.
+
+**What's Working**:
+- ✅ Vertical spacing between cards reduced to consistent `0.75rem`
+- ✅ Symmetrical padding inside cards (`0.75rem` all sides)
+- ✅ Created `.btn-small` class using Pico CSS variables for "Add to Cart" buttons
+- ✅ Refactored quantity controls to use CSS classes instead of inline styles
+- ✅ Both using `calc(var(--form-element-spacing-vertical) * 0.35)` for compact sizing
+
+**What's NOT Working** ❌:
+- **Quantity controls are taller than "Add to Cart" button** despite identical padding values
+- We tried multiple approaches (align-items, height fit-content, line-height, etc.)
+- Root cause unknown - possibly input element browser defaults, borders, or Pico CSS overrides
+- **White space within cards still needs reduction** - internal spacing between elements too loose
+
+**Files Modified**: 
+- `templates/products.html` - All CSS and HTML changes
+
+**Next Steps for New Session**:
+1. **DEBUG height mismatch** - Use browser dev tools to find root cause
+2. **Reduce card whitespace** - Tighten spacing between internal elements
+3. **Visual polish** - Ensure everything looks good on mobile
+4. **Test functionality** - Verify quantity controls still work after fixes
+
+## Recent Accomplishments (December 5, 2025 - Afternoon)
 
 ### Product Detail Pages ✅
 Implemented comprehensive individual product pages with professional e-commerce UX:
@@ -211,7 +240,34 @@ git commit -m "descriptive message"
 
 ## Next Steps - Future Focus 🎯
 
-### **NEXT PRIORITY: Category Filtering UI**
+### **IMMEDIATE PRIORITY: Fix Product Page Layout Issues** 🚨
+
+**Must Complete Before Moving On:**
+
+1. **Fix Quantity Control Height Mismatch**
+   - Problem: Controls are taller than "Add to Cart" button despite same padding
+   - Approach: Use browser dev tools to inspect computed styles
+   - Possible solutions:
+     - Check if input has default browser height
+     - Verify border isn't adding extra pixels
+     - Try explicit height matching button
+     - Consider `-webkit-appearance: none` on input
+     - Investigate Pico CSS form element defaults
+
+2. **Reduce White Space Within Cards**
+   - Problem: Too much space between internal elements
+   - Current: `0.25rem` margins, `0.75rem` padding
+   - Goal: Tighter, more compact look without feeling cramped
+   - Adjust spacing between: image-name, name-description, description-price, price-actions
+
+3. **Visual Polish & Testing**
+   - Verify mobile responsiveness (< 768px breakpoint)
+   - Test both grid and table views
+   - Ensure quantity controls still function
+   - Run smoke tests after completion
+   - Get user approval before committing as complete
+
+### **AFTER LAYOUT IS FIXED: Category Filtering UI**
 Implement the category filtering system to help users browse products by category.
 
 **What to Build:**
