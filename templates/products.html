@@ -39,8 +39,7 @@
     .product-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        row-gap: 0;
-        column-gap: 0.75rem;
+        gap: 0.75rem;
         margin-top: 1rem;
     }
     
@@ -50,6 +49,9 @@
         overflow: hidden;
         background: var(--card-background-color);
         transition: transform 0.2s, box-shadow 0.2s;
+        margin: 0; /* Explicitly remove any margins */
+        display: flex;
+        flex-direction: column;
     }
     
     .product-card:hover {
@@ -70,14 +72,14 @@
     
     .product-image {
         width: 100%;
-        height: 180px;
+        height: 250px;
         object-fit: cover;
         background: var(--card-sectionning-background-color);
     }
     
     .product-image-placeholder {
         width: 100%;
-        height: 180px;
+        height: 250px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -86,7 +88,7 @@
     }
     
     .product-info {
-        padding: 0.4rem 0.6rem;
+        padding: 0.75rem;
         display: flex;
         flex-direction: column;
     }
@@ -154,23 +156,44 @@
         margin-top: auto; /* Push to bottom */
     }
     
+    .product-actions .qty-controls {
+        flex: 0 0 auto;
+        max-width: 50%;
+    }
+    
+    .product-actions form {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .btn-small {
+        padding: calc(var(--form-element-spacing-vertical) * 0.35) calc(var(--form-element-spacing-horizontal) * 0.6);
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    
     .qty-controls {
         display: inline-flex;
-        align-items: stretch;
+        align-items: center;
         border: 1px solid var(--muted-border-color);
         border-radius: var(--border-radius);
         overflow: hidden;
         background: var(--card-background-color);
+        height: fit-content;
     }
     
     .qty-btn {
         border: none;
         background: transparent;
-        padding: 0.25rem 0.5rem;
+        padding: calc(var(--form-element-spacing-vertical) * 0.35) calc(var(--form-element-spacing-horizontal) * 0.4);
         cursor: pointer;
         color: var(--muted-color);
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
     }
     
     .qty-btn:hover {
@@ -178,14 +201,18 @@
     }
     
     .qty-input {
-        width: 40px;
+        width: 2.5rem;
         text-align: center;
         border: none;
         border-left: 1px solid var(--muted-border-color);
         border-right: 1px solid var(--muted-border-color);
-        padding: 0.25rem 0.25rem;
+        padding: calc(var(--form-element-spacing-vertical) * 0.35) 0.4rem;
         background: transparent;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+        color: var(--color);
+        line-height: 1.2;
+        height: auto;
+        margin: 0;
     }
     
     /* Table View Styles */
@@ -231,12 +258,12 @@
     @media (max-width: 768px) {
         .product-grid {
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 0 0.75rem;
+            gap: 0.75rem;
         }
         
         .product-image,
         .product-image-placeholder {
-            height: 180px;
+            height: 250px;
         }
         
         .toggle-buttons {
@@ -289,25 +316,25 @@
             
             {{if gt .StockQuantity 0}}
             <div class="product-actions">
-                <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden; height: 100%;">
-                    <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
+                <div class="qty-controls">
+                    <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" class="qty-btn">−</button>
                     <input type="text" value="1" id="product-qty-{{.ID}}"
-                           style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.4rem 0.25rem; background: transparent; font-size: 0.85rem;"
+                           class="qty-input"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            inputmode="numeric" pattern="[0-9]*"
                            data-max-stock="{{.StockQuantity}}">
-                    <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+                    <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" class="qty-btn">+</button>
                 </div>
                 
                 <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" onsubmit="setQuantity(event, {{.ID}})">
                     <input type="hidden" name="product_id" value="{{.ID}}">
                     <input type="hidden" name="quantity" id="form-qty-{{.ID}}" value="1">
-                    <button type="submit" style="width: 100%; padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
+                    <button type="submit" class="btn-small" style="width: 100%;">Add to Cart</button>
                 </form>
             </div>
             {{else}}
             <div class="product-actions">
-                <button type="button" disabled style="width: 100%; padding: 0.4rem 0.75rem; font-size: 0.9rem; background: var(--muted-color); cursor: not-allowed; margin: 0;">Out of Stock</button>
+                <button type="button" disabled class="btn-small" style="width: 100%; background: var(--muted-color); cursor: not-allowed; margin: 0;">Out of Stock</button>
             </div>
             {{end}}
         </div>
