@@ -1,0 +1,361 @@
+{{template "base.html" .}}
+
+{{define "title"}}{{.Product.Name}} - Product Details{{end}}
+
+{{define "content"}}
+<style>
+    .product-detail-content {
+        margin-top: 1rem;
+    }
+    
+    .breadcrumb {
+        color: var(--muted-color);
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .breadcrumb a {
+        color: var(--primary);
+        text-decoration: none;
+    }
+    
+    .breadcrumb a:hover {
+        text-decoration: underline;
+    }
+    
+    .product-detail-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        margin-top: 2rem;
+    }
+    
+    .product-image-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .product-detail-image {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        max-height: 600px;
+        object-fit: cover;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--muted-border-color);
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .product-detail-image-placeholder {
+        width: 100%;
+        max-width: 500px;
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--muted-border-color);
+        font-size: 8rem;
+    }
+    
+    .product-info-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .product-detail-name {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .product-detail-price {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--primary);
+    }
+    
+    .product-detail-description {
+        color: var(--color);
+        line-height: 1.6;
+        font-size: 1.1rem;
+    }
+    
+    .product-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        font-size: 0.95rem;
+    }
+    
+    .product-meta-item {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .product-meta-label {
+        color: var(--muted-color);
+        font-weight: 500;
+    }
+    
+    .stock-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .stock-in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-low {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .stock-out {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .add-to-cart-section {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        padding: 2rem 0;
+        border-top: 1px solid var(--muted-border-color);
+        border-bottom: 1px solid var(--muted-border-color);
+    }
+    
+    .qty-controls-large {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        background: var(--card-background-color);
+    }
+    
+    .qty-btn-large {
+        border: none;
+        background: transparent;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        color: var(--muted-color);
+        font-size: 1.2rem;
+        transition: color 0.2s, background 0.2s;
+        font-weight: bold;
+    }
+    
+    .qty-btn-large:hover {
+        color: var(--color);
+        background: var(--card-sectionning-background-color);
+    }
+    
+    .qty-input-large {
+        width: 80px;
+        text-align: center;
+        border: none;
+        border-left: 1px solid var(--muted-border-color);
+        border-right: 1px solid var(--muted-border-color);
+        padding: 0.75rem;
+        background: transparent;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .add-to-cart-btn {
+        flex: 1;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-top: 2rem;
+        color: var(--primary);
+        text-decoration: none;
+        font-size: 1rem;
+    }
+    
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+        .product-detail-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        
+        .product-detail-image,
+        .product-detail-image-placeholder {
+            max-width: 100%;
+            height: auto;
+            max-height: 400px;
+        }
+        
+        .product-detail-image-placeholder {
+            font-size: 5rem;
+        }
+        
+        .product-detail-name {
+            font-size: 1.5rem;
+        }
+        
+        .product-detail-price {
+            font-size: 2rem;
+        }
+        
+        .add-to-cart-section {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .qty-controls-large {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .add-to-cart-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="product-detail-content">
+    <nav class="breadcrumb">
+        <a href="/">Home</a> / <a href="/">Products</a> / <span>{{.Product.Name}}</span>
+    </nav>
+
+    <div class="product-detail-container">
+    <div class="product-image-section">
+        {{if .Product.ImageURL}}
+        <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="product-detail-image"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="product-detail-image-placeholder" style="display:none;">📦</div>
+        {{else}}
+        <div class="product-detail-image-placeholder">📦</div>
+        {{end}}
+    </div>
+    
+    <div class="product-info-section">
+        <h1 class="product-detail-name">{{.Product.Name}}</h1>
+        
+        <div class="product-detail-price">${{printf "%.2f" .Product.Price}}</div>
+        
+        <div class="product-detail-description">
+            {{.Product.Description}}
+        </div>
+        
+        <div class="product-meta">
+            {{if .Product.SKU}}
+            <div class="product-meta-item">
+                <span class="product-meta-label">SKU:</span>
+                <span>{{.Product.SKU}}</span>
+            </div>
+            {{end}}
+            
+            <div class="product-meta-item">
+                <span class="product-meta-label">Availability:</span>
+                <span>
+                    {{if gt .Product.StockQuantity 10}}
+                    <span class="stock-status stock-in-stock">In Stock ({{.Product.StockQuantity}} available)</span>
+                    {{else if gt .Product.StockQuantity 0}}
+                    <span class="stock-status stock-low">Low Stock ({{.Product.StockQuantity}} left)</span>
+                    {{else}}
+                    <span class="stock-status stock-out">Out of Stock</span>
+                    {{end}}
+                </span>
+            </div>
+            
+            <div class="product-meta-item">
+                <span class="product-meta-label">Status:</span>
+                <span>{{.Product.Status}}</span>
+            </div>
+        </div>
+        
+        {{if gt .Product.StockQuantity 0}}
+        <div class="add-to-cart-section">
+            <div class="qty-controls-large">
+                <button type="button" onclick="adjustQuantity(-1)" class="qty-btn-large">−</button>
+                <input type="text" value="1" id="quantity-input"
+                       class="qty-input-large"
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                       inputmode="numeric" pattern="[0-9]*">
+                <button type="button" onclick="adjustQuantity(1)" class="qty-btn-large">+</button>
+            </div>
+            
+            <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" onsubmit="setQuantity(event)">
+                <input type="hidden" name="product_id" value="{{.Product.ID}}">
+                <input type="hidden" name="quantity" id="form-quantity" value="1">
+                <button type="submit" class="add-to-cart-btn">Add to Cart</button>
+            </form>
+        </div>
+        {{else}}
+        <div class="add-to-cart-section">
+            <button type="button" class="add-to-cart-btn" disabled style="background: var(--muted-color);">Out of Stock</button>
+        </div>
+        {{end}}
+    </div>
+    </div>
+
+    <a href="/" class="back-link">← Back to Products</a>
+</div>
+
+<script>
+    function adjustQuantity(change) {
+        const input = document.getElementById('quantity-input');
+        const currentQty = parseInt(input.value) || 1;
+        let newQty = currentQty + change;
+        
+        // Enforce limits
+        if (newQty < 1) newQty = 1;
+        const maxStock = {{.Product.StockQuantity}};
+        if (newQty > maxStock) newQty = maxStock;
+        if (newQty > 99) newQty = 99;
+        
+        input.value = newQty;
+    }
+    
+    function setQuantity(event) {
+        const input = document.getElementById('quantity-input');
+        const formInput = document.getElementById('form-quantity');
+        let quantity = parseInt(input.value) || 1;
+        
+        // Enforce limits
+        if (quantity < 1) quantity = 1;
+        const maxStock = {{.Product.StockQuantity}};
+        if (quantity > maxStock) quantity = maxStock;
+        if (quantity > 99) quantity = 99;
+        
+        formInput.value = quantity;
+        input.value = quantity;
+    }
+    
+    // Validate on input change
+    document.getElementById('quantity-input').addEventListener('blur', function() {
+        const input = this;
+        let quantity = parseInt(input.value) || 1;
+        
+        if (quantity < 1) quantity = 1;
+        const maxStock = {{.Product.StockQuantity}};
+        if (quantity > maxStock) quantity = maxStock;
+        if (quantity > 99) quantity = 99;
+        
+        input.value = quantity;
+    });
+</script>
+{{end}}
+

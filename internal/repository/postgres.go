@@ -172,6 +172,18 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 		return 0, err
 	}
 
+	// Reduce Stock Quantities
+	// For each order item, reduce the corresponding product stock
+	_, err = tx.Exec(`
+		UPDATE products p
+		SET stock_quantity = stock_quantity - oi.quantity
+		FROM order_items oi
+		WHERE p.id = oi.product_id AND oi.order_id = $1`, orderID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	// Clear Cart
 	if userID > 0 {
 		_, err = tx.Exec("DELETE FROM cart_items WHERE user_id = $1", userID)
@@ -319,9 +331,15 @@ func (r *postgresCartRepo) GetCartItem(id int) (*models.CartItem, error) {
 }
 
 func (r *postgresCartRepo) AddToCart(userID int, sessionID string, productID, quantity int) error {
-	// First, get existing quantity BEFORE deleting
+	// First, check available stock
+	var stockQty int
+	err := r.DB.QueryRow("SELECT stock_quantity FROM products WHERE id = $1", productID).Scan(&stockQty)
+	if err != nil {
+		return err // Product doesn't exist or other error
+	}
+
+	// Get existing quantity in cart BEFORE deleting
 	var existingQty int
-	var err error
 	if userID > 0 {
 		err = r.DB.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID).Scan(&existingQty)
 	} else {
@@ -331,8 +349,14 @@ func (r *postgresCartRepo) AddToCart(userID int, sessionID string, productID, qu
 		existingQty = 0
 	}
 
-	// Calculate new quantity
+	// Calculate new quantity with stock limit
 	newQty := existingQty + quantity
+	
+	// Enforce stock limit FIRST (most important)
+	if newQty > stockQty {
+		newQty = stockQty
+	}
+	// Then enforce system limit
 	if newQty > 99 {
 		newQty = 99
 	}
@@ -360,7 +384,24 @@ func (r *postgresCartRepo) AddToCart(userID int, sessionID string, productID, qu
 }
 
 func (r *postgresCartRepo) UpdateQuantity(userID int, sessionID string, productID, quantity int) error {
-	var err error
+	// Check available stock
+	var stockQty int
+	err := r.DB.QueryRow("SELECT stock_quantity FROM products WHERE id = $1", productID).Scan(&stockQty)
+	if err != nil {
+		return err
+	}
+
+	// Enforce stock limit
+	if quantity > stockQty {
+		quantity = stockQty
+	}
+	if quantity > 99 {
+		quantity = 99
+	}
+	if quantity < 1 {
+		quantity = 1
+	}
+
 	if userID > 0 {
 		_, err = r.DB.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, productID)
 	} else {

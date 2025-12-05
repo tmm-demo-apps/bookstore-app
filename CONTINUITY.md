@@ -9,7 +9,7 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 ## Project Overview
 *   **Goal:** A demo platform to showcase **VMware Cloud Foundation (VCF) 9.0** capabilities through a real-world e-commerce application. See [`PLANNING.md`](PLANNING.md) for complete vision and three-phase roadmap.
 *   **Tech Stack:** Go 1.24, PostgreSQL, Docker, Kubernetes, Pico.css, and htmx.
-*   **Current Status:** Phase 2 UI Polish - Product images, table/tile toggle, compact cart, enhanced order history complete. Next: Product detail pages.
+*   **Current Status:** Phase 2 UI Polish - Product detail pages complete! Next: Category filtering UI.
 *   **Our Workflow:** We work in small, incremental steps. After each completed feature or bug fix, we **TEST FIRST** (see `TEST-CHECKLIST.md`), then commit the changes to our local Git repository and update the `diary.md` file.
 
 ### Testing Before Commits (MANDATORY)
@@ -67,9 +67,38 @@ Hello! We are continuing our work on the 12-factor demo e-commerce application.
 └── go.mod
 ```
 
-## Recent Accomplishments (November 30, 2025)
+## Recent Accomplishments (December 5, 2025)
 
-### Today's Major UI Overhaul ✅
+### Product Detail Pages ✅
+Implemented comprehensive individual product pages with professional e-commerce UX:
+
+1. **Detail Page Features** ✅
+   - Large product images (500px, responsive)
+   - Breadcrumb navigation (Home > Products > Product Name)
+   - Full product descriptions
+   - Color-coded stock status badges
+   - SKU, availability, and status metadata
+   - Quantity controls with stock limits
+   - Add to Cart from detail page
+   - 404 handling for non-existent products
+
+2. **Clickable Products** ✅
+   - Product cards and names now link to detail pages
+   - Works in both grid and table views
+   - Maintains existing hover effects
+   - Consistent styling across views
+
+3. **Mobile Responsive** ✅
+   - Single-column layout on mobile
+   - Reduced image sizes
+   - Full-width controls and buttons
+   - Touch-optimized spacing
+
+**Test Status**: All 15 smoke tests + new detail page tests passing ✅
+
+### Earlier Work (November 30, 2025)
+
+### Major UI Overhaul ✅
 Transformed the application into a modern, image-rich e-commerce experience:
 
 1. **Product Images & Layouts** ✅
@@ -103,7 +132,6 @@ Transformed the application into a modern, image-rich e-commerce experience:
    - Dark mode header background
    - Order items alphabetical sorting
 
-**Test Status**: All 15 smoke tests passing ✅
 
 ### Earlier Work (November 20-21, 2025)
 
@@ -181,34 +209,26 @@ git commit -m "descriptive message"
 ## Known Issues / Edge Cases
 - None currently! All cart bugs fixed as of November 21, 2025.
 
-## Next Steps - Tomorrow's Focus 🎯
+## Next Steps - Future Focus 🎯
 
-### **PRIORITY: Product Detail Pages**
-User wants to click on a product and see more details. This is the next feature to implement.
+### **NEXT PRIORITY: Category Filtering UI**
+Implement the category filtering system to help users browse products by category.
 
 **What to Build:**
-- Route: `/product/:id` or `/products/:id`
-- Handler: `ProductDetailPage` in `internal/handlers/products.go`
-- Template: `templates/product-detail.html`
-- Features needed:
-  - Large product image (400-500px)
-  - Full product description
-  - Price and availability
-  - Quantity selector + Add to Cart
-  - Back to products link
-  - Breadcrumb navigation (Home > Products > Product Name)
+- Category sidebar on desktop
+- Category dropdown on mobile
+- Filter products by category (already have `category_id` in DB)
+- Visual category cards with icons
+- Update search to filter by category
 
 **Technical Approach:**
-1. Add route in `cmd/web/main.go`: `mux.HandleFunc("/products/{id}", h.ProductDetail)`
-2. Create handler that fetches product by ID from repository
-3. Design template with large image, full details
-4. Make product cards/rows clickable (wrap in `<a>` tag)
-5. Test: Click product → see details → add to cart → return to list
+1. Query categories from database
+2. Add category filter to product list handler
+3. Design category sidebar/filters
+4. Update repository method to filter by category
+5. Add "All Categories" option
 
-**Repository Method Exists:**
-- `h.Repo.Products().GetProductByID(id)` already implemented ✅
-
-### Other Phase 2 Priorities (Later)
+### Other Phase 2 Priorities
 - **Infrastructure**: Redis (sessions), Elasticsearch (search), MinIO (images)
 - **Admin**: Product management panel
 - **Microservices**: AI Support Chatbot (Python/FastAPI)

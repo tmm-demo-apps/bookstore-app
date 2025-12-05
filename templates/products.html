@@ -54,6 +54,17 @@
     .product-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        cursor: pointer;
+    }
+    
+    .product-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .product-link:hover {
+        color: inherit;
     }
     
     .product-image {
@@ -94,7 +105,31 @@
         font-size: 1.3rem;
         font-weight: bold;
         color: var(--primary);
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stock-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--border-radius);
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+    }
+    
+    .stock-in {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-low {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .stock-out {
+        background: #f8d7da;
+        color: #721c24;
     }
     
     .product-actions {
@@ -209,26 +244,38 @@
 <div class="product-grid" id="product-grid">
     {{range .Products}}
     <article class="product-card">
-        {{if .ImageURL}}
-        <img src="{{.ImageURL}}" alt="{{.Name}}" class="product-image" 
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="product-image-placeholder" style="display:none;">📦</div>
-        {{else}}
-        <div class="product-image-placeholder">📦</div>
-        {{end}}
+        <a href="/products/{{.ID}}" class="product-link">
+            {{if .ImageURL}}
+            <img src="{{.ImageURL}}" alt="{{.Name}}" class="product-image" 
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="product-image-placeholder" style="display:none;">📦</div>
+            {{else}}
+            <div class="product-image-placeholder">📦</div>
+            {{end}}
+        </a>
         
         <div class="product-info">
-            <h3 class="product-name">{{.Name}}</h3>
+            <h3 class="product-name"><a href="/products/{{.ID}}" class="product-link" style="display: inline;">{{.Name}}</a></h3>
             <p class="product-description">{{.Description}}</p>
             <div class="product-price">${{printf "%.2f" .Price}}</div>
             
+            {{if gt .StockQuantity 10}}
+                <span class="stock-badge stock-in">In Stock</span>
+            {{else if gt .StockQuantity 0}}
+                <span class="stock-badge stock-low">Low Stock ({{.StockQuantity}} left)</span>
+            {{else}}
+                <span class="stock-badge stock-out">Out of Stock</span>
+            {{end}}
+            
+            {{if gt .StockQuantity 0}}
             <div class="product-actions">
                 <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
                     <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
                     <input type="text" value="1" id="product-qty-{{.ID}}"
                            style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.25rem; background: transparent; font-size: 0.85rem;"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                           inputmode="numeric" pattern="[0-9]*">
+                           inputmode="numeric" pattern="[0-9]*"
+                           data-max-stock="{{.StockQuantity}}">
                     <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
                 </div>
                 
@@ -238,6 +285,11 @@
                     <button type="submit" style="width: 100%; padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
                 </form>
             </div>
+            {{else}}
+            <div class="product-actions">
+                <button type="button" disabled style="width: 100%; padding: 0.4rem 0.75rem; font-size: 0.9rem; background: var(--muted-color); cursor: not-allowed;">Out of Stock</button>
+            </div>
+            {{end}}
         </div>
     </article>
     {{end}}
@@ -250,6 +302,7 @@
             <th>Name</th>
             <th>Description</th>
             <th>Price</th>
+            <th>Stock</th>
             <th>Quantity</th>
             <th>Action</th>
         </tr>
@@ -258,24 +311,37 @@
         {{range .Products}}
         <tr>
             <td>
-                {{if .ImageURL}}
-                <img src="{{.ImageURL}}" alt="{{.Name}}" class="table-image"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="table-image-placeholder" style="display:none;">📦</div>
-                {{else}}
-                <div class="table-image-placeholder">📦</div>
-                {{end}}
+                <a href="/products/{{.ID}}" class="product-link">
+                    {{if .ImageURL}}
+                    <img src="{{.ImageURL}}" alt="{{.Name}}" class="table-image"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="table-image-placeholder" style="display:none;">📦</div>
+                    {{else}}
+                    <div class="table-image-placeholder">📦</div>
+                    {{end}}
+                </a>
             </td>
-            <td><strong>{{.Name}}</strong></td>
+            <td><strong><a href="/products/{{.ID}}" class="product-link" style="display: inline;">{{.Name}}</a></strong></td>
             <td>{{.Description}}</td>
             <td><strong>${{printf "%.2f" .Price}}</strong></td>
+            <td>
+                {{if gt .StockQuantity 10}}
+                    <span class="stock-badge stock-in">In Stock</span>
+                {{else if gt .StockQuantity 0}}
+                    <span class="stock-badge stock-low">{{.StockQuantity}} left</span>
+                {{else}}
+                    <span class="stock-badge stock-out">Out</span>
+                {{end}}
+            </td>
+            {{if gt .StockQuantity 0}}
             <td>
                 <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
                     <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
                     <input type="text" value="1" id="product-qty-table-{{.ID}}"
                            style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.25rem; background: transparent; font-size: 0.85rem;"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                           inputmode="numeric" pattern="[0-9]*">
+                           inputmode="numeric" pattern="[0-9]*"
+                           data-max-stock="{{.StockQuantity}}">
                     <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
                 </div>
             </td>
@@ -286,6 +352,11 @@
                     <button type="submit" class="outline" style="padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
                 </form>
             </td>
+            {{else}}
+            <td colspan="2" style="text-align: center;">
+                <button type="button" disabled style="padding: 0.4rem 0.75rem; font-size: 0.9rem; background: var(--muted-color); cursor: not-allowed;">Out of Stock</button>
+            </td>
+            {{end}}
         </tr>
         {{end}}
     </tbody>
@@ -329,8 +400,12 @@
             const currentQty = parseInt(input.value) || 1;
             let newQty = currentQty + change;
             
+            // Get stock limit from data attribute
+            const maxStock = parseInt(input.getAttribute('data-max-stock')) || 99;
+            
             // Enforce limits
             if (newQty < 1) newQty = 1;
+            if (newQty > maxStock) newQty = maxStock;
             if (newQty > 99) newQty = 99;
             
             // Sync both inputs
@@ -346,8 +421,12 @@
             const formInput = document.getElementById(formPrefix + productId);
             let quantity = parseInt(input.value) || 1;
             
+            // Get stock limit from data attribute
+            const maxStock = parseInt(input.getAttribute('data-max-stock')) || 99;
+            
             // Enforce limits
             if (quantity < 1) quantity = 1;
+            if (quantity > maxStock) quantity = maxStock;
             if (quantity > 99) quantity = 99;
             
             formInput.value = quantity;

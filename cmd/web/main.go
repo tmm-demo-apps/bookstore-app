@@ -47,6 +47,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.ListProducts)
+	mux.HandleFunc("/products/{id}", h.ProductDetail)
 	mux.HandleFunc("/cart/add", h.AddToCart)
 	mux.HandleFunc("/cart/update", h.UpdateCartQuantity)
 	mux.HandleFunc("/cart/remove", h.RemoveFromCart)

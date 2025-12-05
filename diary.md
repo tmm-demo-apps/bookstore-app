@@ -3,10 +3,10 @@
 > **📋 See [`PLANNING.md`](PLANNING.md) for complete project vision, roadmap, and VCF 9.0 integration strategy**
 
 ## 🎯 Quick Status Summary
-**Last Updated:** November 30, 2025  
+**Last Updated:** December 5, 2025  
 **Project Status:** ✅ Phase 1 Complete + Phase 2 UI Polish In Progress  
-**Recent Focus:** Product Images, Table/Tile Toggle, Compact Cart, Order History  
-**Next Up:** Individual Product Detail Pages  
+**Recent Focus:** Product Detail Pages Implementation  
+**Next Up:** Product Categories/Filtering UI, Admin Panel  
 **Project Goal**: Demo platform to showcase VMware Cloud Foundation (VCF) 9.0 capabilities through real-world e-commerce application
 
 ### What's Working
@@ -16,6 +16,7 @@
 - ✅ **Responsive UI:** New header with mobile "Hamburger" menu and search bar.
 - ✅ **Sticky Header:** Fixed position header that shrinks on scroll with smooth transitions
 - ✅ **Product Images:** Cards with images, table/tile toggle, minimal controls
+- ✅ **Product Detail Pages:** Individual product pages with large images, descriptions, and stock info
 - ✅ **Order History:** Expandable cards with full order details and product images
 - ✅ **Compact Cart:** Single-row items with 80x80px thumbnails
 - ✅ **User Features:** "My Orders" page to view purchase history
@@ -55,6 +56,305 @@
     - Payment integration
     - Automated integration tests (Selenium/Playwright)
     - Load testing for performance benchmarks
+
+---
+
+## December 5, 2025
+
+### Bug Fixes: Product Detail Page Issues
+
+**Goal**: Fix three issues discovered during user testing of the product detail pages.
+
+#### Issues Fixed
+
+**1. Header Overlap on Detail Page** ✅
+- **Problem**: Sticky header was cutting off breadcrumb navigation
+- **Solution**: Wrapped all content in `.product-detail-content` div with `margin-top: 1rem`
+- **Files Modified**: `templates/product-detail.html`
+
+**2. Stock Limit Enforcement in Cart** ✅
+- **Problem**: Users could add 25 items, then add 25 more, exceeding available stock
+- **Root Cause**: AddToCart only validated the new quantity, not total cart quantity vs stock
+- **Solution**: Modified `AddToCart()` and `UpdateQuantity()` in repository to:
+  1. Query product stock_quantity before adding
+  2. Check existing cart quantity
+  3. Cap new total at available stock: `newQty = min(existing + new, stock, 99)`
+- **Files Modified**: `internal/repository/postgres.go`
+- **Code Changes**:
+  ```go
+  // In AddToCart - check stock first
+  var stockQty int
+  err := r.DB.QueryRow("SELECT stock_quantity FROM products WHERE id = $1", productID).Scan(&stockQty)
+  
+  // ... get existing cart quantity ...
+  
+  // Enforce stock limit FIRST
+  if newQty > stockQty {
+      newQty = stockQty
+  }
+  ```
+
+**3. Stock Reduction on Order Placement** ✅
+- **Problem**: Stock wasn't decreasing when orders were placed
+- **Solution**: Added SQL UPDATE in `CreateOrder()` transaction:
+  ```sql
+  UPDATE products p
+  SET stock_quantity = stock_quantity - oi.quantity
+  FROM order_items oi
+  WHERE p.id = oi.product_id AND oi.order_id = $1
+  ```
+- **Placement**: Runs after order items inserted, before cart cleared
+- **Transaction Safety**: Runs in same transaction, rolls back if order fails
+- **Files Modified**: `internal/repository/postgres.go`
+
+#### User Testing Results
+
+**Scenario 1: Multiple Adds**
+- Before: Add 25 → Add 25 → Cart shows 50 (but only 25 in stock) ❌
+- After: Add 25 → Add 25 → Cart shows 25 (capped at stock) ✅
+
+**Scenario 2: Order Processing**
+- Stock before order: 25 available
+- Place order for 7 items
+- Stock after order: 18 available ✅
+- Confirmed: Stock reduction working!
+
+**Scenario 3: Out of Stock**
+- After ordering all stock (25 items)
+- Product detail page correctly shows "Out of Stock" ✅
+- Add to Cart button disabled ✅
+
+#### Technical Details
+
+**Stock Validation Order**:
+1. Check available stock from database
+2. Get existing quantity in user's cart
+3. Calculate new total (existing + adding)
+4. Enforce limits in priority order:
+   - Stock limit (most important)
+   - System limit (99 max)
+   - Minimum (1)
+
+**Transaction Flow for Orders**:
+1. Begin transaction
+2. Create order record
+3. Insert order items from cart
+4. Update order total
+5. **Reduce product stock** ← NEW!
+6. Clear user's cart
+7. Commit transaction
+
+**Error Handling**:
+- If product doesn't exist: Returns error (cart add fails)
+- If stock is 0: Allows adding 0 items (effectively prevents add)
+- If stock goes negative: Prevented by cap logic
+- If transaction fails: All changes rolled back (order + stock)
+
+#### Testing Results
+
+✅ **All 15 smoke tests passing**  
+✅ Stock limit prevents over-adding to cart  
+✅ Stock reduces correctly on order placement  
+✅ Out of stock products show correctly  
+✅ Multiple sequential adds respect stock limits  
+✅ Cart merge respects stock limits
+
+**4. Stock Status Display on Products Page** ✅
+- **Problem**: Out of stock products didn't show status on main shopping page
+- **Result**: Users could still add out-of-stock items from products listing
+- **Solution**: Added stock badges and disabled controls for out-of-stock items
+- **Files Modified**: `templates/products.html`
+- **Features Added**:
+  - Stock status badges (In Stock / Low Stock / Out of Stock)
+  - Color-coded indicators (green/yellow/red)
+  - Disabled "Add to Cart" for out-of-stock items
+  - Stock column in table view
+  - JavaScript respects `data-max-stock` attribute
+  - Both grid and table views updated
+
+#### Files Modified
+
+1. **`templates/product-detail.html`**
+   - Added wrapper div with margin-top for header clearance
+
+2. **`internal/repository/postgres.go`**
+   - `AddToCart()`: Added stock checking before allowing add
+   - `UpdateQuantity()`: Added stock validation before update
+   - `CreateOrder()`: Added stock reduction SQL in transaction
+
+3. **`templates/products.html`**
+   - Added stock status badges (In Stock/Low Stock/Out of Stock)
+   - Disabled Add to Cart button when stock = 0
+   - Added "Stock" column to table view
+   - Updated JavaScript to enforce stock limits from `data-max-stock`
+   - Both grid and table views show stock status
+
+---
+
+### Feature: Product Detail Pages
+
+**Goal**: Implement individual product detail pages where users can view complete product information, see large images, and add items to cart with quantity selection.
+
+#### Features Implemented
+
+**1. Product Detail Page Route & Handler**
+- Added `/products/{id}` route in `cmd/web/main.go`
+- Created `ProductDetail` handler in `internal/handlers/products.go`
+- Extracts product ID from URL path using Go 1.22+ `r.PathValue()`
+- Fetches product from database using existing repository method
+- Proper error handling for invalid IDs (400) and not found (404)
+
+**2. Product Detail Template** (`templates/product-detail.html`)
+- **Large Product Images**: 500px max width with responsive sizing
+- **Breadcrumb Navigation**: Home > Products > Product Name
+- **Two-Column Layout**: Image on left, info on right (stacks on mobile)
+- **Product Information Display**:
+  - Large product name (2rem font)
+  - Prominent price (2.5rem, primary color)
+  - Full product description (1.1rem, increased line height)
+  - Product metadata card (SKU, availability, status)
+- **Stock Status Badges**: Color-coded indicators
+  - Green: In Stock (10+ items)
+  - Yellow: Low Stock (1-9 items)
+  - Red: Out of Stock (0 items)
+- **Quantity Controls**: Large, prominent +/- buttons with 80px input
+- **Add to Cart**: Full-width button, disabled when out of stock
+- **Back Link**: "← Back to Products" at bottom
+- **Image Fallback**: 📦 placeholder for missing images
+
+**3. Clickable Products** (Updated `templates/products.html`)
+- Wrapped product images in links to detail page
+- Made product names clickable in both grid and table views
+- Added `.product-link` CSS class for consistent styling
+- Maintains hover effects on cards
+- Both image and name link to `/products/{id}`
+
+#### Design Features
+
+**Desktop Layout**:
+```
++-----------------+  +------------------------+
+|                 |  | Product Name           |
+|  Product Image  |  | $XX.XX                 |
+|  (500x600)      |  | Description text...    |
+|                 |  | [SKU | Stock | Status] |
+|                 |  | [- QTY +] [Add to Cart]|
++-----------------+  +------------------------+
+```
+
+**Mobile Layout** (< 768px):
+- Single column, image on top
+- Reduced image size (400px max)
+- Full-width quantity controls and button
+- Smaller font sizes for better readability
+
+**Color-Coded Stock Status**:
+- **In Stock**: `#d4edda` background, `#155724` text
+- **Low Stock**: `#fff3cd` background, `#856404` text  
+- **Out of Stock**: `#f8d7da` background, `#721c24` text
+
+#### Technical Implementation
+
+**Handler Logic**:
+```go
+func (h *Handlers) ProductDetail(w http.ResponseWriter, r *http.Request) {
+    idStr := r.PathValue("id")  // Go 1.22+ path parameters
+    productID, err := strconv.Atoi(idStr)
+    // ... error handling
+    product, err := h.Repo.Products().GetProductByID(productID)
+    // ... render template with *product dereferenced
+}
+```
+
+**JavaScript Features**:
+- Quantity validation (1 to min(stock, 99))
+- Real-time input sanitization (numbers only)
+- Stock limit enforcement
+- HTMX integration for cart updates
+
+**Responsive CSS Grid**:
+- Desktop: `grid-template-columns: 1fr 1fr` (50/50 split)
+- Mobile: `grid-template-columns: 1fr` (single column)
+- 3rem gap on desktop, 2rem on mobile
+
+#### User Experience Flow
+
+1. **Browse Products**: User sees grid/table of products
+2. **Click Product**: Image or name links to detail page
+3. **View Details**: Large image, full description, pricing, stock info
+4. **Select Quantity**: Use +/- buttons or type directly
+5. **Add to Cart**: Single button, disabled if out of stock
+6. **Cart Updates**: HTMX updates cart count without page reload
+7. **Navigate Back**: Click "Back to Products" or use breadcrumb
+
+#### Testing Results
+
+✅ **All 15 smoke tests passing**  
+✅ Product detail page loads correctly (tested with product ID 1)  
+✅ Product name displays: "Sample Product 1"  
+✅ Price section present (3 instances found in HTML)  
+✅ Add to Cart button present with correct class  
+✅ Breadcrumb navigation present  
+✅ 404 error handling works (tested with product ID 999)  
+✅ 36 product links found on main page (grid + table views)  
+✅ Add to cart from detail page works (added 3 items)  
+✅ Cart displays correct product ("1984") after adding from detail  
+✅ Product links properly formatted: `href="/products/{id}"`
+
+#### Files Modified
+
+1. **`cmd/web/main.go`**
+   - Added route: `mux.HandleFunc("/products/{id}", h.ProductDetail)`
+
+2. **`internal/handlers/products.go`**
+   - Added `ProductDetailViewData` struct
+   - Implemented `ProductDetail` handler with error handling
+   - Used `r.PathValue("id")` for path parameter extraction
+
+3. **`templates/product-detail.html`** (NEW FILE)
+   - Complete detail page template with responsive design
+   - Stock status logic, quantity controls, breadcrumb navigation
+   - Mobile-optimized layout with media queries
+
+4. **`templates/products.html`**
+   - Added `.product-link` CSS class
+   - Wrapped images and names in `<a>` tags to detail page
+   - Applied to both grid and table views
+
+#### Mobile Optimization
+
+- Image: 400px max height (vs 600px desktop)
+- Product name: 1.5rem (vs 2rem desktop)
+- Price: 2rem (vs 2.5rem desktop)
+- Quantity controls: 100% width, centered
+- Add to Cart button: 100% width
+- Reduced placeholder icon: 5rem (vs 8rem desktop)
+
+#### Edge Cases Handled
+
+- **Invalid Product ID**: Returns 400 Bad Request
+- **Non-existent Product**: Returns 404 Not Found  
+- **Missing Image URL**: Shows 📦 placeholder icon
+- **Broken Image URL**: JavaScript `onerror` handler shows placeholder
+- **Out of Stock**: Disables Add to Cart button, shows "Out of Stock"
+- **Quantity Limits**: Enforces 1-99 range and stock availability
+- **Negative Stock**: UI handles gracefully (should not occur in DB)
+
+#### Next Steps
+
+**Immediate**:
+- Test in browser (visual inspection)
+- Check mobile responsiveness
+- Verify all products have proper images
+
+**Future Enhancements** (Phase 2):
+- Related products section
+- Product reviews and ratings
+- "Customers also bought" recommendations
+- Image gallery with multiple photos
+- Zoom on hover for images
+- Social sharing buttons
+- Recently viewed products tracking
 
 ---
 
