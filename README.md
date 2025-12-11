@@ -2,6 +2,32 @@
 
 This project, DemoApp, is a demonstration of a bookstore shopping cart application designed and developed with the [Twelve-Factor App methodology](https://12factor.net/). This document outlines how the application adheres to each of the twelve factors.
 
+## Quick Start
+
+### Local Development with Docker Compose
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd DemoApp
+
+# Start the application
+docker compose up --build
+
+# Access the application
+open http://localhost:8080
+```
+
+**⚠️ Security Note**: The `docker-compose.yml` file contains development-only credentials (`user`/`password`). **Never use these in production!** For production deployments, use proper secrets management (Kubernetes secrets, AWS Secrets Manager, etc.).
+
+### Technology Stack
+
+- **Backend**: Go 1.24
+- **Frontend**: HTML templates with HTMX and Pico CSS
+- **Database**: PostgreSQL 14
+- **Container**: Docker & Docker Compose
+- **Orchestration**: Kubernetes (optional)
+
 ## The Twelve Factors
 
 ### I. Codebase

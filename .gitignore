@@ -35,3 +35,12 @@ kubernetes/secret.yaml
 
 # macOS
 .DS_Store
+
+# Personal notes and development artifacts
+cookies.txt
+diary.md
+CONTINUITY.md
+PLANNING.md
+MANUAL-TEST-STICKY-HEADER.md
+TEST-CHECKLIST.md
+TESTING.md
