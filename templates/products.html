@@ -50,6 +50,7 @@
         background: var(--card-background-color);
         transition: transform 0.2s, box-shadow 0.2s;
         margin: 0; /* Explicitly remove any margins */
+        padding: 0.65rem; /* Compact padding for the entire card */
         display: flex;
         flex-direction: column;
     }
@@ -158,7 +159,7 @@
     
     .product-actions .qty-controls {
         flex: 0 0 auto;
-        max-width: 50%;
+        max-width: 40%;
     }
     
     .product-actions form {
@@ -170,6 +171,7 @@
         padding: calc(var(--form-element-spacing-vertical) * 0.35) calc(var(--form-element-spacing-horizontal) * 0.6);
         font-size: 0.8rem;
         line-height: 1.2;
+        height: fit-content;
     }
     
     .qty-controls {
@@ -179,7 +181,7 @@
         border-radius: var(--border-radius);
         overflow: hidden;
         background: var(--card-background-color);
-        height: fit-content;
+        height: 60%;
     }
     
     .qty-btn {
@@ -194,6 +196,7 @@
         align-items: center;
         justify-content: center;
         line-height: 1.2;
+        
     }
     
     .qty-btn:hover {
@@ -211,8 +214,9 @@
         font-size: 0.8rem;
         color: var(--color);
         line-height: 1.2;
-        height: auto;
+        height: 65%;
         margin: 0;
+        
     }
     
     /* Table View Styles */
