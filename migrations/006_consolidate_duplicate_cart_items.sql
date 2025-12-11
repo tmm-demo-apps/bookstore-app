@@ -12,8 +12,8 @@ SELECT
     SUM(quantity) as quantity
 FROM cart_items
 GROUP BY 
-    COALESCE(user_id, 0),
-    COALESCE(session_id, ''),
+    user_id,
+    session_id,
     product_id
 HAVING COUNT(*) > 0;
 
