@@ -1,5 +1,10 @@
 # DemoApp - Bookstore Shopping Cart
 
+[![CI](https://github.com/johnnyr0x/bookstore-app/workflows/CI/badge.svg)](https://github.com/johnnyr0x/bookstore-app/actions)
+[![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go)](https://go.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A modern, full-stack e-commerce bookstore application built with Go, PostgreSQL, HTMX, and Pico CSS. Features include product browsing, shopping cart management, user authentication, and order processing.
 
 ## Features
