@@ -54,16 +54,11 @@ jobs:
 
     - name: Run go fmt check
       run: |
-        unformatted=$(gofmt -l .)
-        if [ -n "$unformatted" ]; then
-          echo "❌ The following files are not formatted:"
-          echo "$unformatted"
-          echo ""
-          echo "Formatting differences:"
+        if [ -n "$(gofmt -l .)" ]; then
+          echo "Go code is not formatted:"
           gofmt -d .
           exit 1
         fi
-        echo "✅ All Go files are properly formatted"
 
     - name: Run migrations
       env:
@@ -93,15 +88,7 @@ jobs:
         DB_HOST: localhost
         DB_NAME: bookstore_test
         DB_PORT: 5432
-      run: |
-        # Check if there are any test files
-        if find . -name "*_test.go" | grep -q .; then
-          echo "Running tests..."
-          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-        else
-          echo "⚠️  No test files found - skipping tests"
-          echo "To add tests, create files ending in _test.go"
-        fi
+      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
