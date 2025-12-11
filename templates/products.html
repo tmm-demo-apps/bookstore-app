@@ -102,6 +102,7 @@
         height: 2.5em; /* Fixed 2-line height */
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
@@ -114,6 +115,7 @@
         height: 2.6em; /* Fixed 2-line height */
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -321,16 +323,16 @@
             {{if gt .StockQuantity 0}}
             <div class="product-actions">
                 <div class="qty-controls">
-                    <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" class="qty-btn">−</button>
+                    <button type="button" class="qty-btn" data-product-id="{{.ID}}" data-change="-1">−</button>
                     <input type="text" value="1" id="product-qty-{{.ID}}"
                            class="qty-input"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            inputmode="numeric" pattern="[0-9]*"
                            data-max-stock="{{.StockQuantity}}">
-                    <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" class="qty-btn">+</button>
+                    <button type="button" class="qty-btn" data-product-id="{{.ID}}" data-change="1">+</button>
                 </div>
                 
-                <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" onsubmit="setQuantity(event, {{.ID}})">
+                <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" data-product-id="{{.ID}}">
                     <input type="hidden" name="product_id" value="{{.ID}}">
                     <input type="hidden" name="quantity" id="form-qty-{{.ID}}" value="1">
                     <button type="submit" class="btn-small" style="width: 100%;">Add to Cart</button>
@@ -387,17 +389,17 @@
             {{if gt .StockQuantity 0}}
             <td>
                 <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
-                    <button type="button" onclick="adjustProductQuantity({{.ID}}, -1)" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
+                    <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="-1" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
                     <input type="text" value="1" id="product-qty-table-{{.ID}}"
                            style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.4rem 0.25rem; background: transparent; font-size: 0.85rem;"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            inputmode="numeric" pattern="[0-9]*"
                            data-max-stock="{{.StockQuantity}}">
-                    <button type="button" onclick="adjustProductQuantity({{.ID}}, 1)" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+                    <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="1" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
                 </div>
             </td>
             <td>
-                <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;" onsubmit="setQuantity(event, {{.ID}}, 'table')">
+                <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;" data-product-id="{{.ID}}" data-view="table">
                     <input type="hidden" name="product_id" value="{{.ID}}">
                     <input type="hidden" name="quantity" id="form-qty-table-{{.ID}}" value="1">
                     <button type="submit" class="outline" style="padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
@@ -440,6 +442,25 @@
         document.addEventListener('DOMContentLoaded', function() {
             const savedView = localStorage.getItem('productView') || 'grid';
             setView(savedView);
+            
+            // Event delegation for quantity buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('qty-btn') || e.target.classList.contains('table-qty-btn')) {
+                    const productId = e.target.dataset.productId;
+                    const change = parseInt(e.target.dataset.change);
+                    adjustProductQuantity(productId, change);
+                }
+            });
+            
+            // Event delegation for form submissions
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (form.dataset.productId) {
+                    const productId = form.dataset.productId;
+                    const view = form.dataset.view || 'grid';
+                    setQuantity(e, productId, view);
+                }
+            });
         });
         
         function adjustProductQuantity(productId, change) {
