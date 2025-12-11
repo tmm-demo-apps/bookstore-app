@@ -72,7 +72,9 @@ func (h *Handlers) CartSummary(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		ts.Execute(w, nil)
+		if err := ts.Execute(w, nil); err != nil {
+			log.Printf("Error executing template: %v", err)
+		}
 		return
 	}
 
@@ -96,5 +98,7 @@ func (h *Handlers) CartSummary(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	ts.Execute(w, summaryItems)
+	if err := ts.Execute(w, summaryItems); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }

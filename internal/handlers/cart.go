@@ -206,8 +206,15 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 			Items:           nil,
 			Total:           0,
 		}
-		ts, _ := template.ParseFiles("./templates/base.html", "./templates/cart.html")
-		ts.ExecuteTemplate(w, "cart.html", data)
+		ts, err := template.ParseFiles("./templates/base.html", "./templates/cart.html")
+		if err != nil {
+			log.Printf("Error parsing template: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if err := ts.ExecuteTemplate(w, "cart.html", data); err != nil {
+			log.Printf("Error executing template: %v", err)
+		}
 		return
 	}
 
@@ -231,5 +238,7 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts.ExecuteTemplate(w, "cart.html", data)
+	if err := ts.ExecuteTemplate(w, "cart.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }

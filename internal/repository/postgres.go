@@ -136,7 +136,9 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 	}
 
 	if errCreate != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("Error rolling back transaction: %v", rbErr)
+		}
 		return 0, errCreate
 	}
 
@@ -158,7 +160,9 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 	}
 
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("Error rolling back transaction: %v", rbErr)
+		}
 		return 0, err
 	}
 
@@ -168,7 +172,9 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 		SET total_amount = (SELECT SUM(price * quantity) FROM order_items WHERE order_id = $1)
 		WHERE id = $1`, orderID)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("Error rolling back transaction: %v", rbErr)
+		}
 		return 0, err
 	}
 
@@ -180,7 +186,9 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 		FROM order_items oi
 		WHERE p.id = oi.product_id AND oi.order_id = $1`, orderID)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("Error rolling back transaction: %v", rbErr)
+		}
 		return 0, err
 	}
 
@@ -191,7 +199,9 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 		_, err = tx.Exec("DELETE FROM cart_items WHERE session_id = $1", sessionID)
 	}
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("Error rolling back transaction: %v", rbErr)
+		}
 		return 0, err
 	}
 
@@ -473,13 +483,17 @@ func (r *postgresCartRepo) MergeCart(sessionID string, userID int) error {
 		var userQty int
 		err = tx.QueryRow("SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, i.PID).Scan(&userQty)
 		if err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("Error rolling back transaction: %v", rbErr)
+			}
 			return err
 		}
 
 		_, err = tx.Exec("DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2", userID, i.PID)
 		if err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("Error rolling back transaction: %v", rbErr)
+			}
 			return err
 		}
 
@@ -489,14 +503,18 @@ func (r *postgresCartRepo) MergeCart(sessionID string, userID int) error {
 		}
 		_, err = tx.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, i.PID, newQty)
 		if err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("Error rolling back transaction: %v", rbErr)
+			}
 			return err
 		}
 	}
 
 	_, err = tx.Exec("DELETE FROM cart_items WHERE session_id = $1", sessionID)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("Error rolling back transaction: %v", rbErr)
+		}
 		return err
 	}
 

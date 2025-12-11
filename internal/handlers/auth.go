@@ -29,8 +29,15 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 		PasswordHelp:    "Password must be at least 8 characters long and contain at least one letter and one number.",
 		Next:            r.URL.Query().Get("next"),
 	}
-	ts, _ := template.ParseFiles("./templates/base.html", "./templates/signup.html")
-	ts.ExecuteTemplate(w, "signup.html", data)
+	ts, err := template.ParseFiles("./templates/base.html", "./templates/signup.html")
+	if err != nil {
+		log.Printf("Error parsing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if err := ts.ExecuteTemplate(w, "signup.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }
 
 func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +85,11 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.Values["user_id"] = userID
-	session.Save(r, w)
+	if err := session.Save(r, w); err != nil {
+		log.Printf("Error saving session: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	nextURL := r.URL.Query().Get("next")
 	if nextURL != "" {
@@ -114,8 +125,15 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request, errorMsg st
 		Error:           errorMsg,
 		Next:            r.URL.Query().Get("next"),
 	}
-	ts, _ := template.ParseFiles("./templates/base.html", "./templates/login.html")
-	ts.ExecuteTemplate(w, "login.html", data)
+	ts, err := template.ParseFiles("./templates/base.html", "./templates/login.html")
+	if err != nil {
+		log.Printf("Error parsing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if err := ts.ExecuteTemplate(w, "login.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }
 
 func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +161,11 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.Values["user_id"] = user.ID
-	session.Save(r, w)
+	if err := session.Save(r, w); err != nil {
+		log.Printf("Error saving session: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	nextURL := r.URL.Query().Get("next")
 	if nextURL != "" {
@@ -155,8 +177,13 @@ func (h *Handlers) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.Store.Get(r, "cart-session")
+	session, err := h.Store.Get(r, "cart-session")
+	if err != nil {
+		log.Printf("Error getting session: %v", err)
+	}
 	delete(session.Values, "user_id")
-	session.Save(r, w)
+	if err := session.Save(r, w); err != nil {
+		log.Printf("Error saving session: %v", err)
+	}
 	http.Redirect(w, r, "/", http.StatusFound)
 }
