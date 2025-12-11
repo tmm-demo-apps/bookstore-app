@@ -4,6 +4,7 @@ import (
 	"DemoApp/internal/models"
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 type PostgresRepository struct {
