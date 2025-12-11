@@ -30,7 +30,11 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	if !userOk && !sessionOk {
 		sessionID = uuid.New().String()
 		session.Values["id"] = sessionID
-		session.Save(r, w)
+		if err := session.Save(r, w); err != nil {
+			log.Printf("Error saving session: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 		sessionOk = true // Mark as valid now
 	}
 

@@ -63,7 +63,9 @@ func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts.ExecuteTemplate(w, "checkout.html", data)
+	if err := ts.ExecuteTemplate(w, "checkout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }
 
 func (h *Handlers) ProcessOrder(w http.ResponseWriter, r *http.Request) {
@@ -120,5 +122,7 @@ func (h *Handlers) ConfirmationPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", 500)
 		return
 	}
-	ts.ExecuteTemplate(w, "confirmation.html", data)
+	if err := ts.ExecuteTemplate(w, "confirmation.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }

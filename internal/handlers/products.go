@@ -50,7 +50,9 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts.ExecuteTemplate(w, "products.html", data)
+	if err := ts.ExecuteTemplate(w, "products.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+	}
 }
 
 func (h *Handlers) ProductDetail(w http.ResponseWriter, r *http.Request) {

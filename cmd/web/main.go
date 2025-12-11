@@ -71,7 +71,3 @@ func main() {
 	err = http.ListenAndServe(":8080", mux)
 	log.Fatal(err)
 }
-
-func home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, World!")
-}

@@ -86,7 +86,6 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 	if categoryID > 0 {
 		q += fmt.Sprintf(" AND category_id = $%d", argID)
 		args = append(args, categoryID)
-		argID++
 	}
 
 	rows, err := r.DB.Query(q, args...)
