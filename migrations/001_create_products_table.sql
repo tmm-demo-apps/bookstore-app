@@ -1,11 +1,9 @@
+-- Create the initial products table with basic schema
+-- Additional fields (sku, stock_quantity, image_url, category_id, status) are added in 007_phase1_schema_expansion.sql
+-- Seed data is in 008_seed_data.sql
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
     price DECIMAL(10, 2) NOT NULL
 );
-
-INSERT INTO products (name, description, price) VALUES
-('Sample Product 1', 'This is a description for the first sample product.', 10.99),
-('Sample Product 2', 'This is a description for the second sample product.', 25.99),
-('Sample Product 3', 'This is a description for the third sample product.', 15.99);
