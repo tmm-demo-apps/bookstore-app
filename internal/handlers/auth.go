@@ -59,7 +59,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	// We don't have Full Name yet from the form, passing empty string or email prefix as placeholder
 	// Actually the plan says to add full name to schema later.
 	// For now, I will pass email as full name placeholder or empty string.
-	
+
 	userID, err := h.Repo.Users().CreateUser(email, user.PasswordHash, "")
 	if err != nil {
 		log.Println(err)
@@ -68,7 +68,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session, _ := h.Store.Get(r, "cart-session")
-	
+
 	if sessionID, ok := session.Values["id"].(string); ok && sessionID != "" {
 		err := h.Repo.Cart().MergeCart(sessionID, userID)
 		if err != nil {
@@ -76,7 +76,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		}
 		delete(session.Values, "id")
 	}
-	
+
 	session.Values["user_id"] = userID
 	session.Save(r, w)
 

@@ -52,4 +52,3 @@ func (h *Handlers) MyOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-

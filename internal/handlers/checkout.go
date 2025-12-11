@@ -21,13 +21,17 @@ func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session, _ := h.Store.Get(r, "cart-session")
-	
+
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
 
-	if !userOk { userID = 0 }
-	if !sessionOk { sessionID = "" }
-	
+	if !userOk {
+		userID = 0
+	}
+	if !sessionOk {
+		sessionID = ""
+	}
+
 	if userID == 0 && sessionID == "" {
 		http.Redirect(w, r, "/cart", http.StatusFound)
 		return
@@ -69,12 +73,14 @@ func (h *Handlers) ProcessOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session, _ := h.Store.Get(r, "cart-session")
-	
+
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
-	
-	if !userOk { userID = 0 }
-	if !sessionOk { 
+
+	if !userOk {
+		userID = 0
+	}
+	if !sessionOk {
 		// Fallback for edge case where session might be missing but user is somehow authenticated
 		// But usually ProcessOrder should fail if no session
 		// Create a temp sessionID if missing? No, that would imply empty cart.
@@ -82,14 +88,14 @@ func (h *Handlers) ProcessOrder(w http.ResponseWriter, r *http.Request) {
 		sessionID = session.Values["id"].(string)
 	}
 
-	// Note: Repo CreateOrder currently takes items only to calculate totals/structure, 
+	// Note: Repo CreateOrder currently takes items only to calculate totals/structure,
 	// but the internal implementation I wrote actually re-queries the cart items for safety.
 	// So I can pass nil or empty slice if the implementation relies on SQL.
 	// Let's check my implementation of CreateOrder in postgres.go.
-	// ... It DOES re-query based on sessionID/userID. 
+	// ... It DOES re-query based on sessionID/userID.
 	// So passing items is technically redundant but good for interface correctness if we swapped to a non-SQL repo.
 	// For now I will just pass nil as I know my Postgres implementation ignores it (it does `INSERT INTO ... SELECT FROM cart_items`).
-	
+
 	_, err := h.Repo.Orders().CreateOrder(sessionID, userID, nil)
 	if err != nil {
 		log.Println(err)

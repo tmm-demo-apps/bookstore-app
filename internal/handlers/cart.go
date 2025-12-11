@@ -49,8 +49,12 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Pass 0 for userID if not authenticated, empty string for sessionID if not set
-	if !userOk { userID = 0 }
-	if !sessionOk { sessionID = "" }
+	if !userOk {
+		userID = 0
+	}
+	if !sessionOk {
+		sessionID = ""
+	}
 
 	err = h.Repo.Cart().AddToCart(userID, sessionID, productID, quantity)
 	if err != nil {
@@ -71,7 +75,7 @@ func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
 	// Note: Front-end sends cart_item_id, but my new repo works with product_id.
 	// I need to fetch the product_id from cart_item_id first, OR update repo to work with cart_item_id.
 	// The original handler did: SELECT product_id ... FROM cart_items WHERE id = cart_item_id
-	
+
 	cartItemID, err := strconv.Atoi(r.FormValue("cart_item_id"))
 	if err != nil {
 		http.Error(w, "Invalid cart item ID", http.StatusBadRequest)
@@ -87,44 +91,48 @@ func (h *Handlers) UpdateCartQuantity(w http.ResponseWriter, r *http.Request) {
 	// Helper to get context from cart_item_id
 	// Since I moved this logic to Repo, I should expose a method GetCartItemByID?
 	// Or just run a quick query here?
-	// The plan was to move SQL out of handlers. 
+	// The plan was to move SQL out of handlers.
 	// But `UpdateQuantity` in Repo takes `productID`.
-	// Let's cheating slightly: I will add `GetCartItemByID` to repo, or use a raw query if I must? 
-	// No, I should do it right. 
+	// Let's cheating slightly: I will add `GetCartItemByID` to repo, or use a raw query if I must?
+	// No, I should do it right.
 	// The original handler logic was:
 	// 1. Get product_id, user_id, session_id from cart_item_id
 	// 2. Check consistency
 	// 3. Update
-	
+
 	// Implementation detail: Since I don't have GetCartItemByID in interface yet,
 	// and I cannot change interface easily without editing multiple files...
 	// Wait, I CAN change the interface. It's in `internal/repository/repository.go`.
 	// But for now, let's assume I can just query the DB via a new method or just fix the frontend to pass product_id?
 	// Fixing frontend is harder (template change).
 	// Let's add GetCartItem to repo interface.
-	
+
 	// Actually, for now, let's query the DB directly? No, `h.DB` is gone.
 	// I MUST add it to the Repo.
-	
+
 	// Let's assume I will add `GetCartItem(id int) (*models.CartItem, error)` to CartRepository.
 	// I'll update `repository.go` and `postgres.go` in a moment.
-	
+
 	item, err := h.Repo.Cart().GetCartItem(cartItemID)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Cart item not found", http.StatusNotFound)
 		return
 	}
-	
+
 	// Use the ID from the item to call UpdateQuantity
 	// Note: UpdateQuantity takes userID/sessionID.
 	// The item struct has UserID/SessionID pointers.
-	
+
 	uID := 0
-	if item.UserID != nil { uID = *item.UserID }
+	if item.UserID != nil {
+		uID = *item.UserID
+	}
 	sID := ""
-	if item.SessionID != nil { sID = *item.SessionID }
-	
+	if item.SessionID != nil {
+		sID = *item.SessionID
+	}
+
 	err = h.Repo.Cart().UpdateQuantity(uID, sID, item.ProductID, quantity)
 	if err != nil {
 		log.Println(err)
@@ -153,11 +161,15 @@ func (h *Handlers) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Cart item not found", http.StatusNotFound)
 		return
 	}
-	
+
 	uID := 0
-	if item.UserID != nil { uID = *item.UserID }
+	if item.UserID != nil {
+		uID = *item.UserID
+	}
 	sID := ""
-	if item.SessionID != nil { sID = *item.SessionID }
+	if item.SessionID != nil {
+		sID = *item.SessionID
+	}
 
 	err = h.Repo.Cart().RemoveItem(uID, sID, item.ProductID)
 	if err != nil {
@@ -180,9 +192,13 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
 
-	if !userOk { userID = 0 }
-	if !sessionOk { sessionID = "" }
-	
+	if !userOk {
+		userID = 0
+	}
+	if !sessionOk {
+		sessionID = ""
+	}
+
 	if userID == 0 && sessionID == "" {
 		// Empty
 		data := CartViewData{

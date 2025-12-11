@@ -21,7 +21,7 @@ type ProductDetailViewData struct {
 
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	
+
 	var products []models.Product
 	var err error
 

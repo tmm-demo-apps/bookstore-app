@@ -10,4 +10,3 @@ type CartItem struct {
 	Product  Product
 	Subtotal float64
 }
-

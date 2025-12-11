@@ -119,16 +119,16 @@ func (r *postgresOrderRepo) CreateOrder(sessionID string, userID int, items []mo
 
 	var orderID int
 	var errCreate error
-	
+
 	// Calculate total amount first?
 	// For now, we insert order then items, then maybe update total?
 	// Or calculate total in SQL?
 	// Let's stick to basic insertion first, update total later or via trigger?
-	// The prompt asks to add `total_amount` column. 
+	// The prompt asks to add `total_amount` column.
 	// Ideally we calculate it.
-	
+
 	// Let's just insert the order.
-	
+
 	if userID > 0 {
 		errCreate = tx.QueryRow("INSERT INTO orders (session_id, user_id) VALUES ($1, $2) RETURNING id", sessionID, userID).Scan(&orderID)
 	} else {
@@ -221,7 +221,7 @@ func (r *postgresOrderRepo) GetOrdersByUserID(userID int) ([]models.Order, error
 		if err := rows.Scan(&o.ID, &o.SessionID, &o.UserID, &o.TotalAmount, &o.Status, &o.CreatedAt); err != nil {
 			return nil, err
 		}
-		
+
 		// Load order items with product details
 		itemRows, err := r.DB.Query(`
 			SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price,
@@ -233,7 +233,7 @@ func (r *postgresOrderRepo) GetOrdersByUserID(userID int) ([]models.Order, error
 		if err != nil {
 			return nil, err
 		}
-		
+
 		var items []models.OrderItem
 		for itemRows.Next() {
 			var item models.OrderItem
@@ -249,7 +249,7 @@ func (r *postgresOrderRepo) GetOrdersByUserID(userID int) ([]models.Order, error
 			items = append(items, item)
 		}
 		itemRows.Close()
-		
+
 		o.Items = items
 		orders = append(orders, o)
 	}
@@ -263,7 +263,7 @@ type postgresCartRepo struct {
 }
 
 func (r *postgresCartRepo) GetCartItems(userID int, sessionID string) ([]models.CartItem, float64, error) {
-	// Need to update this query if product fields changed? 
+	// Need to update this query if product fields changed?
 	// Just ensure we select compatible fields.
 	var rows *sql.Rows
 	var err error
@@ -310,14 +310,14 @@ func (r *postgresCartRepo) GetCartItem(id int) (*models.CartItem, error) {
 	var item models.CartItem
 	var userID sql.NullInt64
 	var sessionID sql.NullString
-	
+
 	err := r.DB.QueryRow("SELECT id, product_id, user_id, session_id, quantity FROM cart_items WHERE id = $1", id).
 		Scan(&item.ID, &item.ProductID, &userID, &sessionID, &item.Quantity)
-		
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if userID.Valid {
 		uid := int(userID.Int64)
 		item.UserID = &uid
@@ -326,7 +326,7 @@ func (r *postgresCartRepo) GetCartItem(id int) (*models.CartItem, error) {
 		sid := sessionID.String
 		item.SessionID = &sid
 	}
-	
+
 	return &item, nil
 }
 
@@ -351,7 +351,7 @@ func (r *postgresCartRepo) AddToCart(userID int, sessionID string, productID, qu
 
 	// Calculate new quantity with stock limit
 	newQty := existingQty + quantity
-	
+
 	// Enforce stock limit FIRST (most important)
 	if newQty > stockQty {
 		newQty = stockQty
@@ -407,7 +407,9 @@ func (r *postgresCartRepo) UpdateQuantity(userID int, sessionID string, productI
 	} else {
 		_, err = r.DB.Exec("DELETE FROM cart_items WHERE session_id = $1 AND product_id = $2", sessionID, productID)
 	}
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	if userID > 0 {
 		_, err = r.DB.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, productID, quantity)
@@ -482,7 +484,9 @@ func (r *postgresCartRepo) MergeCart(sessionID string, userID int) error {
 		}
 
 		newQty := userQty + i.Qty
-		if newQty > 99 { newQty = 99 }
+		if newQty > 99 {
+			newQty = 99
+		}
 		_, err = tx.Exec("INSERT INTO cart_items (user_id, product_id, quantity) VALUES ($1, $2, $3)", userID, i.PID, newQty)
 		if err != nil {
 			tx.Rollback()

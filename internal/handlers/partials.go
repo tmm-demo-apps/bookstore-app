@@ -19,12 +19,16 @@ func (h *Handlers) CartCount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "0")
 
 	session, _ := h.Store.Get(r, "cart-session")
-	
+
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
-	
-	if !userOk { userID = 0 }
-	if !sessionOk { sessionID = "" }
+
+	if !userOk {
+		userID = 0
+	}
+	if !sessionOk {
+		sessionID = ""
+	}
 
 	if userID == 0 && sessionID == "" {
 		fmt.Fprint(w, "(0)")
@@ -51,12 +55,16 @@ func (h *Handlers) CartSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "0")
 
 	session, _ := h.Store.Get(r, "cart-session")
-	
+
 	userID, userOk := session.Values["user_id"].(int)
 	sessionID, sessionOk := session.Values["id"].(string)
-	
-	if !userOk { userID = 0 }
-	if !sessionOk { sessionID = "" }
+
+	if !userOk {
+		userID = 0
+	}
+	if !sessionOk {
+		sessionID = ""
+	}
 
 	if userID == 0 && sessionID == "" {
 		ts, err := template.ParseFiles("./templates/partials/cart-summary.html")

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
 	"DemoApp/internal/handlers"
 	"DemoApp/internal/repository"
 	"database/sql"
+	"fmt"
+	"log"
+	"net/http"
 	"os"
 
 	"github.com/gorilla/sessions"

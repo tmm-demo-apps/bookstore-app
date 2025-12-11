@@ -38,4 +38,3 @@ type Repository interface {
 	Cart() CartRepository
 	Users() UserRepository
 }
-
