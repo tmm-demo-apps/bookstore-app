@@ -1,10 +1,33 @@
-# DemoApp - A 12-Factor Bookstore Application
+# DemoApp - Bookstore Shopping Cart
 
-This project, DemoApp, is a demonstration of a bookstore shopping cart application designed and developed with the [Twelve-Factor App methodology](https://12factor.net/). This document outlines how the application adheres to each of the twelve factors.
+A modern, full-stack e-commerce bookstore application built with Go, PostgreSQL, HTMX, and Pico CSS. Features include product browsing, shopping cart management, user authentication, and order processing.
+
+## Features
+
+- 📚 **Product Catalog** - Browse books with grid and table views
+- 🛒 **Shopping Cart** - Real-time cart updates with HTMX
+- 👤 **User Authentication** - Secure signup/login with session management
+- 📦 **Order Management** - Complete checkout flow and order history
+- 📊 **Stock Management** - Real-time inventory tracking
+- 🎨 **Modern UI** - Clean, responsive design with Pico CSS
+- 🚀 **Lightweight** - Fast, efficient Go backend
+
+## Technology Stack
+
+- **Backend**: Go 1.24
+- **Frontend**: HTML templates with HTMX and Pico CSS
+- **Database**: PostgreSQL 14
+- **Container**: Docker & Docker Compose
+- **Orchestration**: Kubernetes (optional)
 
 ## Quick Start
 
-### Local Development with Docker Compose
+### Prerequisites
+
+- Docker and Docker Compose
+- OR Go 1.24+ and PostgreSQL 14+
+
+### Option 1: Docker Compose (Recommended for Local Development)
 
 ```bash
 # Clone the repository
@@ -18,50 +41,232 @@ docker compose up --build
 open http://localhost:8080
 ```
 
-**⚠️ Security Note**: The `docker-compose.yml` file contains development-only credentials (`user`/`password`). **Never use these in production!** For production deployments, use proper secrets management (Kubernetes secrets, AWS Secrets Manager, etc.).
+**⚠️ Security Note**: The `docker-compose.yml` file contains development-only credentials (`user`/`password`). **Never use these in production!**
 
-### Technology Stack
+### Option 2: Local Go Development
 
-- **Backend**: Go 1.24
-- **Frontend**: HTML templates with HTMX and Pico CSS
-- **Database**: PostgreSQL 14
-- **Container**: Docker & Docker Compose
-- **Orchestration**: Kubernetes (optional)
+```bash
+# Set environment variables
+export DB_USER=user
+export DB_PASSWORD=password
+export DB_HOST=localhost
+export DB_NAME=bookstore
 
-## The Twelve Factors
+# Start PostgreSQL (if not already running)
+docker run -d -p 5432:5432 \
+  -e POSTGRES_USER=user \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=bookstore \
+  postgres:14-alpine
 
-### I. Codebase
-One codebase tracked in revision control, many deploys. The entire application is stored in a single repository and deployed to various environments (development, staging, production) from this single codebase.
+# Run the application
+go run cmd/web/main.go
 
-### II. Dependencies
-Explicitly declare and isolate dependencies. All dependencies will be explicitly declared and isolated using appropriate dependency management tools for the chosen programming language(s).
+# Access the application
+open http://localhost:8080
+```
 
-### III. Config
-Store config in the environment. Configuration will be stored in environment variables, separate from the codebase, and will vary per deploy.
+## Kubernetes Deployment
 
-### IV. Backing services
-Treat backing services as attached resources. Databases, message queues, caching systems, and other backing services are treated as attached resources, accessible via URLs or other locator/credential stored in environment variables.
+Deploy the application to a Kubernetes cluster for production or testing.
 
-### V. Build, release, run
-Strictly separate build and run stages. The build stage transforms the codebase into an executable bundle. The release stage combines the build with the deploy's current config. The run stage executes the app as one or more processes.
+### Prerequisites
 
-### VI. Processes
-Execute the app as one or more stateless processes. The application will execute as one or more stateless, share-nothing processes. Any necessary state will be stored in a backing service.
+- Kubernetes cluster (minikube, kind, EKS, GKE, AKS, VKS, etc.)
+- kubectl configured to access your cluster
+- Docker registry (Docker Hub, ECR, GCR, Harbor, etc.)
 
-### VII. Port binding
-Export services via port binding. The application will be entirely self-contained and export its services via port binding. This allows it to be accessible to other services via an assigned port.
+### Step 1: Build and Push Docker Image
 
-### VIII. Concurrency
-Scale out via the process model. Concurrency will be managed by scaling out the number of processes, rather than adding more threads within a single process.
+```bash
+# Build the Docker image
+docker build -t your-registry/bookstore-app:latest .
 
-### IX. Disposability
-Maximize robustness with fast startup and graceful shutdown. Processes will be disposable, meaning they can be started or stopped quickly. This includes fast startup times and graceful shutdowns upon termination.
+# Push to your registry
+docker push your-registry/bookstore-app:latest
+```
 
-### X. Dev/prod parity
-Keep development, staging, and production as similar as possible. The goal is to minimize the gaps between development and production environments, including using the same backing services and dependencies.
+### Step 2: Create Kubernetes Secret
 
-### XI. Logs
-Treat logs as event streams. Logs will be treated as continuous streams of aggregated, time-ordered events. The application will not attempt to write to or manage logfiles.
+Create a secret file for production credentials:
 
-### XII. Admin processes
-Run admin/management tasks as one-off processes. Administrative and management tasks (e.g., database migrations, running scripts) will be run as one-off processes in an identical environment to the regular long-running processes.
+```bash
+# Create kubernetes/secret.yaml with your production credentials
+cat > kubernetes/secret.yaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_USER: "your-production-user"
+  POSTGRES_PASSWORD: "your-secure-password"
+EOF
+
+# Apply the secret
+kubectl apply -f kubernetes/secret.yaml
+```
+
+**⚠️ Important**: The `kubernetes/secret.yaml` file is in `.gitignore` and should never be committed to version control!
+
+### Step 3: Update Deployment Configuration
+
+Edit `kubernetes/app.yaml` and replace `your-docker-registry/bookstore-app:latest` with your actual image:
+
+```yaml
+image: your-registry/bookstore-app:latest
+```
+
+### Step 4: Deploy to Kubernetes
+
+```bash
+# Apply all Kubernetes configurations
+kubectl apply -f kubernetes/postgres.yaml
+kubectl apply -f kubernetes/app.yaml
+
+# Check deployment status
+kubectl get pods
+kubectl get services
+
+# Get the external IP (for LoadBalancer type)
+kubectl get service app-service
+```
+
+### Step 5: Access the Application
+
+**For LoadBalancer (Cloud Kubernetes):**
+```bash
+# Get the external IP
+kubectl get service app-service
+
+# Access via: http://<EXTERNAL-IP>
+```
+
+**For Minikube:**
+```bash
+# Get the service URL
+minikube service app-service --url
+
+# Access the application
+open $(minikube service app-service --url)
+```
+
+**For Port Forwarding (any cluster):**
+```bash
+# Forward local port to the service
+kubectl port-forward service/app-service 8080:80
+
+# Access via localhost
+open http://localhost:8080
+```
+
+### Scaling the Application
+
+```bash
+# Scale the app deployment
+kubectl scale deployment app-deployment --replicas=3
+
+# Check status
+kubectl get pods
+```
+
+### Viewing Logs
+
+```bash
+# View app logs
+kubectl logs -l app=bookstore-app --tail=100 -f
+
+# View database logs
+kubectl logs -l app=postgres --tail=100 -f
+```
+
+### Updating the Application
+
+```bash
+# Build and push new image
+docker build -t your-registry/bookstore-app:v2 .
+docker push your-registry/bookstore-app:v2
+
+# Update deployment
+kubectl set image deployment/app-deployment bookstore-app=your-registry/bookstore-app:v2
+
+# Check rollout status
+kubectl rollout status deployment/app-deployment
+```
+
+## Database Migrations
+
+The application automatically runs migrations on startup. Migrations are located in the `migrations/` directory and include:
+
+- Initial schema creation (products, cart, orders, users)
+- Sample data seeding
+
+## Project Structure
+
+```
+DemoApp/
+├── cmd/web/              # Application entry point
+├── internal/
+│   ├── handlers/         # HTTP request handlers
+│   ├── models/          # Data models
+│   └── repository/      # Database layer
+├── templates/           # HTML templates
+├── migrations/          # Database migrations
+├── kubernetes/          # Kubernetes manifests
+├── docker-compose.yml   # Local development setup
+├── Dockerfile          # Container image definition
+└── README.md
+```
+
+## Development
+
+### Running Tests
+
+```bash
+go test ./...
+```
+
+### Code Formatting
+
+```bash
+go fmt ./...
+```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_USER` | PostgreSQL username | `user` |
+| `DB_PASSWORD` | PostgreSQL password | `password` |
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_NAME` | PostgreSQL database name | `bookstore` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+
+## Production Considerations
+
+### Security
+- Change default database credentials
+- Use Kubernetes secrets for sensitive data
+- Enable TLS/SSL for database connections
+- Implement rate limiting
+- Add authentication middleware
+
+### Scalability
+- Use persistent volumes for database data
+- Configure resource limits in Kubernetes
+- Set up horizontal pod autoscaling
+- Use database connection pooling
+
+### Monitoring
+- Add health check endpoints
+- Configure Prometheus metrics
+- Set up log aggregation (ELK, Loki)
+- Configure alerts for critical errors
+
+## License
+
+[Add your license here]
+
+## Contributing
+
+[Add contributing guidelines here]
