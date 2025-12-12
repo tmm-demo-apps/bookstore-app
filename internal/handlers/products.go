@@ -57,7 +57,7 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) SearchSuggestions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	
+
 	// Don't search for very short queries
 	if len(query) < 2 {
 		w.Write([]byte(""))

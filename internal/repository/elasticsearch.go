@@ -267,7 +267,7 @@ func (r *ElasticsearchRepository) SearchProducts(query string, categoryID int) (
 					},
 				},
 			})
-			
+
 			// 2. Wildcard match on name for substring matching
 			// This handles cases like "ast" in "Fast"
 			should = append(should, map[string]interface{}{
@@ -323,7 +323,7 @@ func (r *ElasticsearchRepository) SearchProducts(query string, categoryID int) (
 			// Add the should clauses with minimum_should_match
 			must = append(must, map[string]interface{}{
 				"bool": map[string]interface{}{
-					"should":              should,
+					"should":               should,
 					"minimum_should_match": 1,
 				},
 			})
@@ -412,4 +412,3 @@ func (r *ElasticsearchRepository) DeleteProduct(productID int) error {
 
 	return nil
 }
-
