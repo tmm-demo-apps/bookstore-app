@@ -18,6 +18,7 @@ func main() {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
+	esURL := os.Getenv("ES_URL")
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbName)
@@ -40,6 +41,36 @@ func main() {
 
 	repo := repository.NewPostgresRepository(db)
 
+	// Initialize Elasticsearch if URL is provided
+	if esURL != "" {
+		log.Println("Initializing Elasticsearch...")
+		es, err := repository.NewElasticsearchRepository([]string{esURL})
+		if err != nil {
+			log.Printf("Warning: Elasticsearch initialization failed: %v", err)
+			log.Println("Continuing without Elasticsearch (will use SQL search)")
+		} else {
+			repo.SetElasticsearch(es)
+			log.Println("Elasticsearch initialized successfully")
+
+			// Index all products on startup
+			go func() {
+				log.Println("Indexing products to Elasticsearch...")
+				products, err := repo.Products().ListProducts()
+				if err != nil {
+					log.Printf("Error listing products for indexing: %v", err)
+					return
+				}
+				if err := es.IndexProducts(products); err != nil {
+					log.Printf("Error indexing products: %v", err)
+					return
+				}
+				log.Printf("Successfully indexed %d products", len(products))
+			}()
+		}
+	} else {
+		log.Println("ES_URL not set, using SQL-based search")
+	}
+
 	h := &handlers.Handlers{
 		Repo:  repo,
 		Store: store,
@@ -57,6 +88,7 @@ func main() {
 	mux.HandleFunc("/confirmation", h.ConfirmationPage)
 	mux.HandleFunc("/partials/cart-count", h.CartCount)
 	mux.HandleFunc("/partials/cart-summary", h.CartSummary)
+	mux.HandleFunc("/partials/search-suggestions", h.SearchSuggestions)
 
 	mux.HandleFunc("/signup", h.SignupPage)
 	mux.HandleFunc("/signup/process", h.Signup)

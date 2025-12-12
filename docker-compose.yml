@@ -10,8 +10,10 @@ services:
       - DB_PASSWORD=password
       - DB_HOST=db
       - DB_NAME=bookstore
+      - ES_URL=http://elasticsearch:9200
     depends_on:
       - db
+      - elasticsearch
 
   db:
     image: postgres:14-alpine
@@ -24,5 +26,22 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 volumes:
   postgres_data:
+  elasticsearch_data:

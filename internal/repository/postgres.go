@@ -5,18 +5,25 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+
+	"github.com/lib/pq"
 )
 
 type PostgresRepository struct {
 	DB *sql.DB
+	ES *ElasticsearchRepository
 }
 
 func NewPostgresRepository(db *sql.DB) *PostgresRepository {
-	return &PostgresRepository{DB: db}
+	return &PostgresRepository{DB: db, ES: nil}
+}
+
+func (r *PostgresRepository) SetElasticsearch(es *ElasticsearchRepository) {
+	r.ES = es
 }
 
 func (r *PostgresRepository) Products() ProductRepository {
-	return &postgresProductRepo{DB: r.DB}
+	return &postgresProductRepo{DB: r.DB, ES: r.ES}
 }
 
 func (r *PostgresRepository) Orders() OrderRepository {
@@ -35,6 +42,7 @@ func (r *PostgresRepository) Users() UserRepository {
 
 type postgresProductRepo struct {
 	DB *sql.DB
+	ES *ElasticsearchRepository
 }
 
 func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
@@ -72,6 +80,30 @@ func (r *postgresProductRepo) GetProductByID(id int) (*models.Product, error) {
 }
 
 func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]models.Product, error) {
+	// If Elasticsearch is available, use it for search
+	if r.ES != nil {
+		log.Printf("Using Elasticsearch for search: query='%s', categoryID=%d", query, categoryID)
+		productIDs, err := r.ES.SearchProducts(query, categoryID)
+		if err != nil {
+			log.Printf("Elasticsearch search failed, falling back to SQL: %v", err)
+			// Fall through to SQL search
+		} else {
+			log.Printf("Elasticsearch returned %d product IDs", len(productIDs))
+			// Fetch products from database by IDs in the order returned by Elasticsearch
+			if len(productIDs) == 0 {
+				return []models.Product{}, nil
+			}
+			products, err := r.getProductsByIDs(productIDs)
+			if err != nil {
+				log.Printf("Error fetching products by IDs, falling back to SQL: %v", err)
+				// Fall through to SQL search
+			} else {
+				return products, nil
+			}
+		}
+	}
+
+	// Fallback to SQL-based search (original implementation)
 	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
 	      FROM products WHERE status = 'active'`
 	var args []interface{}
@@ -88,6 +120,8 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 		args = append(args, categoryID)
 	}
 
+	q += " ORDER BY name"
+
 	rows, err := r.DB.Query(q, args...)
 	if err != nil {
 		return nil, err
@@ -102,6 +136,45 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 		}
 		products = append(products, p)
 	}
+	return products, nil
+}
+
+// getProductsByIDs fetches products by IDs and maintains the order
+func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, error) {
+	if len(ids) == 0 {
+		return []models.Product{}, nil
+	}
+
+	// Create a map to store products by ID
+	productMap := make(map[int]models.Product)
+
+	// Build query with IN clause
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
+	      FROM products WHERE id = ANY($1) AND status = 'active'`
+
+	rows, err := r.DB.Query(q, pq.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Fetch all products into the map
+	for rows.Next() {
+		var p models.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status); err != nil {
+			return nil, err
+		}
+		productMap[p.ID] = p
+	}
+
+	// Build result slice in the order of input IDs (Elasticsearch relevance order)
+	products := make([]models.Product, 0, len(ids))
+	for _, id := range ids {
+		if p, exists := productMap[id]; exists {
+			products = append(products, p)
+		}
+	}
+
 	return products, nil
 }
 

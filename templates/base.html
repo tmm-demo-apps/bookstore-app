@@ -69,6 +69,35 @@
         .scrolled .search-bar input {
             height: 2rem;
         }
+
+        #search-suggestions li {
+            display: block;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--muted-border-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        #search-suggestions li:last-child {
+            border-bottom: none;
+        }
+
+        #search-suggestions li:hover {
+            background-color: var(--primary-hover);
+        }
+
+        #search-suggestions li a {
+            display: block;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-decoration: none;
+            color: inherit;
+        }
         
         /* Main content spacing */
         main.container {
@@ -99,10 +128,38 @@
             
             <!-- Search Bar -->
             <ul class="search-bar">
-                <li style="width: 100%;">
+                <li style="width: 100%; position: relative;">
                     <form action="/" method="get" style="margin-bottom: 0; width: 100%;">
-                        <input type="search" name="q" placeholder="Search products..." aria-label="Search">
+                        <input type="search" 
+                               id="search-input"
+                               name="q" 
+                               placeholder="Search products..." 
+                               aria-label="Search"
+                               autocomplete="off"
+                               hx-get="/partials/search-suggestions"
+                               hx-trigger="keyup changed delay:300ms"
+                               hx-target="#search-suggestions"
+                               hx-include="[name='q']">
                     </form>
+                    <ul id="search-suggestions" 
+                        style="position: absolute; 
+                               top: 100%; 
+                               left: 0; 
+                               right: 0; 
+                               background: var(--background-color); 
+                               border: 1px solid var(--muted-border-color); 
+                               border-top: none;
+                               border-radius: 0 0 var(--border-radius) var(--border-radius);
+                               list-style: none; 
+                               margin: 0; 
+                               padding: 0;
+                               max-height: 300px;
+                               overflow-y: auto;
+                               box-shadow: var(--card-box-shadow);
+                               z-index: 1000;
+                               display: none;
+                               width: 100%;">
+                    </ul>
                 </li>
             </ul>
 
@@ -182,6 +239,45 @@
             
             lastScrollTop = scrollTop;
         });
+
+        // Search autocomplete behavior
+        const searchInput = document.getElementById('search-input');
+        const searchSuggestions = document.getElementById('search-suggestions');
+        
+        if (searchInput && searchSuggestions) {
+            // Show suggestions when they load
+            document.body.addEventListener('htmx:afterSwap', function(evt) {
+                if (evt.detail.target === searchSuggestions) {
+                    if (searchInput.value.length >= 2 && searchSuggestions.children.length > 0) {
+                        searchSuggestions.style.display = 'block';
+                    } else {
+                        searchSuggestions.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+                    searchSuggestions.style.display = 'none';
+                }
+            });
+            
+            // Show suggestions when focusing on input (if there are any)
+            searchInput.addEventListener('focus', function() {
+                if (searchInput.value.length >= 2 && searchSuggestions.children.length > 0) {
+                    searchSuggestions.style.display = 'block';
+                }
+            });
+            
+            // Clear suggestions when input is cleared
+            searchInput.addEventListener('input', function() {
+                if (searchInput.value.length < 2) {
+                    searchSuggestions.style.display = 'none';
+                    searchSuggestions.innerHTML = '';
+                }
+            });
+        }
         
         // Cart dropdown hover behavior - simplified approach
         const cartDropdown = document.getElementById('cart-dropdown');

@@ -55,6 +55,40 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handlers) SearchSuggestions(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	
+	// Don't search for very short queries
+	if len(query) < 2 {
+		w.Write([]byte(""))
+		return
+	}
+
+	// Search for products
+	products, err := h.Repo.Products().SearchProducts(query, 0)
+	if err != nil {
+		log.Println(err)
+		w.Write([]byte(""))
+		return
+	}
+
+	// Limit to top 5 results
+	if len(products) > 5 {
+		products = products[:5]
+	}
+
+	// Return HTML list of suggestions
+	if len(products) == 0 {
+		w.Write([]byte("<li><em>No results found</em></li>"))
+		return
+	}
+
+	for _, p := range products {
+		html := `<li><a href="/products/` + strconv.Itoa(p.ID) + `">` + p.Name + `</a></li>`
+		w.Write([]byte(html))
+	}
+}
+
 func (h *Handlers) ProductDetail(w http.ResponseWriter, r *http.Request) {
 	// Extract product ID from URL path
 	idStr := r.PathValue("id")
