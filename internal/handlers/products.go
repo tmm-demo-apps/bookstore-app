@@ -60,7 +60,9 @@ func (h *Handlers) SearchSuggestions(w http.ResponseWriter, r *http.Request) {
 
 	// Don't search for very short queries
 	if len(query) < 2 {
-		w.Write([]byte(""))
+		if _, err := w.Write([]byte("")); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
 		return
 	}
 
@@ -68,7 +70,9 @@ func (h *Handlers) SearchSuggestions(w http.ResponseWriter, r *http.Request) {
 	products, err := h.Repo.Products().SearchProducts(query, 0)
 	if err != nil {
 		log.Println(err)
-		w.Write([]byte(""))
+		if _, err := w.Write([]byte("")); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
 		return
 	}
 
@@ -79,13 +83,17 @@ func (h *Handlers) SearchSuggestions(w http.ResponseWriter, r *http.Request) {
 
 	// Return HTML list of suggestions
 	if len(products) == 0 {
-		w.Write([]byte("<li><em>No results found</em></li>"))
+		if _, err := w.Write([]byte("<li><em>No results found</em></li>")); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
 		return
 	}
 
 	for _, p := range products {
 		html := `<li><a href="/products/` + strconv.Itoa(p.ID) + `">` + p.Name + `</a></li>`
-		w.Write([]byte(html))
+		if _, err := w.Write([]byte(html)); err != nil {
+			log.Printf("Error writing response: %v", err)
+		}
 	}
 }
 
