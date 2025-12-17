@@ -11,7 +11,9 @@ import (
 type ProductListViewData struct {
 	IsAuthenticated bool
 	Products        []models.Product
+	Categories      []models.Category
 	SearchQuery     string
+	SelectedCategory int
 	ResultCount     int
 }
 
@@ -22,12 +24,21 @@ type ProductDetailViewData struct {
 
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
+	categoryIDStr := r.URL.Query().Get("category")
+	
+	// Parse category ID
+	categoryID := 0
+	if categoryIDStr != "" {
+		if id, err := strconv.Atoi(categoryIDStr); err == nil {
+			categoryID = id
+		}
+	}
 
 	var products []models.Product
 	var err error
 
-	if query != "" {
-		products, err = h.Repo.Products().SearchProducts(query, 0)
+	if query != "" || categoryID > 0 {
+		products, err = h.Repo.Products().SearchProducts(query, categoryID)
 	} else {
 		products, err = h.Repo.Products().ListProducts()
 	}
@@ -38,11 +49,20 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch all categories for the sidebar
+	categories, err := h.Repo.Products().ListCategories()
+	if err != nil {
+		log.Println("Error fetching categories:", err)
+		categories = []models.Category{} // Continue with empty categories
+	}
+
 	data := ProductListViewData{
-		IsAuthenticated: h.IsAuthenticated(r),
-		Products:        products,
-		SearchQuery:     query,
-		ResultCount:     len(products),
+		IsAuthenticated:  h.IsAuthenticated(r),
+		Products:         products,
+		Categories:       categories,
+		SearchQuery:      query,
+		SelectedCategory: categoryID,
+		ResultCount:      len(products),
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/products.html")

@@ -178,6 +178,25 @@ func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, err
 	return products, nil
 }
 
+func (r *postgresProductRepo) ListCategories() ([]models.Category, error) {
+	query := `SELECT DISTINCT ON (name) id, name, description FROM categories ORDER BY name, id`
+	rows, err := r.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []models.Category
+	for rows.Next() {
+		var c models.Category
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description); err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+	return categories, nil
+}
+
 // --- Order Implementation ---
 
 type postgresOrderRepo struct {

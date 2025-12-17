@@ -90,6 +90,115 @@
         font-weight: 500;
     }
     
+    /* Category Sidebar Styles */
+    .products-layout {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
+    
+    .category-sidebar {
+        flex: 0 0 220px;
+        position: sticky;
+        top: 6rem;
+        align-self: flex-start;
+        transition: all 0.3s ease;
+        max-height: calc(100vh - 7rem);
+        overflow-y: auto;
+    }
+    
+    .category-sidebar.collapsed {
+        flex: 0 0 40px;
+        overflow: hidden;
+    }
+    
+    .category-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    
+    .category-header h3 {
+        font-size: 1rem;
+        margin: 0;
+        color: var(--color);
+    }
+    
+    .collapse-btn {
+        background: var(--card-background-color);
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        color: var(--color);
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .collapse-btn:hover {
+        background: var(--card-sectionning-background-color);
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .category-sidebar.collapsed .category-header h3,
+    .category-sidebar.collapsed .category-content {
+        display: none;
+    }
+    
+    .category-sidebar.collapsed .collapse-btn {
+        transform: rotate(180deg);
+    }
+    
+    .category-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .category-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .category-link {
+        display: block;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--border-radius);
+        text-decoration: none;
+        color: var(--color);
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    
+    .category-link:hover {
+        background: var(--card-sectionning-background-color);
+        color: var(--primary);
+    }
+    
+    .category-link.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        font-weight: 500;
+    }
+    
+    .category-mobile-dropdown {
+        display: none;
+        margin-bottom: 1rem;
+    }
+    
+    .category-mobile-dropdown select {
+        width: 100%;
+        margin-bottom: 0;
+    }
+    
+    .products-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
     .view-toggle {
         display: flex;
         justify-content: space-between;
@@ -348,6 +457,18 @@
     }
     
     @media (max-width: 768px) {
+        .products-layout {
+            flex-direction: column;
+        }
+        
+        .category-sidebar {
+            display: none;
+        }
+        
+        .category-mobile-dropdown {
+            display: block;
+        }
+        
         .product-grid {
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 0.75rem;
@@ -404,17 +525,59 @@
 </div>
 {{end}}
 
-<div class="view-toggle">
-    <h1 style="margin: 0;">Products</h1>
-    <div class="toggle-buttons">
-        <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn">
-            <span>🔲 Tiles</span>
-        </button>
-        <button class="toggle-btn" onclick="setView('table')" id="table-btn">
-            <span>☰ Table</span>
-        </button>
-    </div>
+<!-- Mobile Category Dropdown -->
+<div class="category-mobile-dropdown">
+    <label for="category-select">Filter by Category:</label>
+    <select id="category-select" onchange="filterByCategory(this.value)">
+        <option value="0" {{if eq .SelectedCategory 0}}selected{{end}}>All Categories</option>
+        {{range .Categories}}
+        <option value="{{.ID}}" {{if eq $.SelectedCategory .ID}}selected{{end}}>{{.Name}}</option>
+        {{end}}
+    </select>
 </div>
+
+<div class="products-layout">
+    <!-- Desktop Category Sidebar -->
+    <aside class="category-sidebar" id="category-sidebar">
+        <div class="category-header">
+            <h3>Categories</h3>
+            <button class="collapse-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+                ◀
+            </button>
+        </div>
+        <div class="category-content">
+            <ul class="category-list">
+                <li class="category-item">
+                    <a href="/products{{if .SearchQuery}}?q={{.SearchQuery}}{{end}}" 
+                       class="category-link {{if eq .SelectedCategory 0}}active{{end}}">
+                        All Categories
+                    </a>
+                </li>
+                {{range .Categories}}
+                <li class="category-item">
+                    <a href="/products?category={{.ID}}{{if $.SearchQuery}}&q={{$.SearchQuery}}{{end}}" 
+                       class="category-link {{if eq $.SelectedCategory .ID}}active{{end}}">
+                        {{.Name}}
+                    </a>
+                </li>
+                {{end}}
+            </ul>
+        </div>
+    </aside>
+    
+    <!-- Products Content -->
+    <div class="products-content">
+        <div class="view-toggle">
+            <h1 style="margin: 0;">Products</h1>
+            <div class="toggle-buttons">
+                <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn">
+                    <span>🔲 Tiles</span>
+                </button>
+                <button class="toggle-btn" onclick="setView('table')" id="table-btn">
+                    <span>☰ Table</span>
+                </button>
+            </div>
+        </div>
 
 <div class="product-grid" id="product-grid">
     {{range .Products}}
@@ -536,8 +699,43 @@
         {{end}}
     </tbody>
 </table>
+    </div><!-- End products-content -->
+</div><!-- End products-layout -->
     
     <script>
+        // Mobile category filter
+        function filterByCategory(categoryId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchQuery = urlParams.get('q');
+            
+            let url = '/products';
+            const params = [];
+            
+            if (categoryId && categoryId !== '0') {
+                params.push('category=' + categoryId);
+            }
+            
+            if (searchQuery) {
+                params.push('q=' + encodeURIComponent(searchQuery));
+            }
+            
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            
+            window.location.href = url;
+        }
+        
+        // Toggle sidebar collapse
+        function toggleSidebar() {
+            const sidebar = document.getElementById('category-sidebar');
+            sidebar.classList.toggle('collapsed');
+            
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+        
         // View toggle
         function setView(view) {
             const grid = document.getElementById('product-grid');
@@ -560,8 +758,16 @@
             }
         }
         
-        // Restore view preference on load
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Restore sidebar state
+            const sidebar = document.getElementById('category-sidebar');
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed && sidebar) {
+                sidebar.classList.add('collapsed');
+            }
+            
+            // Restore view preference
             const savedView = localStorage.getItem('productView') || 'grid';
             setView(savedView);
             

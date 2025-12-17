@@ -8,6 +8,7 @@ type ProductRepository interface {
 	ListProducts() ([]models.Product, error)
 	GetProductByID(id int) (*models.Product, error)
 	SearchProducts(query string, categoryID int) ([]models.Product, error)
+	ListCategories() ([]models.Category, error)
 }
 
 type OrderRepository interface {
