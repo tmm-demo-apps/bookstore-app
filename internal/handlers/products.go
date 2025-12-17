@@ -12,6 +12,7 @@ type ProductListViewData struct {
 	IsAuthenticated bool
 	Products        []models.Product
 	SearchQuery     string
+	ResultCount     int
 }
 
 type ProductDetailViewData struct {
@@ -41,6 +42,7 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		IsAuthenticated: h.IsAuthenticated(r),
 		Products:        products,
 		SearchQuery:     query,
+		ResultCount:     len(products),
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/products.html")

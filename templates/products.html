@@ -4,6 +4,92 @@
 
 {{define "content"}}
 <style>
+    .search-indicator {
+        background: var(--card-background-color);
+        border: 1px solid var(--primary);
+        border-left: 4px solid var(--primary);
+        border-radius: var(--border-radius);
+        padding: 0.75rem 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .search-indicator-content {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+    
+    .search-query-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--primary);
+        color: white;
+        padding: 0.35rem 0.75rem;
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .search-result-count {
+        color: var(--muted-color);
+        font-size: 0.9rem;
+    }
+    
+    .clear-search-btn {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.85rem;
+        background: transparent;
+        border: 1px solid var(--muted-border-color);
+        color: var(--color);
+        cursor: pointer;
+        border-radius: var(--border-radius);
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .clear-search-btn:hover {
+        background: var(--card-sectionning-background-color);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+    
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--muted-color);
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .breadcrumb a {
+        color: var(--primary);
+        text-decoration: none;
+    }
+    
+    .breadcrumb a:hover {
+        text-decoration: underline;
+    }
+    
+    .breadcrumb-separator {
+        color: var(--muted-color);
+    }
+    
+    .breadcrumb-current {
+        color: var(--color);
+        font-weight: 500;
+    }
+    
     .view-toggle {
         display: flex;
         justify-content: space-between;
@@ -281,6 +367,42 @@
         }
     }
 </style>
+
+<!-- Breadcrumb Navigation -->
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <span class="breadcrumb-separator">›</span>
+    {{if .SearchQuery}}
+    <a href="/products">Products</a>
+    <span class="breadcrumb-separator">›</span>
+    <span class="breadcrumb-current">Search Results</span>
+    {{else}}
+    <span class="breadcrumb-current">Products</span>
+    {{end}}
+</nav>
+
+<!-- Search Indicator (only show when searching) -->
+{{if .SearchQuery}}
+<div class="search-indicator" role="status" aria-live="polite">
+    <div class="search-indicator-content">
+        <span class="search-query-badge">
+            🔍 Searching for: "{{.SearchQuery}}"
+        </span>
+        <span class="search-result-count">
+            {{if eq .ResultCount 0}}
+                No products found
+            {{else if eq .ResultCount 1}}
+                Found 1 product
+            {{else}}
+                Found {{.ResultCount}} products
+            {{end}}
+        </span>
+    </div>
+    <a href="/products" class="clear-search-btn" aria-label="Clear search">
+        Clear Search
+    </a>
+</div>
+{{end}}
 
 <div class="view-toggle">
     <h1 style="margin: 0;">Products</h1>
