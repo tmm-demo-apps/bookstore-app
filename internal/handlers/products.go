@@ -19,7 +19,12 @@ type ProductListViewData struct {
 
 type ProductDetailViewData struct {
 	IsAuthenticated bool
+	UserID          int
 	Product         models.Product
+	Reviews         []models.ReviewWithUser
+	Rating          *models.ProductRating
+	RatingBars      []models.RatingBar
+	UserReview      *models.Review
 }
 
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
@@ -137,9 +142,52 @@ func (h *Handlers) ProductDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch reviews for this product
+	reviews, err := h.Repo.Reviews().GetReviewsByProductID(productID)
+	if err != nil {
+		log.Printf("Error fetching reviews: %v", err)
+		reviews = []models.ReviewWithUser{} // Continue with empty reviews
+	}
+
+	// Fetch product rating statistics
+	rating, err := h.Repo.Reviews().GetProductRating(productID)
+	if err != nil {
+		log.Printf("Error fetching product rating: %v", err)
+		rating = nil // Continue without rating
+	}
+
+	// Calculate rating bar percentages for template
+	var ratingBars []models.RatingBar
+	if rating != nil && rating.TotalReviews > 0 {
+		for stars := 5; stars >= 1; stars-- {
+			count := rating.RatingCounts[stars]
+			percentage := (float64(count) / float64(rating.TotalReviews)) * 100.0
+			ratingBars = append(ratingBars, models.RatingBar{
+				Stars:      stars,
+				Count:      count,
+				Percentage: percentage,
+			})
+		}
+	}
+
+	// Check if current user has already reviewed this product
+	var userReview *models.Review
+	userID, authenticated := h.GetUserID(r)
+	if authenticated {
+		userReview, err = h.Repo.Reviews().GetReviewByUserAndProduct(userID, productID)
+		if err != nil {
+			log.Printf("Error fetching user review: %v", err)
+		}
+	}
+
 	data := ProductDetailViewData{
-		IsAuthenticated: h.IsAuthenticated(r),
+		IsAuthenticated: authenticated,
+		UserID:          userID,
 		Product:         *product,
+		Reviews:         reviews,
+		Rating:          rating,
+		RatingBars:      ratingBars,
+		UserReview:      userReview,
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/product-detail.html")

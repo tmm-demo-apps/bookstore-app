@@ -38,6 +38,10 @@ func (r *PostgresRepository) Users() UserRepository {
 	return &postgresUserRepo{DB: r.DB}
 }
 
+func (r *PostgresRepository) Reviews() ReviewRepository {
+	return &postgresReviewRepo{DB: r.DB}
+}
+
 // --- Product Implementation ---
 
 type postgresProductRepo struct {
@@ -643,4 +647,156 @@ func (r *postgresUserRepo) GetUserByID(id int) (*models.User, error) {
 		return nil, err
 	}
 	return &u, nil
+}
+
+// --- Review Implementation ---
+
+type postgresReviewRepo struct {
+	DB *sql.DB
+}
+
+func (r *postgresReviewRepo) CreateReview(productID, userID, rating int, title, comment string) error {
+	query := `
+		INSERT INTO reviews (product_id, user_id, rating, title, comment, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		ON CONFLICT (product_id, user_id) 
+		DO UPDATE SET rating = $3, title = $4, comment = $5, updated_at = NOW()`
+
+	_, err := r.DB.Exec(query, productID, userID, rating, title, comment)
+	return err
+}
+
+func (r *postgresReviewRepo) GetReviewsByProductID(productID int) ([]models.ReviewWithUser, error) {
+	query := `
+		SELECT r.id, r.product_id, r.user_id, r.rating, r.title, r.comment, 
+		       r.created_at, r.updated_at, u.full_name, u.email
+		FROM reviews r
+		JOIN users u ON r.user_id = u.id
+		WHERE r.product_id = $1
+		ORDER BY r.created_at DESC`
+
+	rows, err := r.DB.Query(query, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reviews []models.ReviewWithUser
+	for rows.Next() {
+		var rw models.ReviewWithUser
+		var fullName sql.NullString
+		var email string
+		err := rows.Scan(
+			&rw.ID, &rw.ProductID, &rw.UserID, &rw.Rating, &rw.Title, &rw.Comment,
+			&rw.CreatedAt, &rw.UpdatedAt, &fullName, &email,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Use full name if available, otherwise use email
+		if fullName.Valid && fullName.String != "" {
+			rw.UserName = fullName.String
+		} else {
+			rw.UserName = email
+		}
+
+		reviews = append(reviews, rw)
+	}
+
+	return reviews, nil
+}
+
+func (r *postgresReviewRepo) GetReviewByUserAndProduct(userID, productID int) (*models.Review, error) {
+	var review models.Review
+	query := `
+		SELECT id, product_id, user_id, rating, title, comment, created_at, updated_at
+		FROM reviews
+		WHERE user_id = $1 AND product_id = $2`
+
+	err := r.DB.QueryRow(query, userID, productID).Scan(
+		&review.ID, &review.ProductID, &review.UserID, &review.Rating,
+		&review.Title, &review.Comment, &review.CreatedAt, &review.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No review found is not an error
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &review, nil
+}
+
+func (r *postgresReviewRepo) UpdateReview(reviewID, rating int, title, comment string) error {
+	query := `
+		UPDATE reviews 
+		SET rating = $1, title = $2, comment = $3, updated_at = NOW()
+		WHERE id = $4`
+
+	_, err := r.DB.Exec(query, rating, title, comment, reviewID)
+	return err
+}
+
+func (r *postgresReviewRepo) DeleteReview(reviewID, userID int) error {
+	// Ensure user can only delete their own review
+	query := `DELETE FROM reviews WHERE id = $1 AND user_id = $2`
+	result, err := r.DB.Exec(query, reviewID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("review not found or unauthorized")
+	}
+
+	return nil
+}
+
+func (r *postgresReviewRepo) GetProductRating(productID int) (*models.ProductRating, error) {
+	rating := &models.ProductRating{
+		ProductID:    productID,
+		RatingCounts: make(map[int]int),
+	}
+
+	// Get average rating and total count
+	query := `
+		SELECT COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as total
+		FROM reviews
+		WHERE product_id = $1`
+
+	err := r.DB.QueryRow(query, productID).Scan(&rating.AverageRating, &rating.TotalReviews)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get count per star rating
+	countQuery := `
+		SELECT rating, COUNT(*) as count
+		FROM reviews
+		WHERE product_id = $1
+		GROUP BY rating
+		ORDER BY rating DESC`
+
+	rows, err := r.DB.Query(countQuery, productID)
+	if err != nil {
+		return rating, nil // Return partial data on error
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var star, count int
+		if err := rows.Scan(&star, &count); err != nil {
+			continue
+		}
+		rating.RatingCounts[star] = count
+	}
+
+	return rating, nil
 }

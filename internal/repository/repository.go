@@ -33,9 +33,19 @@ type UserRepository interface {
 	GetUserByID(id int) (*models.User, error)
 }
 
+type ReviewRepository interface {
+	CreateReview(productID, userID, rating int, title, comment string) error
+	GetReviewsByProductID(productID int) ([]models.ReviewWithUser, error)
+	GetReviewByUserAndProduct(userID, productID int) (*models.Review, error)
+	UpdateReview(reviewID, rating int, title, comment string) error
+	DeleteReview(reviewID, userID int) error
+	GetProductRating(productID int) (*models.ProductRating, error)
+}
+
 type Repository interface {
 	Products() ProductRepository
 	Orders() OrderRepository
 	Cart() CartRepository
 	Users() UserRepository
+	Reviews() ReviewRepository
 }

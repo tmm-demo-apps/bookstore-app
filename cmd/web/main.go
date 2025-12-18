@@ -99,6 +99,10 @@ func main() {
 	mux.HandleFunc("/logout", h.Logout)
 	mux.HandleFunc("/orders", h.MyOrders)
 
+	// Review routes
+	mux.HandleFunc("/products/{id}/review", h.SubmitReview)
+	mux.HandleFunc("/reviews/{id}/delete", h.DeleteReview)
+
 	log.Println("Starting server on :8080")
 	err = http.ListenAndServe(":8080", mux)
 	log.Fatal(err)

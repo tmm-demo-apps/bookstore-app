@@ -193,6 +193,226 @@
         text-decoration: underline;
     }
     
+    /* Reviews Section */
+    .reviews-section {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 2px solid var(--muted-border-color);
+    }
+    
+    .reviews-section h2 {
+        margin-bottom: 1.5rem;
+    }
+    
+    .rating-summary {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        padding: 1.5rem;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+    }
+    
+    .rating-score {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .rating-number {
+        font-size: 3rem;
+        font-weight: bold;
+        color: var(--primary);
+    }
+    
+    .rating-stars {
+        font-size: 1.5rem;
+        color: #ffa500;
+        letter-spacing: 0.1rem;
+    }
+    
+    .rating-count {
+        font-size: 0.9rem;
+        color: var(--muted-color);
+    }
+    
+    .rating-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .rating-bar-row {
+        display: grid;
+        grid-template-columns: 3rem 1fr 3rem;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .star-label {
+        font-size: 0.9rem;
+        color: var(--muted-color);
+    }
+    
+    .rating-bar {
+        height: 1.5rem;
+        background: var(--card-background-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        border: 1px solid var(--muted-border-color);
+    }
+    
+    .rating-bar-fill {
+        height: 100%;
+        background: #ffa500;
+        transition: width 0.3s ease;
+    }
+    
+    .rating-count-small {
+        font-size: 0.9rem;
+        color: var(--muted-color);
+        text-align: right;
+    }
+    
+    .review-form-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+    }
+    
+    .review-form-section h3 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+    }
+    
+    .star-rating-input {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 0.25rem;
+        font-size: 2rem;
+    }
+    
+    .star-rating-input input[type="radio"] {
+        display: none;
+    }
+    
+    .star-rating-input label {
+        cursor: pointer;
+        color: #ddd;
+        transition: color 0.2s;
+    }
+    
+    .star-rating-input label:hover,
+    .star-rating-input label:hover ~ label,
+    .star-rating-input input[type="radio"]:checked ~ label {
+        color: #ffa500;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .user-review-display {
+        padding: 1rem;
+        background: var(--card-background-color);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--muted-border-color);
+    }
+    
+    .user-review-display .review-stars {
+        color: #ffa500;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .user-review-display h4 {
+        margin: 0.5rem 0;
+    }
+    
+    .user-review-display p {
+        margin: 0.5rem 0;
+    }
+    
+    .btn-small {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .review-login-prompt {
+        padding: 1.5rem;
+        text-align: center;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        margin: 2rem 0;
+    }
+    
+    .reviews-list {
+        margin-top: 2rem;
+    }
+    
+    .reviews-list h3 {
+        margin-bottom: 1.5rem;
+    }
+    
+    .review-card {
+        padding: 1.5rem;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        border: 1px solid var(--muted-border-color);
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .review-author {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .review-card .review-stars {
+        color: #ffa500;
+        font-size: 1rem;
+    }
+    
+    .review-date {
+        color: var(--muted-color);
+        font-size: 0.9rem;
+    }
+    
+    .review-title {
+        margin: 0.5rem 0;
+        font-size: 1.1rem;
+    }
+    
+    .review-comment {
+        margin: 0.5rem 0;
+        line-height: 1.6;
+    }
+    
+    .no-reviews {
+        padding: 2rem;
+        text-align: center;
+        color: var(--muted-color);
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+    }
+
     @media (max-width: 768px) {
         .product-detail-container {
             grid-template-columns: 1fr;
@@ -230,6 +450,16 @@
         
         .add-to-cart-btn {
             width: 100%;
+        }
+        
+        .rating-summary {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .rating-score {
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--muted-border-color);
         }
     }
 </style>
@@ -309,6 +539,132 @@
         </div>
         {{end}}
     </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="reviews-section">
+        <h2>Customer Reviews</h2>
+        
+        {{if .Rating}}
+        <div class="rating-summary">
+            <div class="rating-score">
+                <span class="rating-number">{{printf "%.1f" .Rating.AverageRating}}</span>
+                <div class="rating-stars">
+                    {{if ge .Rating.AverageRating 0.5}}★{{else}}☆{{end}}
+                    {{if ge .Rating.AverageRating 1.5}}★{{else}}☆{{end}}
+                    {{if ge .Rating.AverageRating 2.5}}★{{else}}☆{{end}}
+                    {{if ge .Rating.AverageRating 3.5}}★{{else}}☆{{end}}
+                    {{if ge .Rating.AverageRating 4.5}}★{{else}}☆{{end}}
+                </div>
+                <span class="rating-count">Based on {{.Rating.TotalReviews}} {{if eq .Rating.TotalReviews 1}}review{{else}}reviews{{end}}</span>
+            </div>
+            
+            {{if .RatingBars}}
+            <div class="rating-breakdown">
+                {{range .RatingBars}}
+                <div class="rating-bar-row">
+                    <span class="star-label">{{.Stars}} ★</span>
+                    <div class="rating-bar">
+                        <div class="rating-bar-fill" style="width: {{printf "%.0f" .Percentage}}%"></div>
+                    </div>
+                    <span class="rating-count-small">{{.Count}}</span>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+        
+        <!-- Review Form -->
+        {{if .IsAuthenticated}}
+            {{if .UserReview}}
+            <div class="review-form-section">
+                <h3>Your Review</h3>
+                <div class="user-review-display">
+                    <div class="review-stars">
+                        {{if ge .UserReview.Rating 1}}★{{else}}☆{{end}}
+                        {{if ge .UserReview.Rating 2}}★{{else}}☆{{end}}
+                        {{if ge .UserReview.Rating 3}}★{{else}}☆{{end}}
+                        {{if ge .UserReview.Rating 4}}★{{else}}☆{{end}}
+                        {{if ge .UserReview.Rating 5}}★{{else}}☆{{end}}
+                    </div>
+                    {{if .UserReview.Title}}<h4>{{.UserReview.Title}}</h4>{{end}}
+                    {{if .UserReview.Comment}}<p>{{.UserReview.Comment}}</p>{{end}}
+                    <form method="POST" action="/reviews/{{.UserReview.ID}}/delete" style="margin-top: 1rem;">
+                        <input type="hidden" name="product_id" value="{{.Product.ID}}">
+                        <button type="submit" class="btn-secondary btn-small" onclick="return confirm('Are you sure you want to delete your review?')">Delete Review</button>
+                    </form>
+                </div>
+            </div>
+            {{else}}
+            <div class="review-form-section">
+                <h3>Write a Review</h3>
+                <form method="POST" action="/products/{{.Product.ID}}/review" class="review-form">
+                    <div class="form-group">
+                        <label for="rating">Rating *</label>
+                        <div class="star-rating-input">
+                            <input type="radio" name="rating" value="5" id="star5" required>
+                            <label for="star5" title="5 stars">★</label>
+                            <input type="radio" name="rating" value="4" id="star4">
+                            <label for="star4" title="4 stars">★</label>
+                            <input type="radio" name="rating" value="3" id="star3">
+                            <label for="star3" title="3 stars">★</label>
+                            <input type="radio" name="rating" value="2" id="star2">
+                            <label for="star2" title="2 stars">★</label>
+                            <input type="radio" name="rating" value="1" id="star1">
+                            <label for="star1" title="1 star">★</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="title">Review Title (optional)</label>
+                        <input type="text" name="title" id="title" maxlength="255" placeholder="Sum up your experience">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comment">Your Review (optional)</label>
+                        <textarea name="comment" id="comment" rows="5" placeholder="Share your thoughts about this product"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Submit Review</button>
+                </form>
+            </div>
+            {{end}}
+        {{else}}
+        <div class="review-login-prompt">
+            <p><a href="/login">Log in</a> to write a review</p>
+        </div>
+        {{end}}
+        
+        <!-- Reviews List -->
+        {{if .Reviews}}
+        <div class="reviews-list">
+            <h3>All Reviews ({{len .Reviews}})</h3>
+            {{range .Reviews}}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-author">
+                        <strong>{{.UserName}}</strong>
+                        <div class="review-stars">
+                            {{if ge .Rating 1}}★{{else}}☆{{end}}
+                            {{if ge .Rating 2}}★{{else}}☆{{end}}
+                            {{if ge .Rating 3}}★{{else}}☆{{end}}
+                            {{if ge .Rating 4}}★{{else}}☆{{end}}
+                            {{if ge .Rating 5}}★{{else}}☆{{end}}
+                        </div>
+                    </div>
+                    <div class="review-date">{{.CreatedAt.Format "Jan 2, 2006"}}</div>
+                </div>
+                {{if .Title}}<h4 class="review-title">{{.Title}}</h4>{{end}}
+                {{if .Comment}}<p class="review-comment">{{.Comment}}</p>{{end}}
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="no-reviews">
+            <p>No reviews yet. Be the first to review this product!</p>
+        </div>
+        {{end}}
     </div>
 
     <a href="/" class="back-link">← Back to Products</a>
