@@ -9,12 +9,12 @@ import (
 )
 
 type ProductListViewData struct {
-	IsAuthenticated bool
-	Products        []models.Product
-	Categories      []models.Category
-	SearchQuery     string
+	IsAuthenticated  bool
+	Products         []models.Product
+	Categories       []models.Category
+	SearchQuery      string
 	SelectedCategory int
-	ResultCount     int
+	ResultCount      int
 }
 
 type ProductDetailViewData struct {
@@ -25,7 +25,7 @@ type ProductDetailViewData struct {
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	categoryIDStr := r.URL.Query().Get("category")
-	
+
 	// Parse category ID
 	categoryID := 0
 	if categoryIDStr != "" {
