@@ -47,6 +47,20 @@ echo "E-commerce Application Smoke Tests"
 echo "========================================="
 echo ""
 
+# Test 0: Go code formatting check
+log_test "Checking Go code formatting..."
+UNFORMATTED=$(gofmt -l . 2>/dev/null)
+if [ -z "$UNFORMATTED" ]; then
+    log_pass "Go code is properly formatted"
+else
+    log_fail "Go code is not formatted. Run: go fmt ./..."
+    echo "Unformatted files:"
+    echo "$UNFORMATTED"
+    echo ""
+    echo "To fix, run: go fmt ./..."
+    exit 1
+fi
+
 # Test 1: Server is running
 log_test "Checking if server is running..."
 if curl -s "$BASE_URL" > /dev/null; then
