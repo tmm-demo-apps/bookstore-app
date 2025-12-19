@@ -3,6 +3,7 @@ package main
 import (
 	"DemoApp/internal/handlers"
 	"DemoApp/internal/repository"
+	"DemoApp/internal/storage"
 	"context"
 	"database/sql"
 	"fmt"
@@ -23,6 +24,10 @@ func main() {
 	dbName := os.Getenv("DB_NAME")
 	esURL := os.Getenv("ES_URL")
 	redisURL := os.Getenv("REDIS_URL")
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	minioUseSSL := os.Getenv("MINIO_USE_SSL") == "true"
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbName)
@@ -125,6 +130,25 @@ func main() {
 		log.Println("ES_URL not set, using SQL-based search")
 	}
 
+	// Initialize MinIO storage
+	var minioStorage *storage.MinIOStorage
+	var imageHandlers *handlers.ImageHandlers
+	if minioEndpoint != "" {
+		log.Println("Initializing MinIO...")
+		minioStorage, err = storage.NewMinIOStorage(minioEndpoint, minioAccessKey, minioSecretKey, minioUseSSL)
+		if err != nil {
+			log.Printf("Warning: MinIO initialization failed: %v", err)
+			log.Println("Continuing without MinIO storage")
+		} else {
+			log.Println("MinIO storage initialized successfully")
+			imageHandlers = &handlers.ImageHandlers{
+				Storage: minioStorage,
+			}
+		}
+	} else {
+		log.Println("MINIO_ENDPOINT not set, MinIO storage disabled")
+	}
+
 	h := &handlers.Handlers{
 		Repo:  repo,
 		Store: store,
@@ -163,6 +187,12 @@ func main() {
 	// Review routes
 	mux.HandleFunc("/products/{id}/review", h.SubmitReview)
 	mux.HandleFunc("/reviews/{id}/delete", h.DeleteReview)
+
+	// Image routes (MinIO)
+	if imageHandlers != nil {
+		mux.HandleFunc("/images/", imageHandlers.ServeImage)
+		mux.HandleFunc("/admin/upload-image", imageHandlers.UploadImage)
+	}
 
 	log.Println("Starting server on :8080")
 	err = http.ListenAndServe(":8080", mux)
