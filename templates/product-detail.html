@@ -545,7 +545,7 @@
     <div class="reviews-section">
         <h2>Customer Reviews</h2>
         
-        {{if .Rating}}
+        {{if and .Rating (gt .Rating.TotalReviews 0)}}
         <div class="rating-summary">
             <div class="rating-score">
                 <span class="rating-number">{{printf "%.1f" .Rating.AverageRating}}</span>
@@ -559,7 +559,6 @@
                 <span class="rating-count">Based on {{.Rating.TotalReviews}} {{if eq .Rating.TotalReviews 1}}review{{else}}reviews{{end}}</span>
             </div>
             
-            {{if .RatingBars}}
             <div class="rating-breakdown">
                 {{range .RatingBars}}
                 <div class="rating-bar-row">
@@ -571,7 +570,6 @@
                 </div>
                 {{end}}
             </div>
-            {{end}}
         </div>
         {{end}}
         
@@ -659,10 +657,6 @@
                 {{if .Comment}}<p class="review-comment">{{.Comment}}</p>{{end}}
             </div>
             {{end}}
-        </div>
-        {{else}}
-        <div class="no-reviews">
-            <p>No reviews yet. Be the first to review this product!</p>
         </div>
         {{end}}
     </div>

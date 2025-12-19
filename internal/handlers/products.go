@@ -156,9 +156,13 @@ func (h *Handlers) ProductDetail(w http.ResponseWriter, r *http.Request) {
 		rating = nil // Continue without rating
 	}
 
-	// Calculate rating bar percentages for template
+	// Only process rating data if there are reviews
 	var ratingBars []models.RatingBar
-	if rating != nil && rating.TotalReviews > 0 {
+	if rating != nil && rating.TotalReviews == 0 {
+		// Don't show rating summary for products with no reviews
+		rating = nil
+	} else if rating != nil && rating.TotalReviews > 0 {
+		// Calculate rating bar percentages for template
 		for stars := 5; stars >= 1; stars-- {
 			count := rating.RatingCounts[stars]
 			percentage := (float64(count) / float64(rating.TotalReviews)) * 100.0
