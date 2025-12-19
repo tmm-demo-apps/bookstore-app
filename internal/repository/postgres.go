@@ -328,7 +328,7 @@ func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, err
 }
 
 func (r *postgresProductRepo) ListCategories() ([]models.Category, error) {
-	query := `SELECT DISTINCT ON (name) id, name, description FROM categories ORDER BY name, id`
+	query := `SELECT id, name, description FROM categories ORDER BY name`
 	rows, err := r.DB.Query(query)
 	if err != nil {
 		return nil, err

@@ -1,52 +1,82 @@
-# DemoApp - Bookstore Shopping Cart
+# DemoApp - E-commerce Platform for VCF 9.0 Demonstrations
 
 [![CI](https://github.com/johnnyr0x/bookstore-app/workflows/CI/badge.svg)](https://github.com/johnnyr0x/bookstore-app/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis)](https://redis.io/)
+[![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.11-005571?logo=elasticsearch)](https://www.elastic.co/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A modern, full-stack e-commerce bookstore application built with Go, PostgreSQL, HTMX, and Pico CSS. Features include product browsing, shopping cart management, user authentication, and order processing.
+A production-ready e-commerce platform built to demonstrate **VMware Cloud Foundation (VCF) 9.0** capabilities. Features enterprise-grade infrastructure including Elasticsearch search, Redis caching, MinIO object storage, and real-world content from Project Gutenberg.
 
-## Features
+**🎯 Purpose**: Showcase VCF 9.0 Supervisor Services, VKS (vSphere Kubernetes Service), VKS Add-ons, and CNCF graduated projects through a realistic e-commerce application.
 
-- 📚 **Product Catalog** - Browse books with grid and table views
-- 🛒 **Shopping Cart** - Real-time cart updates with HTMX
-- 👤 **User Authentication** - Secure signup/login with session management
+## ✨ Features
+
+### User Features
+- 📚 **71 Real Products** - 50+ public domain classics from Project Gutenberg with authentic covers
+- 🔍 **Intelligent Search** - Elasticsearch 5-tier search strategy with author-aware queries and autocomplete
+- ⭐ **User Reviews** - Star ratings (1-5) with privacy-protected display ("FirstName L.")
+- 👤 **User Profiles** - Complete account management (view, edit, password change)
+- 🛒 **Smart Shopping Cart** - Real-time updates with Redis-backed sessions
 - 📦 **Order Management** - Complete checkout flow and order history
-- 📊 **Stock Management** - Real-time inventory tracking
-- 🎨 **Modern UI** - Clean, responsive design with Pico CSS
-- 🚀 **Lightweight** - Fast, efficient Go backend
+- 📄 **Pagination** - Configurable page sizes (10/20/30/40/50 items)
+- 🎨 **Modern UI** - Responsive design with Pico CSS, sticky header, mobile-optimized
 
-## Technology Stack
+### Infrastructure Features
+- 🚀 **Redis Integration** - Session management and product caching for horizontal scaling
+- 🖼️ **MinIO Storage** - S3-compatible object storage with 1-year cache headers and ETags
+- 🔎 **Elasticsearch** - Full-text search with edge n-gram tokenization and fuzzy matching
+- 📊 **Repository Pattern** - Clean architecture with caching decorators
+- 🧪 **25 Automated Tests** - Comprehensive smoke test suite covering all services
+- 🐳 **Docker Compose** - Complete local development environment
+- ☸️ **Kubernetes Ready** - Production deployment manifests included
 
-- **Backend**: Go 1.24
-- **Frontend**: HTML templates with HTMX and Pico CSS
-- **Database**: PostgreSQL 14
-- **Container**: Docker & Docker Compose
-- **Orchestration**: Kubernetes (optional)
+## 🏗️ Technology Stack
 
-## Quick Start
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Backend** | Go 1.24 | High-performance application server |
+| **Frontend** | HTMX + Pico CSS | Modern, lightweight UI with dynamic updates |
+| **Database** | PostgreSQL 14 | Primary data store with 10 migrations |
+| **Search** | Elasticsearch 8.11 | Full-text search with autocomplete |
+| **Cache** | Redis 7 | Session management and hot data caching |
+| **Storage** | MinIO | S3-compatible object storage for images |
+| **Container** | Docker & Docker Compose | Local development and testing |
+| **Orchestration** | Kubernetes | Production deployment (VKS ready) |
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Docker and Docker Compose
-- OR Go 1.24+ and PostgreSQL 14+
+- OR Go 1.24+ with PostgreSQL, Redis, Elasticsearch, and MinIO
 
-### Option 1: Docker Compose (Recommended for Local Development)
+### Option 1: Docker Compose (Recommended)
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd DemoApp
+git clone https://github.com/johnnyr0x/bookstore-app.git
+cd bookstore-app
 
-# Start the application
-docker compose up --build
+# Start all services
+docker compose up --build -d
+
+# Run smoke tests (25 tests)
+./test-smoke.sh
 
 # Access the application
 open http://localhost:8080
 ```
 
-**⚠️ Security Note**: The `docker-compose.yml` file contains development-only credentials (`user`/`password`). **Never use these in production!**
+**Services Available**:
+- **App**: http://localhost:8080
+- **PostgreSQL**: localhost:5432 (user/password)
+- **Redis**: localhost:6379
+- **Elasticsearch**: http://localhost:9200
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
+
+**⚠️ Security Note**: Default credentials are for development only. **Never use in production!**
 
 ### Option 2: Local Go Development
 
@@ -56,13 +86,14 @@ export DB_USER=user
 export DB_PASSWORD=password
 export DB_HOST=localhost
 export DB_NAME=bookstore
+export REDIS_URL=localhost:6379
+export ES_URL=http://localhost:9200
+export MINIO_ENDPOINT=localhost:9000
+export MINIO_ACCESS_KEY=minioadmin
+export MINIO_SECRET_KEY=minioadmin
 
-# Start PostgreSQL (if not already running)
-docker run -d -p 5432:5432 \
-  -e POSTGRES_USER=user \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=bookstore \
-  postgres:14-alpine
+# Start infrastructure services
+docker compose up -d db redis elasticsearch minio
 
 # Run the application
 go run cmd/web/main.go
@@ -71,207 +102,282 @@ go run cmd/web/main.go
 open http://localhost:8080
 ```
 
-## Kubernetes Deployment
+## 📊 Project Structure
 
-Deploy the application to a Kubernetes cluster for production or testing.
+```
+bookstore-app/
+├── cmd/web/              # Application entry point
+├── internal/
+│   ├── handlers/         # HTTP request handlers
+│   │   ├── products.go   # Product listing, search, pagination
+│   │   ├── cart.go       # Shopping cart operations
+│   │   ├── profile.go    # User profile management
+│   │   ├── reviews.go    # Review submission and display
+│   │   └── images.go     # MinIO image serving
+│   ├── models/          # Data models (Product, User, Review, etc.)
+│   ├── repository/      # Database layer with caching
+│   │   ├── postgres.go   # PostgreSQL implementation
+│   │   ├── elasticsearch.go # Search implementation
+│   │   └── cache.go      # Redis caching decorator
+│   └── storage/         # Object storage
+│       └── minio.go      # MinIO client
+├── templates/           # HTML templates
+├── migrations/          # Database migrations (10 files)
+├── scripts/             # Data seeding scripts
+│   ├── seed-gutenberg-books.go  # Project Gutenberg integration
+│   └── seed-images.go           # Image download and upload
+├── kubernetes/          # Kubernetes manifests
+├── dev_docs/            # Development documentation
+│   ├── diary.md         # Complete project history
+│   ├── PLANNING.md      # Roadmap and VCF integration
+│   ├── CONTINUITY.md    # Quick reference guide
+│   └── NEXT-SESSION.md  # Next steps
+├── docker-compose.yml   # Local development setup
+├── Dockerfile          # Container image definition
+├── test-smoke.sh       # Automated test suite (25 tests)
+└── README.md
+```
+
+## 🧪 Testing
+
+### Automated Smoke Tests
+
+```bash
+# Run all 25 tests
+./test-smoke.sh
+
+# Tests cover:
+# - Application health
+# - Product listing and search
+# - Cart operations (anonymous + authenticated)
+# - User authentication
+# - Order processing
+# - Redis connectivity and caching
+# - Elasticsearch indexing and search
+# - MinIO image serving and caching
+# - Database integrity
+```
+
+### Manual Testing
+
+```bash
+# Format code
+go fmt ./...
+
+# Run Go tests
+go test ./...
+
+# Check linter
+golangci-lint run
+```
+
+## 🗄️ Database Migrations
+
+The application automatically runs migrations on startup. Key migrations include:
+
+1. **001** - Initial schema (products, cart, orders, users)
+2. **002-008** - Schema expansions (categories, SKUs, stock, roles)
+3. **009** - Reviews table with ratings
+4. **010** - Author field for books
+
+### Manual Migration
+
+```bash
+# Connect to database
+docker compose exec db psql -U user -d bookstore
+
+# Run specific migration
+docker compose exec db psql -U user -d bookstore -f migrations/010_add_author_field.sql
+```
+
+## 🌐 Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DB_USER` | PostgreSQL username | `user` | Yes |
+| `DB_PASSWORD` | PostgreSQL password | `password` | Yes |
+| `DB_HOST` | PostgreSQL host | `localhost` | Yes |
+| `DB_NAME` | PostgreSQL database name | `bookstore` | Yes |
+| `REDIS_URL` | Redis connection string | `localhost:6379` | Yes |
+| `ES_URL` | Elasticsearch URL | `http://localhost:9200` | Yes |
+| `MINIO_ENDPOINT` | MinIO endpoint | `localhost:9000` | Yes |
+| `MINIO_ACCESS_KEY` | MinIO access key | `minioadmin` | Yes |
+| `MINIO_SECRET_KEY` | MinIO secret key | `minioadmin` | Yes |
+
+## ☸️ Kubernetes Deployment
+
+Deploy to VKS (vSphere Kubernetes Service) or any Kubernetes cluster.
 
 ### Prerequisites
 
-- Kubernetes cluster (minikube, kind, EKS, GKE, AKS, VKS, etc.)
-- kubectl configured to access your cluster
-- Docker registry (Docker Hub, ECR, GCR, Harbor, etc.)
+- Kubernetes cluster (VKS, EKS, GKE, AKS, minikube, kind)
+- kubectl configured
+- Docker registry (Harbor recommended for VCF demos)
 
-### Step 1: Build and Push Docker Image
+### Step 1: Build and Push Image
 
 ```bash
 # Build the Docker image
 docker build -t your-registry/bookstore-app:latest .
 
-# Push to your registry
+# Push to registry (Harbor for VCF)
 docker push your-registry/bookstore-app:latest
 ```
 
-### Step 2: Create Kubernetes Secret
-
-Create a secret file for production credentials:
+### Step 2: Create Secrets
 
 ```bash
-# Create kubernetes/secret.yaml with your production credentials
-cat > kubernetes/secret.yaml <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-type: Opaque
-stringData:
-  POSTGRES_USER: "your-production-user"
-  POSTGRES_PASSWORD: "your-secure-password"
-EOF
+# Create production secrets
+kubectl create secret generic postgres-secret \
+  --from-literal=POSTGRES_USER=your-user \
+  --from-literal=POSTGRES_PASSWORD=your-secure-password
 
-# Apply the secret
-kubectl apply -f kubernetes/secret.yaml
+kubectl create secret generic redis-secret \
+  --from-literal=REDIS_PASSWORD=your-redis-password
+
+kubectl create secret generic minio-secret \
+  --from-literal=MINIO_ACCESS_KEY=your-access-key \
+  --from-literal=MINIO_SECRET_KEY=your-secret-key
 ```
 
-**⚠️ Important**: The `kubernetes/secret.yaml` file is in `.gitignore` and should never be committed to version control!
-
-### Step 3: Update Deployment Configuration
-
-Edit `kubernetes/app.yaml` and replace `your-docker-registry/bookstore-app:latest` with your actual image:
-
-```yaml
-image: your-registry/bookstore-app:latest
-```
-
-### Step 4: Deploy to Kubernetes
+### Step 3: Deploy Services
 
 ```bash
-# Apply all Kubernetes configurations
+# Deploy PostgreSQL
 kubectl apply -f kubernetes/postgres.yaml
+
+# Deploy Redis
+kubectl apply -f kubernetes/redis.yaml
+
+# Deploy Elasticsearch
+kubectl apply -f kubernetes/elasticsearch.yaml
+
+# Deploy MinIO
+kubectl apply -f kubernetes/minio.yaml
+
+# Deploy Application
 kubectl apply -f kubernetes/app.yaml
-
-# Check deployment status
-kubectl get pods
-kubectl get services
-
-# Get the external IP (for LoadBalancer type)
-kubectl get service app-service
-```
-
-### Step 5: Access the Application
-
-**For LoadBalancer (Cloud Kubernetes):**
-```bash
-# Get the external IP
-kubectl get service app-service
-
-# Access via: http://<EXTERNAL-IP>
-```
-
-**For Minikube:**
-```bash
-# Get the service URL
-minikube service app-service --url
-
-# Access the application
-open $(minikube service app-service --url)
-```
-
-**For Port Forwarding (any cluster):**
-```bash
-# Forward local port to the service
-kubectl port-forward service/app-service 8080:80
-
-# Access via localhost
-open http://localhost:8080
-```
-
-### Scaling the Application
-
-```bash
-# Scale the app deployment
-kubectl scale deployment app-deployment --replicas=3
 
 # Check status
 kubectl get pods
+kubectl get services
 ```
 
-### Viewing Logs
+### Step 4: Access Application
 
 ```bash
-# View app logs
-kubectl logs -l app=bookstore-app --tail=100 -f
+# For LoadBalancer (Cloud)
+kubectl get service app-service
 
-# View database logs
-kubectl logs -l app=postgres --tail=100 -f
+# For Port Forwarding
+kubectl port-forward service/app-service 8080:80
+
+# Access
+open http://localhost:8080
 ```
 
-### Updating the Application
+## 📈 VCF 9.0 Demo Scenarios
 
-```bash
-# Build and push new image
-docker build -t your-registry/bookstore-app:v2 .
-docker push your-registry/bookstore-app:v2
+### Scenario 1: CNCF Graduated Projects
+- **Elasticsearch**: Full-text search with StatefulSet deployment
+- **Redis**: Distributed caching for session management
+- **Prometheus**: Custom business metrics (Phase 3)
 
-# Update deployment
-kubectl set image deployment/app-deployment bookstore-app=your-registry/bookstore-app:v2
+### Scenario 2: Horizontal Pod Autoscaling (HPA)
+- Scale based on CPU/Memory under search load
+- Scale based on custom metrics (orders per minute)
 
-# Check rollout status
-kubectl rollout status deployment/app-deployment
-```
+### Scenario 3: Persistent Storage
+- PostgreSQL with PersistentVolumeClaims
+- MinIO for object storage
+- Demonstrates VCF storage services
 
-## Database Migrations
+### Scenario 4: Service Mesh (Phase 3)
+- Istio for traffic management
+- mTLS between services
+- Canary deployments
 
-The application automatically runs migrations on startup. Migrations are located in the `migrations/` directory and include:
+### Scenario 5: GitOps (Phase 3)
+- Argo CD for declarative deployments
+- Self-healing capabilities
+- Multi-environment management
 
-- Initial schema creation (products, cart, orders, users)
-- Sample data seeding
-
-## Project Structure
-
-```
-DemoApp/
-├── cmd/web/              # Application entry point
-├── internal/
-│   ├── handlers/         # HTTP request handlers
-│   ├── models/          # Data models
-│   └── repository/      # Database layer
-├── templates/           # HTML templates
-├── migrations/          # Database migrations
-├── kubernetes/          # Kubernetes manifests
-├── docker-compose.yml   # Local development setup
-├── Dockerfile          # Container image definition
-└── README.md
-```
-
-## Development
-
-### Running Tests
-
-```bash
-go test ./...
-```
-
-### Code Formatting
-
-```bash
-go fmt ./...
-```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_USER` | PostgreSQL username | `user` |
-| `DB_PASSWORD` | PostgreSQL password | `password` |
-| `DB_HOST` | PostgreSQL host | `localhost` |
-| `DB_NAME` | PostgreSQL database name | `bookstore` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-
-## Production Considerations
+## 🔒 Production Considerations
 
 ### Security
-- Change default database credentials
-- Use Kubernetes secrets for sensitive data
-- Enable TLS/SSL for database connections
-- Implement rate limiting
-- Add authentication middleware
+- ✅ Change default credentials
+- ✅ Use Kubernetes secrets for sensitive data
+- ✅ Enable TLS/SSL for all connections
+- ✅ Implement rate limiting
+- ✅ Use Cert-Manager for automated certificates (Phase 3)
+- ✅ Enable RBAC for admin features
 
 ### Scalability
-- Use persistent volumes for database data
-- Configure resource limits in Kubernetes
-- Set up horizontal pod autoscaling
-- Use database connection pooling
+- ✅ Redis-backed sessions enable horizontal scaling
+- ✅ Stateless application design (12-factor)
+- ✅ Database connection pooling
+- ✅ Configure HPA based on metrics
+- ✅ Use CDN for static assets (MinIO compatible)
 
-### Monitoring
-- Add health check endpoints
-- Configure Prometheus metrics
-- Set up log aggregation (ELK, Loki)
-- Configure alerts for critical errors
+### Monitoring (Phase 3)
+- 🎯 Prometheus metrics export
+- 🎯 Grafana dashboards
+- 🎯 Log aggregation (Loki)
+- 🎯 Distributed tracing (Jaeger)
+- 🎯 Custom business metrics
 
-## License
+## 📚 Documentation
 
-[Add your license here]
+- **[PLANNING.md](dev_docs/PLANNING.md)** - Project vision, roadmap, VCF integration strategy
+- **[diary.md](dev_docs/diary.md)** - Complete project history with technical details
+- **[CONTINUITY.md](dev_docs/CONTINUITY.md)** - Quick reference and architecture overview
+- **[NEXT-SESSION.md](dev_docs/NEXT-SESSION.md)** - Next steps and Phase 3 priorities
+- **[REDIS-TESTING.md](REDIS-TESTING.md)** - Redis testing and performance guide
 
-## Contributing
+## 🎯 Roadmap
 
-[Add contributing guidelines here]
+### ✅ Phase 1: Core App & Data (Complete)
+- User authentication and shopping cart
+- Product catalog and order management
+- Responsive UI with modern design
+
+### ✅ Phase 2: Microservices Expansion (Complete)
+- Elasticsearch search with autocomplete
+- Redis caching and session management
+- MinIO object storage
+- User reviews and profiles
+- Real content from Project Gutenberg
+- Pagination system
+
+### 🎯 Phase 3: Ops & Observability (Next)
+- Argo CD for GitOps
+- Prometheus & Grafana for metrics
+- Istio service mesh
+- ExternalDNS automation
+- AI Support Chatbot (Python microservice)
+
+## 🤝 Contributing
+
+This is a demo platform for VCF 9.0 showcases. Contributions are welcome!
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `./test-smoke.sh`
+5. Format code: `go fmt ./...`
+6. Submit a pull request
+
+## 📝 License
+
+MIT License - See LICENSE file for details
+
+## 🙏 Acknowledgments
+
+- **Project Gutenberg** - Public domain book content and covers
+- **Pico CSS** - Minimalist CSS framework
+- **HTMX** - Modern dynamic UI without heavy JavaScript
+- **VMware** - VCF 9.0 platform and documentation
+
+---
+
+**Built with ❤️ to demonstrate VMware Cloud Foundation 9.0 capabilities**
