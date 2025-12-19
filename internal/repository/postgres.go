@@ -641,8 +641,8 @@ func (r *postgresUserRepo) GetUserByEmail(email string) (*models.User, error) {
 
 func (r *postgresUserRepo) GetUserByID(id int) (*models.User, error) {
 	var u models.User
-	err := r.DB.QueryRow("SELECT id, email, password_hash, full_name, role FROM users WHERE id = $1", id).
-		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FullName, &u.Role)
+	err := r.DB.QueryRow("SELECT id, email, password_hash, full_name, role, created_at FROM users WHERE id = $1", id).
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FullName, &u.Role, &u.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
