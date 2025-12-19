@@ -269,6 +269,49 @@ fi
 # Cleanup
 rm -f "$MERGE2_COOKIE"
 
+# Test 17: Redis connectivity
+log_test "Checking Redis connectivity..."
+if docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
+    log_pass "Redis is accessible"
+else
+    log_fail "Redis is not accessible"
+fi
+
+# Test 18: Redis session storage
+log_test "Checking Redis session storage..."
+SESSION_COUNT=$(docker compose exec -T redis redis-cli KEYS "session:*" 2>/dev/null | wc -l)
+if [ "$SESSION_COUNT" -gt 0 ]; then
+    log_pass "Redis contains $SESSION_COUNT session(s)"
+else
+    log_fail "No sessions found in Redis"
+fi
+
+# Test 19: Redis caching
+log_test "Checking Redis cache keys..."
+CACHE_KEYS=$(docker compose exec -T redis redis-cli KEYS "*" 2>/dev/null | grep -v "session:" | wc -l)
+if [ "$CACHE_KEYS" -gt 0 ]; then
+    log_pass "Redis cache contains $CACHE_KEYS key(s)"
+else
+    log_fail "No cache keys found in Redis"
+fi
+
+# Test 20: Elasticsearch connectivity
+log_test "Checking Elasticsearch connectivity..."
+if curl -s http://localhost:9200/_cluster/health 2>/dev/null | grep -q "status"; then
+    log_pass "Elasticsearch is accessible"
+else
+    log_fail "Elasticsearch is not accessible"
+fi
+
+# Test 21: Elasticsearch product index
+log_test "Checking Elasticsearch product index..."
+INDEX_COUNT=$(curl -s "http://localhost:9200/products/_count" 2>/dev/null | grep -o '"count":[0-9]*' | cut -d':' -f2)
+if [ ! -z "$INDEX_COUNT" ] && [ "$INDEX_COUNT" -gt 0 ]; then
+    log_pass "Elasticsearch has $INDEX_COUNT products indexed"
+else
+    log_fail "No products found in Elasticsearch index"
+fi
+
 # Summary
 echo ""
 echo "========================================="

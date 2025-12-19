@@ -9,7 +9,7 @@ import (
 
 type Handlers struct {
 	Repo  repository.Repository
-	Store *sessions.CookieStore
+	Store sessions.Store
 }
 
 func (h *Handlers) IsAuthenticated(r *http.Request) bool {

@@ -11,9 +11,11 @@ services:
       - DB_HOST=db
       - DB_NAME=bookstore
       - ES_URL=http://elasticsearch:9200
+      - REDIS_URL=redis:6379
     depends_on:
       - db
       - elasticsearch
+      - redis
 
   db:
     image: postgres:14-alpine
@@ -42,6 +44,20 @@ services:
       timeout: 10s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes
+
 volumes:
   postgres_data:
   elasticsearch_data:
+  redis_data:

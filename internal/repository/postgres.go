@@ -10,19 +10,28 @@ import (
 )
 
 type PostgresRepository struct {
-	DB *sql.DB
-	ES *ElasticsearchRepository
+	DB             *sql.DB
+	ES             *ElasticsearchRepository
+	CachedProducts ProductRepository
 }
 
 func NewPostgresRepository(db *sql.DB) *PostgresRepository {
-	return &PostgresRepository{DB: db, ES: nil}
+	return &PostgresRepository{DB: db, ES: nil, CachedProducts: nil}
 }
 
 func (r *PostgresRepository) SetElasticsearch(es *ElasticsearchRepository) {
 	r.ES = es
 }
 
+func (r *PostgresRepository) SetCachedProducts(cached ProductRepository) {
+	r.CachedProducts = cached
+}
+
 func (r *PostgresRepository) Products() ProductRepository {
+	// Return cached version if available, otherwise return direct DB access
+	if r.CachedProducts != nil {
+		return r.CachedProducts
+	}
 	return &postgresProductRepo{DB: r.DB, ES: r.ES}
 }
 

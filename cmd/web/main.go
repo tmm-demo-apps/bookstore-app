@@ -3,6 +3,7 @@ package main
 import (
 	"DemoApp/internal/handlers"
 	"DemoApp/internal/repository"
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
+	"github.com/rbcervilla/redisstore/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -19,6 +22,7 @@ func main() {
 	dbHost := os.Getenv("DB_HOST")
 	dbName := os.Getenv("DB_NAME")
 	esURL := os.Getenv("ES_URL")
+	redisURL := os.Getenv("REDIS_URL")
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbName)
@@ -29,17 +33,67 @@ func main() {
 	}
 	defer db.Close()
 
-	store := sessions.NewCookieStore([]byte("something-very-secret"))
+	// Initialize session store (Redis if available, fallback to cookie store)
+	var store sessions.Store
+	var redisClient *redis.Client
+
+	if redisURL != "" {
+		log.Println("Initializing Redis...")
+		redisClient = redis.NewClient(&redis.Options{
+			Addr: redisURL,
+		})
+
+		// Test Redis connection
+		ctx := context.Background()
+		if err := redisClient.Ping(ctx).Err(); err != nil {
+			log.Printf("Warning: Redis connection failed: %v", err)
+			log.Println("Falling back to cookie-based sessions and no caching")
+			store = sessions.NewCookieStore([]byte("something-very-secret"))
+			redisClient = nil
+		} else {
+			log.Println("Redis connected successfully")
+			redisStore, err := redisstore.NewRedisStore(ctx, redisClient)
+			if err != nil {
+				log.Printf("Warning: Redis store initialization failed: %v", err)
+				log.Println("Falling back to cookie-based sessions")
+				store = sessions.NewCookieStore([]byte("something-very-secret"))
+			} else {
+				store = redisStore
+				log.Println("Using Redis for session storage and caching")
+			}
+		}
+	} else {
+		log.Println("REDIS_URL not set, using cookie-based sessions and no caching")
+		store = sessions.NewCookieStore([]byte("something-very-secret"))
+	}
+
 	// Configure session options for development (allow HTTP, not just HTTPS)
-	store.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   86400 * 30, // 30 days
-		HttpOnly: true,
-		Secure:   false, // Set to true in production with HTTPS
-		SameSite: http.SameSiteLaxMode,
+	// Note: Options() method is only available on specific store implementations
+	if cookieStore, ok := store.(*sessions.CookieStore); ok {
+		cookieStore.Options = &sessions.Options{
+			Path:     "/",
+			MaxAge:   86400 * 30, // 30 days
+			HttpOnly: true,
+			Secure:   false, // Set to true in production with HTTPS
+			SameSite: http.SameSiteLaxMode,
+		}
+	} else if redisStore, ok := store.(*redisstore.RedisStore); ok {
+		redisStore.Options(sessions.Options{
+			Path:     "/",
+			MaxAge:   86400 * 30, // 30 days
+			HttpOnly: true,
+			Secure:   false, // Set to true in production with HTTPS
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 
 	repo := repository.NewPostgresRepository(db)
+
+	// Wrap product repository with caching if Redis is available
+	if redisClient != nil {
+		log.Println("Enabling product caching with Redis")
+		repo.SetCachedProducts(repository.NewCachedProductRepository(repo.Products(), redisClient))
+	}
 
 	// Initialize Elasticsearch if URL is provided
 	if esURL != "" {
