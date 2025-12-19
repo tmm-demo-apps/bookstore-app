@@ -37,10 +37,10 @@ kubernetes/secret.yaml
 .DS_Store
 
 # Personal notes and development artifacts
-cookies.txt
-MANUAL-TEST-STICKY-HEADER.md
-TEST-CHECKLIST.md
-TESTING.md
+tests/cookies.txt
+tests/MANUAL-STICKY-HEADER.md
+tests/CHECKLIST.md
+tests/README.md
 
 # Personal development documentation (not for GitHub)
 dev_docs/

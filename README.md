@@ -63,7 +63,7 @@ cd bookstore-app
 docker compose up --build -d
 
 # Run smoke tests (25 tests)
-./test-smoke.sh
+./tests/smoke.sh
 
 # Access the application
 open http://localhost:8080
@@ -125,16 +125,21 @@ bookstore-app/
 ├── migrations/          # Database migrations (10 files)
 ├── scripts/             # Data seeding scripts
 │   ├── seed-gutenberg-books.go  # Project Gutenberg integration
-│   └── seed-images.go           # Image download and upload
+│   ├── seed-images.go           # Image download and upload
+│   └── README.md                # Scripts documentation
+├── tests/               # Testing scripts and documentation
+│   ├── smoke.sh         # Automated test suite (25 tests)
+│   ├── redis-cache.sh   # Redis caching tests
+│   ├── redis-sessions.sh # Redis session tests
+│   └── redis-performance.sh # Redis performance tests
 ├── kubernetes/          # Kubernetes manifests
-├── dev_docs/            # Development documentation
-│   ├── diary.md         # Complete project history
-│   ├── PLANNING.md      # Roadmap and VCF integration
-│   ├── CONTINUITY.md    # Quick reference guide
-│   └── NEXT-SESSION.md  # Next steps
+├── docs/                # Documentation
+│   ├── ADMIN-CONSOLE-PLAN.md  # Admin feature plan
+│   ├── AI-ASSISTANT-PLAN.md   # AI chatbot plan
+│   ├── GRACEFUL-STARTUP.md    # Startup retry logic
+│   └── architecture/    # Architecture documentation
 ├── docker-compose.yml   # Local development setup
 ├── Dockerfile          # Container image definition
-├── test-smoke.sh       # Automated test suite (25 tests)
 └── README.md
 ```
 
@@ -144,7 +149,12 @@ bookstore-app/
 
 ```bash
 # Run all 25 tests
-./test-smoke.sh
+./tests/smoke.sh
+
+# Run specific test suites
+./tests/redis-cache.sh        # Redis caching functionality
+./tests/redis-sessions.sh     # Redis session management
+./tests/redis-performance.sh  # Redis performance benchmarks
 
 # Tests cover:
 # - Application health
@@ -328,11 +338,18 @@ open http://localhost:8080
 
 ## 📚 Documentation
 
-- **[PLANNING.md](dev_docs/PLANNING.md)** - Project vision, roadmap, VCF integration strategy
-- **[diary.md](dev_docs/diary.md)** - Complete project history with technical details
-- **[CONTINUITY.md](dev_docs/CONTINUITY.md)** - Quick reference and architecture overview
-- **[NEXT-SESSION.md](dev_docs/NEXT-SESSION.md)** - Next steps and Phase 3 priorities
-- **[REDIS-TESTING.md](REDIS-TESTING.md)** - Redis testing and performance guide
+### Architecture & Planning
+- **[ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)** - System architecture and design patterns
+- **[GRACEFUL-STARTUP.md](docs/GRACEFUL-STARTUP.md)** - Startup retry logic and health checks
+- **[ADMIN-CONSOLE-PLAN.md](docs/ADMIN-CONSOLE-PLAN.md)** - Admin console implementation plan
+- **[AI-ASSISTANT-PLAN.md](docs/AI-ASSISTANT-PLAN.md)** - AI chatbot microservice plan
+
+### Testing
+- **[tests/README.md](tests/README.md)** - Testing guide and strategies
+- **[tests/REDIS.md](tests/REDIS.md)** - Redis testing and performance guide
+
+### Scripts
+- **[scripts/README.md](scripts/README.md)** - Data seeding scripts documentation
 
 ## 🎯 Roadmap
 
@@ -363,7 +380,7 @@ This is a demo platform for VCF 9.0 showcases. Contributions are welcome!
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `./test-smoke.sh`
+4. Run tests: `./tests/smoke.sh`
 5. Format code: `go fmt ./...`
 6. Submit a pull request
 
