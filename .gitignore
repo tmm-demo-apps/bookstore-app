@@ -38,12 +38,9 @@ kubernetes/secret.yaml
 
 # Personal notes and development artifacts
 cookies.txt
-diary.md
-CONTINUITY.md
-PLANNING.md
 MANUAL-TEST-STICKY-HEADER.md
 TEST-CHECKLIST.md
 TESTING.md
 
-# Local development docs (may add to repo later)
-docs/
+# Personal development documentation (not for GitHub)
+dev_docs/

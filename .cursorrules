@@ -1,0 +1,25 @@
+# Cursor AI Rules for DemoApp Project
+
+## Personal Development Documentation
+- **NEVER** commit or push files in the `dev_docs/` directory
+- These are personal development notes and should remain local only
+- Files include: `diary.md`, `CONTINUITY.md`, `PLANNING.md`, `NEXT-SESSION.md`
+- The `dev_docs/` directory is in `.gitignore` and should stay that way
+
+## Git Workflow
+- Always run `./test-smoke.sh` before committing
+- Format Go code with `go fmt ./...` before committing
+- Use descriptive commit messages following conventional commits format
+- Personal documentation updates should NOT be committed to Git
+
+## Testing Requirements
+- All 16 smoke tests must pass before committing
+- Run `docker compose down && docker compose up --build -d` to test changes
+- Check both authenticated and anonymous user flows
+
+## Code Quality
+- Follow Go best practices and idioms
+- Handle all errors properly (no unchecked returns)
+- Use the Repository Pattern for all database access
+- Keep handlers thin, business logic in repositories
+
