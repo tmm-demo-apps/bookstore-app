@@ -585,6 +585,7 @@
         <a href="/products/{{.ID}}" class="product-link">
             {{if .ImageURL}}
             <img src="{{.ImageURL}}" alt="{{.Name}}" class="product-image" 
+                 loading="lazy"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="product-image-placeholder" style="display:none;">📦</div>
             {{else}}
@@ -594,6 +595,7 @@
         
         <div class="product-info">
             <h3 class="product-name"><a href="/products/{{.ID}}" class="product-link" style="display: inline;">{{.Name}}</a></h3>
+            {{if .Author}}<p class="product-author" style="color: var(--muted-color); font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 0.5rem;">by {{.Author}}</p>{{end}}
             <p class="product-description">{{.Description}}</p>
             <div class="product-price">${{printf "%.2f" .Price}}</div>
             
@@ -638,6 +640,7 @@
         <tr>
             <th>Image</th>
             <th>Name</th>
+            <th>Author</th>
             <th>Description</th>
             <th>Price</th>
             <th>Stock</th>
@@ -652,6 +655,7 @@
                 <a href="/products/{{.ID}}" class="product-link">
                     {{if .ImageURL}}
                     <img src="{{.ImageURL}}" alt="{{.Name}}" class="table-image"
+                         loading="lazy"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="table-image-placeholder" style="display:none;">📦</div>
                     {{else}}
@@ -660,6 +664,7 @@
                 </a>
             </td>
             <td><strong><a href="/products/{{.ID}}" class="product-link" style="display: inline;">{{.Name}}</a></strong></td>
+            <td>{{if .Author}}<em style="color: var(--muted-color);">{{.Author}}</em>{{else}}-{{end}}</td>
             <td>{{.Description}}</td>
             <td><strong>${{printf "%.2f" .Price}}</strong></td>
             <td>
@@ -699,10 +704,89 @@
         {{end}}
     </tbody>
 </table>
+
+{{if .Pagination}}
+<!-- Pagination Controls -->
+<div class="pagination-container" style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <!-- Page Size Selector -->
+    <div class="page-size-selector" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; white-space: nowrap;">
+        <label for="pageSize" style="font-size: 0.9rem; color: var(--muted-color);">Items per page:</label>
+        <select id="pageSize" onchange="changePageSize(this.value)" style="padding: 0.4rem 0.6rem; padding-right: 2rem; font-size: 0.9rem; border-radius: var(--border-radius); border: 1px solid var(--muted-border-color); min-width: 70px;">
+            {{range .PageSizeOptions}}
+            <option value="{{.}}" {{if eq . $.PageSize}}selected{{end}}>{{.}}</option>
+            {{end}}
+        </select>
+        <span style="font-size: 0.9rem; color: var(--muted-color); white-space: nowrap;">
+            (Showing {{if gt .Pagination.TotalItems 0}}{{add (mul (sub .Pagination.Page 1) .Pagination.PageSize) 1}}-{{min (mul .Pagination.Page .Pagination.PageSize) .Pagination.TotalItems}}{{else}}0{{end}} of {{.Pagination.TotalItems}})
+        </span>
+    </div>
+
+    <!-- Page Navigation -->
+    {{if gt .Pagination.TotalPages 1}}
+    <nav class="pagination" style="display: flex; gap: 0.5rem; align-items: center;">
+        <!-- First Page -->
+        {{if gt .Pagination.Page 1}}
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page=1&pageSize={{.PageSize}}" 
+           style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">«</a>
+        
+        <!-- Previous Page -->
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{sub .Pagination.Page 1}}&pageSize={{.PageSize}}" 
+           style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">‹ Prev</a>
+        {{else}}
+        <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); color: var(--muted-color); font-size: 0.9rem; opacity: 0.5;">«</span>
+        <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); color: var(--muted-color); font-size: 0.9rem; opacity: 0.5;">‹ Prev</span>
+        {{end}}
+
+        <!-- Page Numbers -->
+        {{$currentPage := .Pagination.Page}}
+        {{$totalPages := .Pagination.TotalPages}}
+        {{$searchQuery := .SearchQuery}}
+        {{$selectedCategory := .SelectedCategory}}
+        {{$pageSize := .PageSize}}
+        
+        {{range $i := iterate $totalPages}}
+        {{$page := add $i 1}}
+        {{if or (le $page 2) (ge $page (sub $totalPages 1)) (and (ge $page (sub $currentPage 1)) (le $page (add $currentPage 1)))}}
+        {{if eq $page $currentPage}}
+        <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--primary); background: var(--primary); color: white; border-radius: var(--border-radius); font-weight: bold; font-size: 0.9rem;">{{$page}}</span>
+        {{else}}
+        <a href="?{{if $searchQuery}}q={{$searchQuery}}&{{end}}{{if $selectedCategory}}category={{$selectedCategory}}&{{end}}page={{$page}}&pageSize={{$pageSize}}" 
+           style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">{{$page}}</a>
+        {{end}}
+        {{else if or (eq $page 3) (eq $page (sub $totalPages 2))}}
+        <span style="padding: 0.4rem 0.75rem; color: var(--muted-color); font-size: 0.9rem;">...</span>
+        {{end}}
+        {{end}}
+
+        <!-- Next Page -->
+        {{if lt .Pagination.Page .Pagination.TotalPages}}
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{add .Pagination.Page 1}}&pageSize={{.PageSize}}" 
+           style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">Next ›</a>
+        
+        <!-- Last Page -->
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{.Pagination.TotalPages}}&pageSize={{.PageSize}}" 
+           style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">»</a>
+        {{else}}
+        <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); color: var(--muted-color); font-size: 0.9rem; opacity: 0.5;">Next ›</span>
+        <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); color: var(--muted-color); font-size: 0.9rem; opacity: 0.5;">»</span>
+        {{end}}
+    </nav>
+    {{end}}
+</div>
+{{end}}
+
     </div><!-- End products-content -->
 </div><!-- End products-layout -->
     
     <script>
+        // Page size change handler
+        function changePageSize(newSize) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('pageSize', newSize);
+            urlParams.set('page', '1'); // Reset to first page
+            window.location.search = urlParams.toString();
+        }
+
         // Mobile category filter
         function filterByCategory(categoryId) {
             const urlParams = new URLSearchParams(window.location.search);

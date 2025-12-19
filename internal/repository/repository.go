@@ -6,8 +6,10 @@ import (
 
 type ProductRepository interface {
 	ListProducts() ([]models.Product, error)
+	ListProductsPaginated(page, pageSize int) (*models.ProductsResult, error)
 	GetProductByID(id int) (*models.Product, error)
 	SearchProducts(query string, categoryID int) ([]models.Product, error)
+	SearchProductsPaginated(query string, categoryID, page, pageSize int) (*models.ProductsResult, error)
 	ListCategories() ([]models.Category, error)
 }
 

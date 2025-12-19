@@ -55,6 +55,18 @@ func (c *CachedProductRepository) GetProductByID(id int) (*models.Product, error
 	return product, nil
 }
 
+func (c *CachedProductRepository) ListProductsPaginated(page, pageSize int) (*models.ProductsResult, error) {
+	// For paginated requests, we don't cache (too many variations)
+	// Delegate directly to underlying repository
+	return c.repo.ListProductsPaginated(page, pageSize)
+}
+
+func (c *CachedProductRepository) SearchProductsPaginated(query string, categoryID, page, pageSize int) (*models.ProductsResult, error) {
+	// For paginated search, we don't cache (too many variations)
+	// Delegate directly to underlying repository
+	return c.repo.SearchProductsPaginated(query, categoryID, page, pageSize)
+}
+
 func (c *CachedProductRepository) ListProducts() ([]models.Product, error) {
 	// Try cache first
 	cacheKey := "products:all"

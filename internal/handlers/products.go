@@ -15,6 +15,9 @@ type ProductListViewData struct {
 	SearchQuery      string
 	SelectedCategory int
 	ResultCount      int
+	Pagination       *models.Pagination
+	PageSize         int
+	PageSizeOptions  []int
 }
 
 type ProductDetailViewData struct {
@@ -30,6 +33,8 @@ type ProductDetailViewData struct {
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	categoryIDStr := r.URL.Query().Get("category")
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
 
 	// Parse category ID
 	categoryID := 0
@@ -39,19 +44,44 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var products []models.Product
-	var err error
-
-	if query != "" || categoryID > 0 {
-		products, err = h.Repo.Products().SearchProducts(query, categoryID)
-	} else {
-		products, err = h.Repo.Products().ListProducts()
+	// Parse pagination parameters
+	page := 1
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
 	}
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Internal Server Error", 500)
-		return
+	pageSize := 10 // Default
+	if pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+
+	var products []models.Product
+	var pagination *models.Pagination
+	var err error
+
+	// Use paginated methods
+	if query != "" || categoryID > 0 {
+		result, err := h.Repo.Products().SearchProductsPaginated(query, categoryID, page, pageSize)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Internal Server Error", 500)
+			return
+		}
+		products = result.Products
+		pagination = &result.Pagination
+	} else {
+		result, err := h.Repo.Products().ListProductsPaginated(page, pageSize)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Internal Server Error", 500)
+			return
+		}
+		products = result.Products
+		pagination = &result.Pagination
 	}
 
 	// Fetch all categories for the sidebar
@@ -67,10 +97,34 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		Categories:       categories,
 		SearchQuery:      query,
 		SelectedCategory: categoryID,
-		ResultCount:      len(products),
+		ResultCount:      pagination.TotalItems,
+		Pagination:       pagination,
+		PageSize:         pageSize,
+		PageSizeOptions:  []int{10, 20, 30, 50, 100},
 	}
 
-	ts, err := template.ParseFiles("./templates/base.html", "./templates/products.html")
+	// Create template with helper functions
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+		"sub": func(a, b int) int { return a - b },
+		"mul": func(a, b int) int { return a * b },
+		"min": func(a, b int) int {
+			if a < b {
+				return a
+			}
+			return b
+		},
+		"iterate": func(count int) []int {
+			var i int
+			var Items []int
+			for i = 0; i < count; i++ {
+				Items = append(Items, i)
+			}
+			return Items
+		},
+	}
+
+	ts, err := template.New("").Funcs(funcMap).ParseFiles("./templates/base.html", "./templates/products.html")
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal Server Error", 500)

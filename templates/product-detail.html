@@ -473,6 +473,7 @@
     <div class="product-image-section">
         {{if .Product.ImageURL}}
         <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="product-detail-image"
+             loading="lazy"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
         <div class="product-detail-image-placeholder" style="display:none;">📦</div>
         {{else}}
@@ -482,6 +483,11 @@
     
     <div class="product-info-section">
         <h1 class="product-detail-name">{{.Product.Name}}</h1>
+        {{if .Product.Author}}
+        <div style="font-size: 1.2rem; color: var(--muted-color); margin-top: -1rem; margin-bottom: 0.5rem;">
+            by <strong>{{.Product.Author}}</strong>
+        </div>
+        {{end}}
         
         <div class="product-detail-price">${{printf "%.2f" .Product.Price}}</div>
         

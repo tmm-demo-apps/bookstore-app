@@ -118,7 +118,14 @@ func (r *ElasticsearchRepository) initializeIndex() error {
 				"stock_quantity": { "type": "integer" },
 				"image_url": { "type": "keyword" },
 				"category_id": { "type": "integer" },
-				"status": { "type": "keyword" }
+				"status": { "type": "keyword" },
+				"author": { 
+					"type": "text",
+					"analyzer": "standard",
+					"fields": {
+						"keyword": { "type": "keyword" }
+					}
+				}
 			}
 		}
 	}`
@@ -155,6 +162,7 @@ func (r *ElasticsearchRepository) IndexProduct(product models.Product) error {
 		"image_url":      product.ImageURL,
 		"category_id":    product.CategoryID,
 		"status":         product.Status,
+		"author":         product.Author,
 	})
 	if err != nil {
 		return fmt.Errorf("error marshaling product: %w", err)
@@ -215,6 +223,7 @@ func (r *ElasticsearchRepository) IndexProducts(products []models.Product) error
 			"image_url":      product.ImageURL,
 			"category_id":    product.CategoryID,
 			"status":         product.Status,
+			"author":         product.Author,
 		}
 		docJSON, err := json.Marshal(doc)
 		if err != nil {
@@ -280,12 +289,12 @@ func (r *ElasticsearchRepository) SearchProducts(query string, categoryID int) (
 				},
 			})
 
-			// 3. Query string with wildcards for name and description
+			// 3. Query string with wildcards for name, description, and author
 			// This handles partial word matching like "dan" in "Daniel"
 			should = append(should, map[string]interface{}{
 				"query_string": map[string]interface{}{
 					"query":            "*" + query + "*",
-					"fields":           []string{"name", "description"},
+					"fields":           []string{"name", "description", "author"},
 					"default_operator": "AND",
 					"boost":            3.5,
 				},
@@ -306,7 +315,21 @@ func (r *ElasticsearchRepository) SearchProducts(query string, categoryID int) (
 				},
 			})
 
-			// 5. Match on description with conservative fuzzy
+			// 5. Match on author with high boost (important for book searches)
+			authorMatch := map[string]interface{}{
+				"query": query,
+				"boost": 4, // High boost for author matches
+			}
+			if len(query) >= 5 {
+				authorMatch["fuzziness"] = "1"
+			}
+			should = append(should, map[string]interface{}{
+				"match": map[string]interface{}{
+					"author": authorMatch,
+				},
+			})
+
+			// 6. Match on description with conservative fuzzy
 			descMatch := map[string]interface{}{
 				"query": query,
 				"boost": 1,

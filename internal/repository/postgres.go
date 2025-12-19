@@ -60,7 +60,7 @@ type postgresProductRepo struct {
 
 func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 	// Updated query for new schema
-	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
+	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
 	          FROM products WHERE status = 'active' ORDER BY name`
 	rows, err := r.DB.Query(query)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 	var products []models.Product
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
 			// Handle case where columns might be NULL if left joined (though here we query products directly)
 			// The pointer types in struct handle NULLs automatically via Scan if valid.
 			return nil, err
@@ -81,11 +81,62 @@ func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 	return products, nil
 }
 
+func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models.ProductsResult, error) {
+	// Validate pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10 // Default
+	}
+
+	// Get total count
+	var totalItems int
+	err := r.DB.QueryRow("SELECT COUNT(*) FROM products WHERE status = 'active'").Scan(&totalItems)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get paginated products
+	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	          FROM products WHERE status = 'active' ORDER BY name LIMIT $1 OFFSET $2`
+	rows, err := r.DB.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []models.Product
+	for rows.Next() {
+		var p models.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+
+	// Calculate total pages
+	totalPages := (totalItems + pageSize - 1) / pageSize
+
+	return &models.ProductsResult{
+		Products: products,
+		Pagination: models.Pagination{
+			Page:       page,
+			PageSize:   pageSize,
+			TotalItems: totalItems,
+			TotalPages: totalPages,
+		},
+	}, nil
+}
+
 func (r *postgresProductRepo) GetProductByID(id int) (*models.Product, error) {
 	var p models.Product
-	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
+	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
 	          FROM products WHERE id = $1`
-	err := r.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status)
+	err := r.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author)
 	if err != nil {
 		return nil, err
 	}
@@ -117,13 +168,13 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 	}
 
 	// Fallback to SQL-based search (original implementation)
-	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
 	      FROM products WHERE status = 'active'`
 	var args []interface{}
 	argID := 1
 
 	if query != "" {
-		q += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d)", argID, argID)
+		q += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR author ILIKE $%d)", argID, argID, argID)
 		args = append(args, "%"+query+"%")
 		argID++
 	}
@@ -144,12 +195,97 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 	var products []models.Product
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
 	}
 	return products, nil
+}
+
+func (r *postgresProductRepo) SearchProductsPaginated(query string, categoryID, page, pageSize int) (*models.ProductsResult, error) {
+	// Validate pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10 // Default
+	}
+
+	// Build count query
+	countQuery := `SELECT COUNT(*) FROM products WHERE status = 'active'`
+	var countArgs []interface{}
+	argID := 1
+
+	if query != "" {
+		countQuery += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR author ILIKE $%d)", argID, argID, argID)
+		countArgs = append(countArgs, "%"+query+"%")
+		argID++
+	}
+
+	if categoryID > 0 {
+		countQuery += fmt.Sprintf(" AND category_id = $%d", argID)
+		countArgs = append(countArgs, categoryID)
+	}
+
+	// Get total count
+	var totalItems int
+	err := r.DB.QueryRow(countQuery, countArgs...).Scan(&totalItems)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Build products query
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	      FROM products WHERE status = 'active'`
+	var args []interface{}
+	argID = 1
+
+	if query != "" {
+		q += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR author ILIKE $%d)", argID, argID, argID)
+		args = append(args, "%"+query+"%")
+		argID++
+	}
+
+	if categoryID > 0 {
+		q += fmt.Sprintf(" AND category_id = $%d", argID)
+		args = append(args, categoryID)
+		argID++
+	}
+
+	q += fmt.Sprintf(" ORDER BY name LIMIT $%d OFFSET $%d", argID, argID+1)
+	args = append(args, pageSize, offset)
+
+	rows, err := r.DB.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []models.Product
+	for rows.Next() {
+		var p models.Product
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+
+	// Calculate total pages
+	totalPages := (totalItems + pageSize - 1) / pageSize
+
+	return &models.ProductsResult{
+		Products: products,
+		Pagination: models.Pagination{
+			Page:       page,
+			PageSize:   pageSize,
+			TotalItems: totalItems,
+			TotalPages: totalPages,
+		},
+	}, nil
 }
 
 // getProductsByIDs fetches products by IDs and maintains the order
@@ -162,7 +298,7 @@ func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, err
 	productMap := make(map[int]models.Product)
 
 	// Build query with IN clause
-	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status 
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
 	      FROM products WHERE id = ANY($1) AND status = 'active'`
 
 	rows, err := r.DB.Query(q, pq.Array(ids))
@@ -174,7 +310,7 @@ func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, err
 	// Fetch all products into the map
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
 			return nil, err
 		}
 		productMap[p.ID] = p
