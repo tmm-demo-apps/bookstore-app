@@ -50,14 +50,14 @@ func main() {
 
 	// Define categories based on Project Gutenberg's main categories
 	categories := map[string]int{
-		"Fiction":       1,
-		"Non-Fiction":   2,
-		"Science":       3,
-		"Technology":    4,
-		"Philosophy":    0, // Will be created
-		"History":       0,
-		"Poetry":        0,
-		"Drama":         0,
+		"Fiction":           1,
+		"Non-Fiction":       2,
+		"Science":           3,
+		"Technology":        4,
+		"Philosophy":        0, // Will be created
+		"History":           0,
+		"Poetry":            0,
+		"Drama":             0,
 		"Political Science": 0,
 	}
 
@@ -83,83 +83,83 @@ func main() {
 	// Categorize books based on their titles and known information
 	bookCategories := map[string]string{
 		// Classic Fiction
-		"Pride and Prejudice":                       "Fiction",
-		"Alice's Adventures in Wonderland":          "Fiction",
-		"The Great Gatsby":                          "Fiction",
-		"Moby-Dick; or, The Whale":                  "Fiction",
-		"A Tale of Two Cities":                      "Fiction",
-		"The Adventures of Sherlock Holmes":         "Fiction",
-		"Frankenstein; Or, The Modern Prometheus":   "Fiction",
-		"The Picture of Dorian Gray":                "Fiction",
-		"Dracula":                                   "Fiction",
-		"The Adventures of Tom Sawyer":              "Fiction",
-		"Adventures of Huckleberry Finn":            "Fiction",
-		"Jane Eyre":                                 "Fiction",
-		"Wuthering Heights":                         "Fiction",
-		"The Count of Monte Cristo":                 "Fiction",
-		"The Three Musketeers":                      "Fiction",
-		"Little Women":                              "Fiction",
-		"The Scarlet Letter":                        "Fiction",
-		"The Wonderful Wizard of Oz":                "Fiction",
-		"The Secret Garden":                         "Fiction",
-		"Treasure Island":                           "Fiction",
+		"Pride and Prejudice":                         "Fiction",
+		"Alice's Adventures in Wonderland":            "Fiction",
+		"The Great Gatsby":                            "Fiction",
+		"Moby-Dick; or, The Whale":                    "Fiction",
+		"A Tale of Two Cities":                        "Fiction",
+		"The Adventures of Sherlock Holmes":           "Fiction",
+		"Frankenstein; Or, The Modern Prometheus":     "Fiction",
+		"The Picture of Dorian Gray":                  "Fiction",
+		"Dracula":                                     "Fiction",
+		"The Adventures of Tom Sawyer":                "Fiction",
+		"Adventures of Huckleberry Finn":              "Fiction",
+		"Jane Eyre":                                   "Fiction",
+		"Wuthering Heights":                           "Fiction",
+		"The Count of Monte Cristo":                   "Fiction",
+		"The Three Musketeers":                        "Fiction",
+		"Little Women":                                "Fiction",
+		"The Scarlet Letter":                          "Fiction",
+		"The Wonderful Wizard of Oz":                  "Fiction",
+		"The Secret Garden":                           "Fiction",
+		"Treasure Island":                             "Fiction",
 		"The Strange Case of Dr. Jekyll and Mr. Hyde": "Fiction",
-		"Heart of Darkness":                         "Fiction",
-		"The Metamorphosis":                         "Fiction",
-		"Don Quixote":                               "Fiction",
-		"War and Peace":                             "Fiction",
-		"Anna Karenina":                             "Fiction",
-		"Crime and Punishment":                      "Fiction",
-		"The Brothers Karamazov":                    "Fiction",
-		"Les Misérables":                            "Fiction",
-		"The Hunchback of Notre-Dame":               "Fiction",
-		"Madame Bovary":                             "Fiction",
-		"The Time Machine":                          "Fiction",
-		"The War of the Worlds":                     "Fiction",
-		"Twenty Thousand Leagues Under the Sea":     "Fiction",
-		"Around the World in Eighty Days":           "Fiction",
-		"Journey to the Center of the Earth":        "Fiction",
-		"The Jungle Book":                           "Fiction",
-		"The Call of the Wild":                      "Fiction",
-		"White Fang":                                "Fiction",
-		"1984":                                      "Fiction",
-		"To Kill a Mockingbird":                     "Fiction",
-		"The Catcher in the Rye":                    "Fiction",
-		
+		"Heart of Darkness":                           "Fiction",
+		"The Metamorphosis":                           "Fiction",
+		"Don Quixote":                                 "Fiction",
+		"War and Peace":                               "Fiction",
+		"Anna Karenina":                               "Fiction",
+		"Crime and Punishment":                        "Fiction",
+		"The Brothers Karamazov":                      "Fiction",
+		"Les Misérables":                              "Fiction",
+		"The Hunchback of Notre-Dame":                 "Fiction",
+		"Madame Bovary":                               "Fiction",
+		"The Time Machine":                            "Fiction",
+		"The War of the Worlds":                       "Fiction",
+		"Twenty Thousand Leagues Under the Sea":       "Fiction",
+		"Around the World in Eighty Days":             "Fiction",
+		"Journey to the Center of the Earth":          "Fiction",
+		"The Jungle Book":                             "Fiction",
+		"The Call of the Wild":                        "Fiction",
+		"White Fang":                                  "Fiction",
+		"1984":                                        "Fiction",
+		"To Kill a Mockingbird":                       "Fiction",
+		"The Catcher in the Rye":                      "Fiction",
+
 		// Poetry & Drama
-		"The Iliad":                                 "Poetry",
-		"The Odyssey":                               "Poetry",
-		"The Importance of Being Earnest":           "Drama",
-		
+		"The Iliad":                       "Poetry",
+		"The Odyssey":                     "Poetry",
+		"The Importance of Being Earnest": "Drama",
+
 		// History & Biography
-		"A Christmas Carol":                         "Fiction",
-		"Great Expectations":                        "Fiction",
-		"Oliver Twist":                              "Fiction",
-		
+		"A Christmas Carol":  "Fiction",
+		"Great Expectations": "Fiction",
+		"Oliver Twist":       "Fiction",
+
 		// Philosophy & Political Science
-		"The Prince":                                "Philosophy",
-		"The Republic":                              "Philosophy",
-		"The Communist Manifesto":                   "Political Science",
-		"The Art of War":                            "Philosophy",
-		
+		"The Prince":              "Philosophy",
+		"The Republic":            "Philosophy",
+		"The Communist Manifesto": "Political Science",
+		"The Art of War":          "Philosophy",
+
 		// Non-Fiction
-		"Walden":                                    "Non-Fiction",
-		"Sapiens: A Brief History of Humankind":     "Non-Fiction",
-		"Educated":                                  "Non-Fiction",
-		"Becoming":                                  "Non-Fiction",
-		"Thinking, Fast and Slow":                   "Non-Fiction",
-		"Silent Spring":                             "Non-Fiction",
-		"A Brief History of Time":                   "Science",
-		"Cosmos":                                    "Science",
-		"The Gene: An Intimate History":             "Science",
-		"Astrophysics for People in a Hurry":        "Science",
-		
+		"Walden":                                "Non-Fiction",
+		"Sapiens: A Brief History of Humankind": "Non-Fiction",
+		"Educated":                              "Non-Fiction",
+		"Becoming":                              "Non-Fiction",
+		"Thinking, Fast and Slow":               "Non-Fiction",
+		"Silent Spring":                         "Non-Fiction",
+		"A Brief History of Time":               "Science",
+		"Cosmos":                                "Science",
+		"The Gene: An Intimate History":         "Science",
+		"Astrophysics for People in a Hurry":    "Science",
+
 		// Technology
-		"The Pragmatic Programmer":                  "Technology",
-		"Clean Code":                                "Technology",
-		"Introduction to Algorithms":                "Technology",
-		"Design Patterns":                           "Technology",
-		"The Phoenix Project":                       "Technology",
+		"The Pragmatic Programmer":   "Technology",
+		"Clean Code":                 "Technology",
+		"Introduction to Algorithms": "Technology",
+		"Design Patterns":            "Technology",
+		"The Phoenix Project":        "Technology",
 	}
 
 	log.Println("Updating book categories...")
@@ -188,7 +188,7 @@ func main() {
 	db.Exec("UPDATE products SET category_id = $1 WHERE name LIKE 'Sample Product%'", categories["Fiction"])
 
 	log.Printf("\n✅ Successfully categorized %d books", updateCount)
-	
+
 	// Show summary
 	rows, _ := db.Query(`
 		SELECT c.name, COUNT(p.id) as count 
@@ -198,7 +198,7 @@ func main() {
 		ORDER BY c.name
 	`)
 	defer rows.Close()
-	
+
 	log.Println("\n📊 Category Summary:")
 	for rows.Next() {
 		var catName string
@@ -207,4 +207,3 @@ func main() {
 		log.Printf("  %s: %d products", catName, count)
 	}
 }
-

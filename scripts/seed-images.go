@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -18,6 +19,10 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/gobold"
+	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/math/fixed"
 )
 
 const (
@@ -25,6 +30,10 @@ const (
 )
 
 func main() {
+	// Parse command line flags
+	forceRegenerate := flag.Bool("force", false, "Force regeneration of all images, even if they already exist")
+	flag.Parse()
+
 	// Get environment variables
 	minioEndpoint := getEnv("MINIO_ENDPOINT", "localhost:9000")
 	minioAccessKey := getEnv("MINIO_ACCESS_KEY", "minioadmin")
@@ -33,6 +42,10 @@ func main() {
 	dbPassword := getEnv("DB_PASSWORD", "password")
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbName := getEnv("DB_NAME", "bookstore")
+
+	if *forceRegenerate {
+		log.Println("Force regeneration enabled - will regenerate all images")
+	}
 
 	// Initialize MinIO client
 	client, err := minio.New(minioEndpoint, &minio.Options{
@@ -57,7 +70,7 @@ func main() {
 	log.Println("Connected to database")
 
 	// Get all products
-	rows, err := db.Query("SELECT id, name, sku FROM products ORDER BY id")
+	rows, err := db.Query("SELECT id, name, sku, author FROM products ORDER BY id")
 	if err != nil {
 		log.Fatalf("Failed to query products: %v", err)
 	}
@@ -65,19 +78,40 @@ func main() {
 
 	ctx := context.Background()
 	count := 0
+	skipped := 0
 
 	for rows.Next() {
 		var id int
 		var name string
 		var sku sql.NullString
-		if err := rows.Scan(&id, &name, &sku); err != nil {
+		var author sql.NullString
+		if err := rows.Scan(&id, &name, &sku, &author); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			continue
 		}
 
+		// Check if image already exists in MinIO (unless force flag is set)
+		imageName := fmt.Sprintf("product-%d.png", id)
+		imageNameJpg := fmt.Sprintf("product-%d.jpg", id)
+
+		if !*forceRegenerate {
+			// Check if PNG exists
+			_, err := client.StatObject(ctx, bucketName, imageName, minio.StatObjectOptions{})
+			pngExists := err == nil
+
+			// Check if JPG exists
+			_, err = client.StatObject(ctx, bucketName, imageNameJpg, minio.StatObjectOptions{})
+			jpgExists := err == nil
+
+			if pngExists || jpgExists {
+				skipped++
+				log.Printf("Image already exists for product %d: %s, skipping", id, name)
+				continue
+			}
+		}
+
 		var imageData []byte
 		contentType := "image/png"
-		imageName := fmt.Sprintf("product-%d.png", id)
 
 		// Try to download real cover from Project Gutenberg if it's a book
 		if sku.Valid && strings.HasPrefix(sku.String, "BOOK-") {
@@ -99,7 +133,11 @@ func main() {
 
 		// Fallback to generated image if needed
 		if imageData == nil {
-			imageData = generateProductImage(id, name)
+			authorStr := ""
+			if author.Valid {
+				authorStr = author.String
+			}
+			imageData = generateProductImage(id, name, authorStr)
 		}
 
 		// Upload to MinIO
@@ -126,7 +164,7 @@ func main() {
 		log.Printf("Uploaded and updated image for product %d: %s", id, name)
 	}
 
-	log.Printf("Successfully seeded %d product images", count)
+	log.Printf("Successfully seeded %d product images (%d skipped, already exist)", count, skipped)
 }
 
 func downloadImage(url string) ([]byte, error) {
@@ -147,7 +185,7 @@ func downloadImage(url string) ([]byte, error) {
 }
 
 // generateProductImage creates a simple colored image with product info
-func generateProductImage(id int, name string) []byte {
+func generateProductImage(id int, name string, author string) []byte {
 	// Create 400x600 image (book cover aspect ratio)
 	width, height := 400, 600
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
@@ -174,6 +212,9 @@ func generateProductImage(id int, name string) []byte {
 			}
 		}
 	}
+
+	// Add text (title and author)
+	addText(img, name, author, width, height)
 
 	// Encode to PNG
 	var buf bytes.Buffer
@@ -231,4 +272,125 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// addText renders title and author text on the image
+func addText(img *image.RGBA, title string, author string, width int, height int) {
+	// Parse the TrueType font
+	ttfFont, err := opentype.Parse(gobold.TTF)
+	if err != nil {
+		log.Printf("Error parsing font: %v", err)
+		return
+	}
+
+	// Create font faces for title (larger) and author (smaller)
+	titleFace, err := opentype.NewFace(ttfFont, &opentype.FaceOptions{
+		Size:    32,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Printf("Error creating title font face: %v", err)
+		return
+	}
+	defer titleFace.Close()
+
+	authorFace, err := opentype.NewFace(ttfFont, &opentype.FaceOptions{
+		Size:    24,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Printf("Error creating author font face: %v", err)
+		return
+	}
+	defer authorFace.Close()
+
+	textColor := color.RGBA{255, 255, 255, 255}
+
+	// Wrap title text to fit within the image width
+	maxWidth := width - 80 // Leave margin
+	titleLines := wrapText(title, titleFace, maxWidth)
+
+	// Calculate starting Y position for title (centered vertically)
+	lineHeight := 45 // Approximate line height for size 32 font
+	titleHeight := len(titleLines) * lineHeight
+	startY := (height / 2) - titleHeight/2
+
+	// Draw title
+	d := &font.Drawer{
+		Dst:  img,
+		Src:  image.NewUniform(textColor),
+		Face: titleFace,
+	}
+
+	for i, line := range titleLines {
+		// Measure line width for centering
+		lineWidth := font.MeasureString(titleFace, line).Ceil()
+		x := (width - lineWidth) / 2
+		y := startY + (i * lineHeight)
+
+		d.Dot = fixed.Point26_6{
+			X: fixed.I(x),
+			Y: fixed.I(y),
+		}
+		d.DrawString(line)
+	}
+
+	// Draw author (centered, below title)
+	if author != "" {
+		authorText := "by " + author
+		authorLines := wrapText(authorText, authorFace, maxWidth)
+
+		d.Face = authorFace
+		authorLineHeight := 35 // Approximate line height for size 24 font
+		authorY := startY + titleHeight + 30
+
+		for i, line := range authorLines {
+			lineWidth := font.MeasureString(authorFace, line).Ceil()
+			x := (width - lineWidth) / 2
+			y := authorY + (i * authorLineHeight)
+
+			d.Dot = fixed.Point26_6{
+				X: fixed.I(x),
+				Y: fixed.I(y),
+			}
+			d.DrawString(line)
+		}
+	}
+}
+
+// wrapText breaks text into lines that fit within maxWidth
+func wrapText(text string, face font.Face, maxWidth int) []string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{}
+	}
+
+	var lines []string
+	currentLine := ""
+
+	for _, word := range words {
+		testLine := currentLine
+		if testLine != "" {
+			testLine += " "
+		}
+		testLine += word
+
+		lineWidth := font.MeasureString(face, testLine).Ceil()
+		if lineWidth > maxWidth && currentLine != "" {
+			// Current line is full, start a new line
+			lines = append(lines, currentLine)
+			currentLine = word
+		} else {
+			currentLine = testLine
+		}
+	}
+
+	// Add the last line
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
 }

@@ -169,4 +169,3 @@ func main() {
 		log.Printf("  %s: %d products", catName, count)
 	}
 }
-

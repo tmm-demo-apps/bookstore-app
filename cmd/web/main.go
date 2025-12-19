@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
@@ -48,9 +49,13 @@ func main() {
 			Addr: redisURL,
 		})
 
-		// Test Redis connection
+		// Test Redis connection with retry
 		ctx := context.Background()
-		if err := redisClient.Ping(ctx).Err(); err != nil {
+		err := retryWithBackoff("Redis", 10, 1*time.Second, func() error {
+			return redisClient.Ping(ctx).Err()
+		})
+
+		if err != nil {
 			log.Printf("Warning: Redis connection failed: %v", err)
 			log.Println("Falling back to cookie-based sessions and no caching")
 			store = sessions.NewCookieStore([]byte("something-very-secret"))
@@ -103,7 +108,13 @@ func main() {
 	// Initialize Elasticsearch if URL is provided
 	if esURL != "" {
 		log.Println("Initializing Elasticsearch...")
-		es, err := repository.NewElasticsearchRepository([]string{esURL})
+		var es *repository.ElasticsearchRepository
+		err := retryWithBackoff("Elasticsearch", 10, 2*time.Second, func() error {
+			var initErr error
+			es, initErr = repository.NewElasticsearchRepository([]string{esURL})
+			return initErr
+		})
+
 		if err != nil {
 			log.Printf("Warning: Elasticsearch initialization failed: %v", err)
 			log.Println("Continuing without Elasticsearch (will use SQL search)")
@@ -135,7 +146,12 @@ func main() {
 	var imageHandlers *handlers.ImageHandlers
 	if minioEndpoint != "" {
 		log.Println("Initializing MinIO...")
-		minioStorage, err = storage.NewMinIOStorage(minioEndpoint, minioAccessKey, minioSecretKey, minioUseSSL)
+		err := retryWithBackoff("MinIO", 10, 2*time.Second, func() error {
+			var initErr error
+			minioStorage, initErr = storage.NewMinIOStorage(minioEndpoint, minioAccessKey, minioSecretKey, minioUseSSL)
+			return initErr
+		})
+
 		if err != nil {
 			log.Printf("Warning: MinIO initialization failed: %v", err)
 			log.Println("Continuing without MinIO storage")
@@ -155,6 +171,23 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+
+	// Health check endpoints
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+	mux.HandleFunc("/health/ready", func(w http.ResponseWriter, r *http.Request) {
+		// Check database connectivity
+		if err := db.Ping(); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("Database not ready"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Ready"))
+	})
+
 	mux.HandleFunc("/", h.ListProducts)
 	mux.HandleFunc("/products/{id}", h.ProductDetail)
 	mux.HandleFunc("/cart/add", h.AddToCart)
@@ -197,4 +230,32 @@ func main() {
 	log.Println("Starting server on :8080")
 	err = http.ListenAndServe(":8080", mux)
 	log.Fatal(err)
+}
+
+// retryWithBackoff retries a function with exponential backoff
+func retryWithBackoff(operation string, maxRetries int, initialDelay time.Duration, fn func() error) error {
+	var err error
+	delay := initialDelay
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		err = fn()
+		if err == nil {
+			if attempt > 1 {
+				log.Printf("%s: Connected successfully after %d attempt(s)", operation, attempt)
+			}
+			return nil
+		}
+
+		if attempt < maxRetries {
+			log.Printf("%s: Connection attempt %d/%d failed: %v. Retrying in %v...",
+				operation, attempt, maxRetries, err, delay)
+			time.Sleep(delay)
+			delay *= 2 // Exponential backoff
+			if delay > 30*time.Second {
+				delay = 30 * time.Second // Cap at 30 seconds
+			}
+		}
+	}
+
+	return fmt.Errorf("%s: failed after %d attempts: %w", operation, maxRetries, err)
 }
