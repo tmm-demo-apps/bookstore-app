@@ -8,8 +8,12 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/minio/minio-go/v7"
@@ -53,7 +57,7 @@ func main() {
 	log.Println("Connected to database")
 
 	// Get all products
-	rows, err := db.Query("SELECT id, name FROM products ORDER BY id")
+	rows, err := db.Query("SELECT id, name, sku FROM products ORDER BY id")
 	if err != nil {
 		log.Fatalf("Failed to query products: %v", err)
 	}
@@ -65,18 +69,42 @@ func main() {
 	for rows.Next() {
 		var id int
 		var name string
-		if err := rows.Scan(&id, &name); err != nil {
+		var sku sql.NullString
+		if err := rows.Scan(&id, &name, &sku); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			continue
 		}
 
-		// Generate a simple colored image for each product
+		var imageData []byte
+		contentType := "image/png"
 		imageName := fmt.Sprintf("product-%d.png", id)
-		imageData := generateProductImage(id, name)
+
+		// Try to download real cover from Project Gutenberg if it's a book
+		if sku.Valid && strings.HasPrefix(sku.String, "BOOK-") {
+			gutenbergID := strings.TrimPrefix(sku.String, "BOOK-")
+			// Pattern: https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.cover.medium.jpg
+			gutenbergURL := fmt.Sprintf("https://www.gutenberg.org/cache/epub/%s/pg%s.cover.medium.jpg", gutenbergID, gutenbergID)
+
+			log.Printf("Attempting to download real cover for %s (ID: %s)...", name, gutenbergID)
+			data, err := downloadImage(gutenbergURL)
+			if err == nil {
+				imageData = data
+				contentType = "image/jpeg"
+				imageName = fmt.Sprintf("product-%d.jpg", id)
+				log.Printf("Successfully downloaded real cover for %s", name)
+			} else {
+				log.Printf("Could not download real cover for %s, falling back to generated image: %v", name, err)
+			}
+		}
+
+		// Fallback to generated image if needed
+		if imageData == nil {
+			imageData = generateProductImage(id, name)
+		}
 
 		// Upload to MinIO
 		opts := minio.PutObjectOptions{
-			ContentType:  "image/png",
+			ContentType:  contentType,
 			CacheControl: "public, max-age=31536000, immutable",
 		}
 
@@ -99,6 +127,23 @@ func main() {
 	}
 
 	log.Printf("Successfully seeded %d product images", count)
+}
+
+func downloadImage(url string) ([]byte, error) {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	return io.ReadAll(resp.Body)
 }
 
 // generateProductImage creates a simple colored image with product info
