@@ -99,6 +99,13 @@ func main() {
 	mux.HandleFunc("/logout", h.Logout)
 	mux.HandleFunc("/orders", h.MyOrders)
 
+	// Profile routes
+	mux.HandleFunc("/profile", h.ProfilePage)
+	mux.HandleFunc("/profile/edit", h.ProfileEditPage)
+	mux.HandleFunc("/profile/update", h.UpdateProfile)
+	mux.HandleFunc("/profile/password", h.ProfilePasswordPage)
+	mux.HandleFunc("/profile/password/update", h.UpdatePassword)
+
 	// Review routes
 	mux.HandleFunc("/products/{id}/review", h.SubmitReview)
 	mux.HandleFunc("/reviews/{id}/delete", h.DeleteReview)

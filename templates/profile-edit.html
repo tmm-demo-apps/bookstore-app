@@ -1,0 +1,99 @@
+{{template "base.html" .}}
+
+{{define "title"}}Edit Profile{{end}}
+
+{{define "content"}}
+<style>
+    .profile-edit-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .profile-edit-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .profile-edit-card {
+        padding: 2rem;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--muted-border-color);
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .form-actions button,
+    .form-actions a {
+        flex: 1;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .form-help {
+        font-size: 0.9rem;
+        color: var(--muted-color);
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="profile-edit-container">
+    <div class="profile-edit-header">
+        <h1>✏️ Edit Profile</h1>
+        <p>Update your account information</p>
+    </div>
+    
+    {{if .Error}}
+    <div class="alert alert-error">
+        {{.Error}}
+    </div>
+    {{end}}
+    
+    <div class="profile-edit-card">
+        <form method="POST" action="/profile/update">
+            <div>
+                <label for="full_name">Full Name</label>
+                <input type="text" 
+                       id="full_name" 
+                       name="full_name" 
+                       value="{{if .User.FullName}}{{.User.FullName}}{{end}}"
+                       placeholder="Enter your full name"
+                       maxlength="255">
+                <small class="form-help">This will be displayed on your reviews</small>
+            </div>
+            
+            <div>
+                <label for="email">Email Address *</label>
+                <input type="email" 
+                       id="email" 
+                       name="email" 
+                       value="{{.User.Email}}"
+                       required
+                       placeholder="your@email.com">
+                <small class="form-help">Used for login and notifications</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit">Save Changes</button>
+                <a href="/profile" role="button" class="secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+

@@ -649,6 +649,18 @@ func (r *postgresUserRepo) GetUserByID(id int) (*models.User, error) {
 	return &u, nil
 }
 
+func (r *postgresUserRepo) UpdateUserProfile(userID int, email, fullName string) error {
+	query := `UPDATE users SET email = $1, full_name = $2 WHERE id = $3`
+	_, err := r.DB.Exec(query, email, fullName, userID)
+	return err
+}
+
+func (r *postgresUserRepo) UpdateUserPassword(userID int, passwordHash string) error {
+	query := `UPDATE users SET password_hash = $1 WHERE id = $2`
+	_, err := r.DB.Exec(query, passwordHash, userID)
+	return err
+}
+
 // --- Review Implementation ---
 
 type postgresReviewRepo struct {
@@ -694,11 +706,11 @@ func (r *postgresReviewRepo) GetReviewsByProductID(productID int) ([]models.Revi
 			return nil, err
 		}
 
-		// Use full name if available, otherwise use email
-		if fullName.Valid && fullName.String != "" {
-			rw.UserName = fullName.String
+		// Format display name: "FirstName L." or email fallback
+		if fullName.Valid {
+			rw.UserName = models.FormatDisplayName(fullName.String, email)
 		} else {
-			rw.UserName = email
+			rw.UserName = models.FormatDisplayName("", email)
 		}
 
 		reviews = append(reviews, rw)

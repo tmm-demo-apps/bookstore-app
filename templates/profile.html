@@ -1,0 +1,183 @@
+{{template "base.html" .}}
+
+{{define "title"}}My Profile{{end}}
+
+{{define "content"}}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .profile-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid var(--muted-border-color);
+    }
+    
+    .profile-header h1 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .profile-email {
+        color: var(--muted-color);
+        font-size: 1.1rem;
+    }
+    
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .profile-card {
+        padding: 1.5rem;
+        background: var(--card-sectionning-background-color);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--muted-border-color);
+    }
+    
+    .profile-card h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: var(--primary);
+    }
+    
+    .profile-info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--muted-border-color);
+    }
+    
+    .profile-info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .profile-info-label {
+        font-weight: 500;
+        color: var(--muted-color);
+    }
+    
+    .profile-info-value {
+        text-align: right;
+    }
+    
+    .profile-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .profile-actions a {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--primary);
+        text-align: center;
+        margin: 1rem 0;
+    }
+    
+    .stat-label {
+        text-align: center;
+        color: var(--muted-color);
+        font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .profile-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>👤 My Profile</h1>
+        {{if .User.FullName}}
+        <p class="profile-email">{{.User.Email}}</p>
+        {{end}}
+    </div>
+    
+    {{if .Success}}
+    <div class="alert alert-success">
+        {{.Success}}
+    </div>
+    {{end}}
+    
+    {{if .Error}}
+    <div class="alert alert-error">
+        {{.Error}}
+    </div>
+    {{end}}
+    
+    <div class="profile-grid">
+        <div class="profile-card">
+            <h3>Account Information</h3>
+            <div class="profile-info-item">
+                <span class="profile-info-label">Full Name:</span>
+                <span class="profile-info-value">
+                    {{if .User.FullName}}{{.User.FullName}}{{else}}<em>Not set</em>{{end}}
+                </span>
+            </div>
+            <div class="profile-info-item">
+                <span class="profile-info-label">Email:</span>
+                <span class="profile-info-value">{{.User.Email}}</span>
+            </div>
+            <div class="profile-info-item">
+                <span class="profile-info-label">Role:</span>
+                <span class="profile-info-value">{{.User.Role}}</span>
+            </div>
+            <div class="profile-info-item">
+                <span class="profile-info-label">Member Since:</span>
+                <span class="profile-info-value">{{.User.CreatedAt.Format "Jan 2, 2006"}}</span>
+            </div>
+        </div>
+        
+        <div class="profile-card">
+            <h3>Account Statistics</h3>
+            <div class="stat-number">{{.OrderCount}}</div>
+            <div class="stat-label">Total Orders</div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <a href="/orders" role="button" class="secondary">View Order History</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-actions">
+        <a href="/profile/edit" role="button">Edit Profile</a>
+        <a href="/profile/password" role="button" class="secondary">Change Password</a>
+        <a href="/" role="button" class="contrast">Back to Shop</a>
+    </div>
+</div>
+{{end}}
+

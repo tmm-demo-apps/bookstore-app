@@ -31,6 +31,8 @@ type UserRepository interface {
 	CreateUser(email, passwordHash, fullName string) (int, error)
 	GetUserByEmail(email string) (*models.User, error)
 	GetUserByID(id int) (*models.User, error)
+	UpdateUserProfile(userID int, email, fullName string) error
+	UpdateUserPassword(userID int, passwordHash string) error
 }
 
 type ReviewRepository interface {

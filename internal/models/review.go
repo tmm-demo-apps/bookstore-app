@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Review represents a product review with rating and comment
 type Review struct {
@@ -33,4 +36,30 @@ type RatingBar struct {
 	Stars      int
 	Count      int
 	Percentage float64
+}
+
+// FormatDisplayName formats a user's name for review display
+// If full_name exists: "FirstName L." (first name + last initial)
+// Otherwise: falls back to email
+func FormatDisplayName(fullName, email string) string {
+	if fullName == "" {
+		return email
+	}
+
+	parts := strings.Fields(fullName)
+	if len(parts) == 0 {
+		return email
+	}
+
+	if len(parts) == 1 {
+		// Only first name provided
+		return parts[0]
+	}
+
+	// Multiple parts: use first name + last initial
+	firstName := parts[0]
+	lastName := parts[len(parts)-1]
+	lastInitial := string([]rune(lastName)[0]) // Get first character (handles unicode)
+
+	return firstName + " " + lastInitial + "."
 }
