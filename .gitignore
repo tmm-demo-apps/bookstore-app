@@ -21,6 +21,7 @@ go.work
 
 # Environment variables
 .env
+.harbor-credentials
 
 # Docker
 .dockerignore
@@ -32,6 +33,7 @@ docker-compose.override.yml
 
 # Kubernetes secrets
 kubernetes/secret.yaml
+kubernetes/secrets-generated.txt
 
 # macOS
 .DS_Store

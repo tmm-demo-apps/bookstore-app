@@ -2,8 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: app-deployment
+  namespace: bookstore
+  labels:
+    app: bookstore-app
+    version: v1.0.0
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: bookstore-app
@@ -11,42 +15,40 @@ spec:
     metadata:
       labels:
         app: bookstore-app
+        version: v1.0.0
     spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
       containers:
         - name: bookstore-app
-          image: your-docker-registry/bookstore-app:latest
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
           ports:
             - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_USER
+                  name: app-secrets
+                  key: DB_USER
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_PASSWORD
-            - name: DB_HOST
-              value: "postgres-service"
-            - name: DB_NAME
-              value: "bookstore"
-            - name: ES_URL
-              value: "http://elasticsearch-service:9200"
-            - name: REDIS_URL
-              value: "redis-service:6379"
-            - name: MINIO_ENDPOINT
-              value: "minio-service:9000"
+                  name: app-secrets
+                  key: DB_PASSWORD
             - name: MINIO_ACCESS_KEY
-              value: "minioadmin"
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_ACCESS_KEY
             - name: MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: minio-secret
+                  name: app-secrets
                   key: MINIO_SECRET_KEY
-            - name: MINIO_USE_SSL
-              value: "false"
           livenessProbe:
             httpGet:
               path: /health
@@ -83,6 +85,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: app-service
+  namespace: bookstore
 spec:
   selector:
     app: bookstore-app
@@ -90,4 +93,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8080
-  type: LoadBalancer
+  type: ClusterIP

@@ -47,6 +47,36 @@ A production-ready e-commerce platform built to demonstrate **VMware Cloud Found
 
 ## 🚀 Quick Start
 
+### Two Deployment Options
+
+1. **Local Development** - Docker Compose on your machine (for testing)
+2. **Production Deployment** - Kubernetes cluster (for demos)
+
+### Local Development (Recommended for Testing)
+
+```bash
+# Start all services
+./local-dev.sh start
+
+# Run tests
+./local-dev.sh test
+
+# View logs
+./local-dev.sh logs
+
+# Stop services
+./local-dev.sh stop
+```
+
+**See `docs/DEVELOPMENT-WORKFLOW.md` for complete guide**
+
+### Production Deployment (Kubernetes)
+
+```bash
+# See docs/START-HERE.md for complete deployment guide
+# Or docs/REMOTE-VM-DEPLOYMENT.md for remote VM workflow
+```
+
 ### Prerequisites
 
 - Docker and Docker Compose
@@ -350,6 +380,31 @@ open http://localhost:8080
 
 ### Scripts
 - **[scripts/README.md](scripts/README.md)** - Data seeding scripts documentation
+
+## 📚 Documentation
+
+### Quick Start
+- **[docs/START-HERE.md](docs/START-HERE.md)** - Quick start guide for deployment
+- **[docs/DEVELOPMENT-WORKFLOW.md](docs/DEVELOPMENT-WORKFLOW.md)** - Local development & K8s workflow
+
+### Deployment Guides
+- **[docs/REMOTE-VM-DEPLOYMENT.md](docs/REMOTE-VM-DEPLOYMENT.md)** - Remote VM deployment guide
+- **[docs/DEPLOYMENT-PLAN.md](docs/DEPLOYMENT-PLAN.md)** - Complete Kubernetes deployment plan
+- **[docs/DEPLOYMENT-SUMMARY.md](docs/DEPLOYMENT-SUMMARY.md)** - Deployment summary & checklist
+
+### Harbor Registry
+- **[docs/HARBOR-QUICKSTART.md](docs/HARBOR-QUICKSTART.md)** - Quick Harbor reference
+- **[docs/HARBOR-SETUP.md](docs/HARBOR-SETUP.md)** - Detailed Harbor setup guide
+- **[docs/HARBOR-CHECKLIST.md](docs/HARBOR-CHECKLIST.md)** - Step-by-step Harbor checklist
+
+### Pre-Deployment
+- **[docs/PRE-PUSH-CHECKLIST.md](docs/PRE-PUSH-CHECKLIST.md)** - Verify before pushing to GitHub
+
+### Architecture & Planning
+- **[docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)** - System architecture
+- **[docs/ADMIN-CONSOLE-PLAN.md](docs/ADMIN-CONSOLE-PLAN.md)** - Admin console feature plan
+- **[docs/AI-ASSISTANT-PLAN.md](docs/AI-ASSISTANT-PLAN.md)** - AI assistant feature plan
+- **[docs/GRACEFUL-STARTUP.md](docs/GRACEFUL-STARTUP.md)** - Graceful startup implementation
 
 ## 🎯 Roadmap
 
