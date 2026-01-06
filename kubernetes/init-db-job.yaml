@@ -1,0 +1,120 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-database
+  namespace: bookstore
+spec:
+  ttlSecondsAfterFinished: 600  # Auto-cleanup after 10 minutes
+  template:
+    metadata:
+      labels:
+        app: init-db
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      initContainers:
+        # Wait for PostgreSQL to be ready
+        - name: wait-for-postgres
+          image: postgres:14-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL..."
+              until pg_isready -h postgres-service -U bookstore_user; do
+                echo "PostgreSQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "PostgreSQL is up!"
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+        
+        # Wait for MinIO to be ready
+        - name: wait-for-minio
+          image: alpine:latest
+          command:
+            - sh
+            - -c
+            - |
+              apk add --no-cache curl
+              echo "Waiting for MinIO..."
+              until curl -f http://minio-service:9000/minio/health/live; do
+                echo "MinIO is unavailable - sleeping"
+                sleep 2
+              done
+              echo "MinIO is up!"
+      
+      containers:
+        # Seed books
+        - name: seed-books
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          command: ["/app/scripts/bin/seed-gutenberg-books"]
+          env:
+            - name: DB_HOST
+              value: "postgres-service:5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              value: "bookstore"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+        
+        # Seed images
+        - name: seed-images
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          command: ["/app/scripts/bin/seed-images"]
+          env:
+            - name: DB_HOST
+              value: "postgres-service:5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              value: "bookstore"
+            - name: MINIO_ENDPOINT
+              value: "minio-service:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_SECRET_KEY
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+
