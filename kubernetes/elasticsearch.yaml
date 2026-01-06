@@ -27,11 +27,23 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: elasticsearch
           image: elasticsearch:8.11.0
           ports:
             - containerPort: 9200
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
           env:
             - name: discovery.type
               value: "single-node"

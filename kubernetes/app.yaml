@@ -17,6 +17,12 @@ spec:
         app: bookstore-app
         version: v1.0.0
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       imagePullSecrets:
         - name: harbor-registry-secret
       containers:
@@ -25,6 +31,12 @@ spec:
           ports:
             - containerPort: 8080
               name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
           envFrom:
             - configMapRef:
                 name: app-config
