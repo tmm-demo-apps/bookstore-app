@@ -230,11 +230,10 @@ echo "Pulling and mirroring infrastructure images to Harbor..."
 echo "This avoids Docker Hub rate limits and improves pull performance."
 echo ""
 
-# Define base images
+# Define base images (Elasticsearch is large, mirror it manually if needed)
 BASE_IMAGES=(
     "postgres:14-alpine"
     "redis:7-alpine"
-    "elasticsearch:8.11.0"
     "minio/minio:latest"
 )
 
