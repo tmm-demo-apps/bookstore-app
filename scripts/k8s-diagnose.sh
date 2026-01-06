@@ -30,7 +30,7 @@ kubectl exec -n bookstore statefulset/elasticsearch -- curl -s http://localhost:
 echo ""
 
 echo "📊 MinIO Health:"
-kubectl exec -n bookstore deployment/minio -- sh -c 'wget -q -O- http://localhost:9000/minio/health/live' && echo "✅ MinIO is live"
+kubectl exec -n bookstore deployment/minio -- sh -c 'nc -zv localhost 9000 2>&1 | grep -q succeeded && echo "✅ MinIO is live" || echo "❌ MinIO is not responding"'
 echo ""
 
 echo "📊 Database Counts:"
