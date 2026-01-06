@@ -37,7 +37,10 @@ kubectl exec -it -n bookstore postgres-0 -- psql -U bookstore_user -d bookstore 
 INSERT INTO categories (name, description) VALUES
 ('Philosophy', 'Philosophical works and treatises'),
 ('Science Fiction', 'Science fiction and speculative fiction'),
-('Drama', 'Plays and dramatic works')
+('Drama', 'Plays and dramatic works'),
+('Poetry', 'Poems and poetic works'),
+('History', 'Historical accounts and biographies'),
+('Political Science', 'Political theory and governance')
 ON CONFLICT DO NOTHING;
 "
 
