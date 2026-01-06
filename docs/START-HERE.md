@@ -89,7 +89,6 @@ cd bookstore-app
 ```bash
 # Deploy infrastructure (in order)
 kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f kubernetes/configmap.yaml
 kubectl apply -f kubernetes/postgres.yaml
 kubectl apply -f kubernetes/redis.yaml
 kubectl apply -f kubernetes/elasticsearch.yaml
@@ -99,16 +98,29 @@ kubectl apply -f kubernetes/minio.yaml
 kubectl get pods -n bookstore -w
 # Press Ctrl+C when all are Running
 
-# Deploy application
+# Run database migrations (one-time)
+kubectl cp migrations/ bookstore/postgres-0:/tmp/migrations/
+kubectl exec -it -n bookstore postgres-0 -- sh -c 'cd /tmp/migrations && for file in *.sql; do echo "Running $file..."; psql -U bookstore_user -d bookstore -f "$file"; done'
+
+# Deploy ConfigMap and Application
+kubectl apply -f kubernetes/configmap.yaml
 kubectl apply -f kubernetes/app.yaml
 
-# Verify deployment
-kubectl get pods -n bookstore
-kubectl logs -n bookstore deployment/app-deployment
+# Wait for app to be ready
+kubectl get pods -n bookstore -w
+# Press Ctrl+C when app pods are Running
 
-# Access application
-kubectl port-forward -n bookstore svc/app-service 8080:80
-# Open: http://localhost:8080
+# Seed database with books and images
+./scripts/k8s-seed-data.sh
+
+# Deploy ingress (for external access)
+kubectl apply -f kubernetes/ingress.yaml
+
+# Get the ingress IP
+kubectl get ingress -n bookstore
+
+# Access your application
+# http://bookstore.corp.vmbeans.com (or use the ingress IP)
 ```
 
 ---

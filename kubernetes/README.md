@@ -54,16 +54,24 @@ kubectl apply -f minio.yaml
 kubectl wait --for=condition=Ready pod -l app=minio -n bookstore --timeout=300s
 ```
 
-### Step 3: Application Configuration
+### Step 3: Database Migrations
+
+**IMPORTANT**: Run migrations before deploying the application:
+
+```bash
+# Copy migrations to postgres pod
+kubectl cp migrations/ bookstore/postgres-0:/tmp/migrations/
+
+# Run migrations
+kubectl exec -it -n bookstore postgres-0 -- sh -c 'cd /tmp/migrations && for file in *.sql; do echo "Running $file..."; psql -U bookstore_user -d bookstore -f "$file"; done'
+```
+
+### Step 4: Application Configuration & Deployment
 
 ```bash
 # ConfigMap (environment variables)
 kubectl apply -f configmap.yaml
-```
 
-### Step 4: Application
-
-```bash
 # Deploy application
 kubectl apply -f app.yaml
 
@@ -71,7 +79,21 @@ kubectl apply -f app.yaml
 kubectl rollout status deployment/app-deployment -n bookstore
 ```
 
-### Step 5: Optional Components
+### Step 5: Seed Database
+
+**IMPORTANT**: Seed the database with books and images:
+
+```bash
+# Run seeding script (from project root)
+./scripts/k8s-seed-data.sh
+```
+
+This will:
+- Port-forward to PostgreSQL and MinIO
+- Seed ~50 Project Gutenberg books
+- Download/generate product images
+
+### Step 6: Optional Components
 
 ```bash
 # Ingress (if you have ingress controller)
@@ -86,17 +108,33 @@ kubectl apply -f hpa.yaml
 If you're confident everything is ready:
 
 ```bash
-# Deploy everything except optional components
+# Deploy infrastructure
 kubectl apply -f namespace.yaml
-kubectl apply -f configmap.yaml
 kubectl apply -f postgres.yaml
 kubectl apply -f redis.yaml
 kubectl apply -f elasticsearch.yaml
 kubectl apply -f minio.yaml
+
+# Wait for all infrastructure pods to be ready
+kubectl get pods -n bookstore -w
+# Press Ctrl+C when all are Running
+
+# Run migrations
+kubectl cp migrations/ bookstore/postgres-0:/tmp/migrations/
+kubectl exec -it -n bookstore postgres-0 -- sh -c 'cd /tmp/migrations && for file in *.sql; do echo "Running $file..."; psql -U bookstore_user -d bookstore -f "$file"; done'
+
+# Deploy application
+kubectl apply -f configmap.yaml
 kubectl apply -f app.yaml
 
-# Watch all pods
-kubectl get pods -n bookstore -w
+# Wait for app to be ready
+kubectl rollout status deployment/app-deployment -n bookstore
+
+# Seed database
+./scripts/k8s-seed-data.sh
+
+# Deploy ingress
+kubectl apply -f ingress.yaml
 ```
 
 ## Verification

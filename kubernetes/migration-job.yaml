@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: bookstore
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: postgres:14-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h postgres-service -U bookstore_user; do
+                sleep 2
+              done
+              
+              echo "Running migrations..."
+              for file in /migrations/*.sql; do
+                echo "Applying $(basename $file)..."
+                PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U bookstore_user -d bookstore -f "$file"
+              done
+              
+              echo "Migrations complete!"
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: db-migrations
+

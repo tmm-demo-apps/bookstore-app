@@ -1,0 +1,125 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-seed-books
+  namespace: bookstore
+spec:
+  ttlSecondsAfterFinished: 300  # Auto-cleanup after 5 minutes
+  template:
+    metadata:
+      labels:
+        app: db-seed
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: seed-books
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until nc -z postgres-service 5432; do
+                sleep 2
+              done
+              
+              echo "Seeding Gutenberg books..."
+              go run /app/scripts/seed-gutenberg-books.go
+              
+              echo "Books seeded successfully!"
+          env:
+            - name: DB_HOST
+              value: "postgres-service:5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              value: "bookstore"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-seed-images
+  namespace: bookstore
+spec:
+  ttlSecondsAfterFinished: 300  # Auto-cleanup after 5 minutes
+  template:
+    metadata:
+      labels:
+        app: db-seed
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-registry-secret
+      containers:
+        - name: seed-images
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for services to be ready..."
+              until nc -z postgres-service 5432; do
+                sleep 2
+              done
+              until nc -z minio-service 9000; do
+                sleep 2
+              done
+              
+              echo "Seeding product images..."
+              go run /app/scripts/seed-images.go
+              
+              echo "Images seeded successfully!"
+          env:
+            - name: DB_HOST
+              value: "postgres-service:5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              value: "bookstore"
+            - name: MINIO_ENDPOINT
+              value: "minio-service:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MINIO_SECRET_KEY
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+
