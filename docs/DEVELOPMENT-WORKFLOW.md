@@ -14,7 +14,7 @@ This guide explains how to work with the application in **two environments**:
 ### Prerequisites
 
 - ✅ Docker Desktop installed and **running**
-- ✅ Go 1.24+ installed
+- ✅ Go 1.25+ installed
 - ✅ Git installed
 
 ### Quick Start

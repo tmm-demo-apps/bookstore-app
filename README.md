@@ -1,7 +1,7 @@
 # DemoApp - E-commerce Platform for VCF 9.0 Demonstrations
 
 [![CI](https://github.com/johnnyr0x/bookstore-app/workflows/CI/badge.svg)](https://github.com/johnnyr0x/bookstore-app/actions)
-[![Go Version](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis)](https://redis.io/)
 [![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.11-005571?logo=elasticsearch)](https://www.elastic.co/)
@@ -36,7 +36,7 @@ A production-ready e-commerce platform built to demonstrate **VMware Cloud Found
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Backend** | Go 1.24 | High-performance application server |
+| **Backend** | Go 1.25 | High-performance application server |
 | **Frontend** | HTMX + Pico CSS | Modern, lightweight UI with dynamic updates |
 | **Database** | PostgreSQL 14 | Primary data store with 10 migrations |
 | **Search** | Elasticsearch 8.11 | Full-text search with autocomplete |
