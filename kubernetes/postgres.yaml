@@ -27,6 +27,8 @@ spec:
       labels:
         app: postgres
     spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -35,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: postgres
-          image: postgres:14-alpine
+          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
           ports:
             - containerPort: 5432
           securityContext:

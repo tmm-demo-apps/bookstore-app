@@ -29,6 +29,8 @@ spec:
       labels:
         app: minio
     spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -37,7 +39,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: minio
-          image: minio/minio:latest
+          image: harbor.corp.vmbeans.com/library/minio-minio:latest
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

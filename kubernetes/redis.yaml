@@ -25,6 +25,8 @@ spec:
       labels:
         app: redis
     spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
@@ -33,7 +35,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: harbor.corp.vmbeans.com/library/redis:7-alpine
           ports:
             - containerPort: 6379
           securityContext:

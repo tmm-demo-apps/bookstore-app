@@ -27,6 +27,8 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      imagePullSecrets:
+        - name: harbor-registry-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -35,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: elasticsearch
-          image: elasticsearch:8.11.0
+          image: harbor.corp.vmbeans.com/library/elasticsearch:8.11.0
           ports:
             - containerPort: 9200
           securityContext:
