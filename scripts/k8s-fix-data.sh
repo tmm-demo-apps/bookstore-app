@@ -44,6 +44,26 @@ ON CONFLICT DO NOTHING;
 echo "✅ Categories added"
 echo ""
 
+# Fix cart_items session_id constraint
+echo "🔧 Fixing cart_items session_id constraint..."
+kubectl exec -it -n bookstore postgres-0 -- psql -U bookstore_user -d bookstore -c "
+-- Drop the old constraint
+ALTER TABLE cart_items DROP CONSTRAINT IF EXISTS session_or_user;
+
+-- Make session_id nullable
+ALTER TABLE cart_items ALTER COLUMN session_id DROP NOT NULL;
+
+-- Re-add the constraint
+ALTER TABLE cart_items ADD CONSTRAINT session_or_user CHECK (
+    (user_id IS NOT NULL AND session_id IS NULL) OR
+    (user_id IS NULL AND session_id IS NOT NULL) OR
+    (user_id IS NOT NULL AND session_id IS NOT NULL)
+);
+"
+
+echo "✅ Cart constraint fixed"
+echo ""
+
 # Re-run book seeding to add missing books
 echo "📚 Re-seeding books with all categories available..."
 DB_HOST=localhost:5432 \
