@@ -300,7 +300,7 @@ After successful deployment:
 
 - **Harbor URL**: `harbor.corp.vmbeans.com`
 - **Harbor Project**: `bookstore`
-- **CA Cert**: `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.cert`
+- **CA Cert**: `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt`
 - **K8s Namespace**: `bookstore`
 - **Image**: `harbor.corp.vmbeans.com/bookstore/app:v1.0.0`
 

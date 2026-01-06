@@ -7,7 +7,7 @@ This guide is for deploying the DemoApp bookstore to a Kubernetes cluster access
 **Your Setup**:
 - **Harbor**: `harbor.corp.vmbeans.com`
 - **Project**: `bookstore` (needs to be created)
-- **CA Cert**: `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.cert`
+- **CA Cert**: `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt`
 - **Access**: Via jumpbox VM (devops@cli-vm)
 
 ## Deployment Strategy
@@ -94,7 +94,7 @@ kubectl version --client
 # Expected: Client Version: v1.34.1 ✅
 
 # Check Harbor CA cert
-ls -la /etc/docker/certs.d/harbor.corp.vmbeans.com/ca.cert
+ls -la /etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt
 # Should exist ✅
 
 # Test Harbor connectivity
@@ -321,12 +321,12 @@ curl -k https://harbor.corp.vmbeans.com/api/v2.0/systeminfo
 
 ```bash
 # Verify CA cert exists
-ls -la /etc/docker/certs.d/harbor.corp.vmbeans.com/ca.cert
+ls -la /etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt
 
 # If missing, download it
 sudo mkdir -p /etc/docker/certs.d/harbor.corp.vmbeans.com
 sudo curl -k https://harbor.corp.vmbeans.com/api/v2.0/systeminfo/getcert \
-  -o /etc/docker/certs.d/harbor.corp.vmbeans.com/ca.cert
+  -o /etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt
 
 # Restart Docker
 sudo systemctl restart docker

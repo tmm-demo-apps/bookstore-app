@@ -37,7 +37,7 @@
 - ✅ `.gitignore` updated (excludes secrets and dev_docs)
 - ✅ Harbor URL configured: `harbor.corp.vmbeans.com`
 - ✅ Project name: `bookstore`
-- ✅ CA cert path: `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.cert`
+- ✅ CA cert path: `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt`
 
 ## 🎯 Your Deployment Workflow
 

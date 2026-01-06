@@ -17,7 +17,7 @@ echo ""
 HARBOR_URL="harbor.corp.vmbeans.com"
 HARBOR_PROJECT="bookstore"
 VERSION="${1:-v1.0.0}"
-CA_CERT_PATH="/etc/docker/certs.d/${HARBOR_URL}/ca.cert"
+CA_CERT_PATH="/etc/docker/certs.d/${HARBOR_URL}/ca.crt"
 
 echo "Configuration:"
 echo "  Harbor URL: ${HARBOR_URL}"
