@@ -70,7 +70,7 @@ END \$\$;
 echo ""
 echo "📊 Final categories:"
 kubectl exec -it -n bookstore postgres-0 -- psql -U bookstore_user -d bookstore -c "
-SELECT id, name, COUNT(p.id) as product_count
+SELECT c.id, c.name, COUNT(p.id) as product_count
 FROM categories c
 LEFT JOIN products p ON c.id = p.category_id
 GROUP BY c.id, c.name
