@@ -36,13 +36,27 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Check if binaries exist
+if [ ! -f "scripts/bin/seed-gutenberg-books" ] || [ ! -f "scripts/bin/seed-images" ]; then
+    echo "❌ Seed binaries not found!"
+    echo ""
+    echo "Please build them first by running:"
+    echo "  ./scripts/build-seed-binaries.sh"
+    echo ""
+    echo "Then commit and push:"
+    echo "  git add scripts/bin/"
+    echo "  git commit -m 'feat: add seed binaries'"
+    echo "  git push"
+    exit 1
+fi
+
 # Seed books
 echo "📚 Seeding Gutenberg books..."
 DB_HOST=localhost:5432 \
 DB_USER=bookstore_user \
 DB_PASSWORD="$DB_PASSWORD" \
 DB_NAME=bookstore \
-go run scripts/seed-gutenberg-books.go
+./scripts/bin/seed-gutenberg-books
 
 echo ""
 echo "✅ Books seeded successfully!"
@@ -57,7 +71,7 @@ DB_NAME=bookstore \
 MINIO_ENDPOINT=localhost:9000 \
 MINIO_ACCESS_KEY="$MINIO_ACCESS_KEY" \
 MINIO_SECRET_KEY="$MINIO_SECRET_KEY" \
-go run scripts/seed-images.go
+./scripts/bin/seed-images
 
 echo ""
 echo "✅ Images seeded successfully!"
