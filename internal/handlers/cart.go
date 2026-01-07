@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"DemoApp/internal/models"
-	"github.com/google/uuid"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 type CartViewData struct {

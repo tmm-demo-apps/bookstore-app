@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"DemoApp/internal/models"
-	"github.com/google/uuid"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type CheckoutViewData struct {

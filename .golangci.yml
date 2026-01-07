@@ -24,7 +24,8 @@ linters-settings:
   govet:
     enable-all: true
     disable:
-      - shadow      # Too strict for this codebase
+      - shadow          # Too strict for this codebase
+      - fieldalignment  # Struct field alignment optimization (minor performance gain, reduces readability)
   
   staticcheck:
     checks: ["all"]

@@ -76,7 +76,7 @@ spec:
         name: postgres-storage
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: vsan-default-storage-policy
+        storageClassName: vsan-default-storage-policy-latebinding
         resources:
           requests:
             storage: 10Gi
