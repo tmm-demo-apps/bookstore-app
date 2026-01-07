@@ -108,6 +108,16 @@ else
 fi
 echo ""
 
+# Step 3.5: Ask about base image mirroring (BEFORE building)
+echo "Step 3.5: Base Image Mirroring (Optional)"
+echo "------------------------------------------"
+echo "Do you want to mirror base images to Harbor?"
+echo "This avoids Docker Hub rate limits but is only needed once."
+echo ""
+read -p "Mirror base images? (y/n) [default: n]: " MIRROR_IMAGES
+MIRROR_IMAGES=${MIRROR_IMAGES:-n}
+echo ""
+
 # Step 4: Build image
 echo "Step 4: Building Docker Image"
 echo "------------------------------"
@@ -223,16 +233,10 @@ echo "📝 Secrets saved to: ${SECRETS_FILE}"
 echo "⚠️  Keep this file secure and DO NOT commit to git!"
 echo ""
 
-# Step 8: Mirror base images to Harbor (OPTIONAL - skip if already done)
-echo "Step 8: Mirroring Base Images to Harbor (Optional)"
-echo "---------------------------------------------------"
-echo "This step mirrors infrastructure images to Harbor to avoid Docker Hub rate limits."
-echo "Skip this if you've already mirrored these images before."
-echo ""
-read -p "Mirror base images? (y/n) [default: n]: " MIRROR_IMAGES
-MIRROR_IMAGES=${MIRROR_IMAGES:-n}
-
+# Step 8: Mirror base images to Harbor (if requested earlier)
 if [ "$MIRROR_IMAGES" = "y" ]; then
+    echo "Step 8: Mirroring Base Images to Harbor"
+    echo "----------------------------------------"
     echo "Pulling and mirroring infrastructure images to Harbor..."
     echo ""
     
@@ -279,10 +283,13 @@ if [ "$MIRROR_IMAGES" = "y" ]; then
     done
     
     echo "✅ Base images mirrored to Harbor"
+    echo ""
 else
-    echo "⏭️  Skipping base image mirroring"
+    echo "Step 8: Skipping Base Image Mirroring"
+    echo "--------------------------------------"
+    echo "⏭️  Base image mirroring skipped (not needed for app updates)"
+    echo ""
 fi
-echo ""
 
 # Step 9: Verification
 echo "Step 9: Verification"
