@@ -300,15 +300,15 @@ ON CONFLICT (sku) DO UPDATE SET
 
 func getCategoryDescription(name string) string {
 	descriptions := map[string]string{
-		"Fiction":          "Novels and stories",
-		"Non-Fiction":      "Factual books and biographies",
-		"Science":          "Physics, Chemistry, Biology",
-		"Technology":       "Computers and Programming",
-		"Philosophy":       "Philosophical works and treatises",
-		"Science Fiction":  "Science fiction and speculative fiction",
-		"Drama":            "Plays and dramatic works",
-		"Poetry":           "Poems and poetic works",
-		"History":          "Historical accounts and biographies",
+		"Fiction":           "Novels and stories",
+		"Non-Fiction":       "Factual books and biographies",
+		"Science":           "Physics, Chemistry, Biology",
+		"Technology":        "Computers and Programming",
+		"Philosophy":        "Philosophical works and treatises",
+		"Science Fiction":   "Science fiction and speculative fiction",
+		"Drama":             "Plays and dramatic works",
+		"Poetry":            "Poems and poetic works",
+		"History":           "Historical accounts and biographies",
 		"Political Science": "Political theory and governance",
 	}
 	if desc, ok := descriptions[name]; ok {

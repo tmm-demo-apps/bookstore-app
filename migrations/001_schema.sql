@@ -50,6 +50,15 @@ CREATE TABLE cart_items (
     )
 );
 
+-- Indexes to prevent duplicate cart items
+CREATE UNIQUE INDEX idx_cart_items_session_product 
+    ON cart_items(session_id, product_id) 
+    WHERE session_id IS NOT NULL AND user_id IS NULL;
+
+CREATE UNIQUE INDEX idx_cart_items_user_product 
+    ON cart_items(user_id, product_id) 
+    WHERE user_id IS NOT NULL;
+
 -- Orders (complete schema)
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
