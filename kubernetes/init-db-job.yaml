@@ -16,7 +16,7 @@ spec:
       initContainers:
         # Wait for PostgreSQL to be ready
         - name: wait-for-postgres
-          image: postgres:14-alpine
+          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
           command:
             - sh
             - -c
@@ -33,30 +33,37 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: DB_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
         
-        # Wait for MinIO to be ready
-        - name: wait-for-minio
-          image: alpine:latest
+        # Run migrations using psql from the app image
+        - name: run-migrations
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
           command:
             - sh
             - -c
             - |
-              apk add --no-cache curl
-              echo "Waiting for MinIO..."
-              until curl -f http://minio-service:9000/minio/health/live; do
-                echo "MinIO is unavailable - sleeping"
-                sleep 2
-              done
-              echo "MinIO is up!"
-      
-      containers:
-        # Seed books
-        - name: seed-books
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
-          command: ["/app/scripts/bin/seed-gutenberg-books"]
+              echo "Running migrations..."
+              
+              # Install psql client (alpine-based image)
+              apk add --no-cache postgresql-client
+              
+              # Run schema migration
+              echo "Applying 001_schema.sql..."
+              PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U $DB_USER -d $DB_NAME -f /app/migrations/001_schema.sql || echo "Schema may already exist"
+              
+              # Run seed data migration
+              echo "Applying 002_seed_books.sql..."
+              PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U $DB_USER -d $DB_NAME -f /app/migrations/002_seed_books.sql
+              
+              echo "Migrations complete!"
           env:
-            - name: DB_HOST
-              value: "postgres-service:5432"
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -78,7 +85,31 @@ spec:
             seccompProfile:
               type: RuntimeDefault
         
-        # Seed images
+        # Wait for MinIO to be ready
+        - name: wait-for-minio
+          image: harbor.corp.vmbeans.com/library/alpine:latest
+          command:
+            - sh
+            - -c
+            - |
+              apk add --no-cache curl
+              echo "Waiting for MinIO..."
+              until curl -f http://minio-service:9000/minio/health/live; do
+                echo "MinIO is unavailable - sleeping"
+                sleep 2
+              done
+              echo "MinIO is up!"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+      
+      containers:
+        # Seed images from Gutenberg
         - name: seed-images
           image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
           command: ["/app/scripts/bin/seed-images"]
@@ -117,4 +148,3 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-

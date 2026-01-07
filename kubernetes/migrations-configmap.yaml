@@ -1,15 +1,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: db-migrations
+  name: migrations-configmap
   namespace: bookstore
 data:
-  # Note: This ConfigMap should be generated from the migrations/ directory
-  # Run this command to create it:
-  # kubectl create configmap db-migrations --from-file=migrations/ -n bookstore --dry-run=client -o yaml > kubernetes/migrations-configmap.yaml
-  # 
-  # For now, we'll apply migrations manually. A better approach is to:
-  # 1. Build migrations into the app image
-  # 2. Use an init container to run migrations
-  # 3. Or use a proper migration tool like golang-migrate
-
+  # This ConfigMap is auto-generated. Do not edit manually.
+  # To regenerate, run from the project root:
+  # kubectl create configmap migrations-configmap --from-file=migrations/001_schema.sql --from-file=migrations/002_seed_books.sql -n bookstore --dry-run=client -o yaml > kubernetes/migrations-configmap.yaml
+  #
+  # Note: The migrations are also included in the Docker image at /app/migrations/
+  # This ConfigMap provides an alternative way to mount migrations for init jobs.

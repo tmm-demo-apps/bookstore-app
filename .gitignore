@@ -30,6 +30,7 @@ docker-compose.override.yml
 # IDE specific files
 .idea/
 .vscode/
+.cursorrules
 
 # Kubernetes secrets
 kubernetes/secret.yaml
@@ -46,3 +47,7 @@ tests/README.md
 
 # Personal development documentation (not for GitHub)
 dev_docs/
+
+# Archived migrations (kept locally for reference during validation)
+# Delete this line and migrations/archive/ folder after K8s validation
+migrations/archive/

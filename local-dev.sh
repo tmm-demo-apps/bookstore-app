@@ -31,6 +31,8 @@ Commands:
     shell       Open shell in app container
     db          Open PostgreSQL shell
     redis       Open Redis CLI
+    migrate     Run migrations manually
+    seed        Seed images from Gutenberg
     help        Show this help message
 
 Examples:
@@ -50,12 +52,42 @@ function check_docker() {
     fi
 }
 
+function wait_for_db() {
+    echo "Waiting for PostgreSQL to be ready..."
+    for i in {1..30}; do
+        if docker compose exec -T db pg_isready -U user -d bookstore > /dev/null 2>&1; then
+            echo -e "${GREEN}PostgreSQL is ready${NC}"
+            return 0
+        fi
+        sleep 1
+    done
+    echo -e "${RED}PostgreSQL did not start in time${NC}"
+    return 1
+}
+
 function start_services() {
     echo -e "${YELLOW}Starting local development environment...${NC}"
     check_docker
     docker compose up --build -d
+    
     echo ""
     echo -e "${GREEN}Services started!${NC}"
+    echo ""
+    echo "Waiting for services to initialize..."
+    
+    # Wait for app to be ready
+    for i in {1..60}; do
+        if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+            echo -e "${GREEN}Application is ready!${NC}"
+            break
+        fi
+        if [ $i -eq 60 ]; then
+            echo -e "${YELLOW}Application is still starting...${NC}"
+            echo "Check logs: ./local-dev.sh logs app"
+        fi
+        sleep 2
+    done
+    
     echo ""
     echo "Application: http://localhost:8080"
     echo "MinIO Console: http://localhost:9001 (minioadmin/minioadmin)"
@@ -160,6 +192,31 @@ function open_redis() {
     docker compose exec redis redis-cli
 }
 
+function run_migrations() {
+    check_docker
+    echo -e "${YELLOW}Running migrations...${NC}"
+    
+    wait_for_db || exit 1
+    
+    echo "Applying 001_schema.sql..."
+    docker compose exec -T db psql -U user -d bookstore -f /migrations/001_schema.sql 2>/dev/null || echo "Schema may already exist"
+    
+    echo "Applying 002_seed_books.sql..."
+    docker compose exec -T db psql -U user -d bookstore -f /migrations/002_seed_books.sql
+    
+    echo -e "${GREEN}Migrations complete!${NC}"
+}
+
+function seed_images() {
+    check_docker
+    echo -e "${YELLOW}Seeding images from Gutenberg...${NC}"
+    
+    # Run seed-images container
+    docker compose run --rm seed-images
+    
+    echo -e "${GREEN}Image seeding complete!${NC}"
+}
+
 # Main command handler
 case "${1:-help}" in
     start)
@@ -195,6 +252,12 @@ case "${1:-help}" in
     redis)
         open_redis
         ;;
+    migrate)
+        run_migrations
+        ;;
+    seed)
+        seed_images
+        ;;
     help|--help|-h)
         show_help
         ;;
@@ -205,4 +268,3 @@ case "${1:-help}" in
         exit 1
         ;;
 esac
-

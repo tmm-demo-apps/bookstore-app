@@ -17,10 +17,14 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_USE_SSL=false
     depends_on:
-      - db
-      - elasticsearch
-      - redis
-      - minio
+      db-init:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   db:
     image: postgres:14-alpine
@@ -32,6 +36,50 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d bookstore"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Init container to run migrations
+  db-init:
+    image: postgres:14-alpine
+    environment:
+      - PGPASSWORD=password
+    volumes:
+      - ./migrations:/migrations:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Running migrations...' &&
+        psql -h db -U user -d bookstore -f /migrations/001_schema.sql &&
+        psql -h db -U user -d bookstore -f /migrations/002_seed_books.sql &&
+        echo 'Migrations complete!'
+      "
+    restart: "no"
+
+  # Seed images from Gutenberg (runs after db-init)
+  seed-images:
+    build: .
+    environment:
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_HOST=db
+      - DB_NAME=bookstore
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_USE_SSL=false
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    command: ["/app/scripts/bin/seed-images"]
+    restart: "no"
 
   elasticsearch:
     image: elasticsearch:8.11.0
@@ -45,9 +93,9 @@ services:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -57,7 +105,7 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 3s
       retries: 5
     command: redis-server --appendonly yes
@@ -75,9 +123,9 @@ services:
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
 volumes:
   postgres_data:

@@ -105,11 +105,18 @@
         transition: all 0.3s ease;
         max-height: calc(100vh - 7rem);
         overflow-y: auto;
+        z-index: 10;
+        background: var(--background-color);
     }
     
     .category-sidebar.collapsed {
         flex: 0 0 40px;
         overflow: hidden;
+    }
+    
+    /* Prevent sidebar from overlapping product content */
+    .products-layout {
+        overflow: visible;
     }
     
     .category-header {
@@ -197,6 +204,19 @@
     .products-content {
         flex: 1;
         min-width: 0;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Ensure product cards and their controls stay above sidebar */
+    .product-card {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .product-actions {
+        position: relative;
+        z-index: 3;
     }
     
     .view-toggle {
@@ -216,10 +236,10 @@
     .toggle-btn {
         padding: 0.5rem 1rem;
         border: none;
-        background: transparent;
+        background: var(--card-background-color);
         cursor: pointer;
         color: var(--color);
-        transition: background 0.2s;
+        transition: background 0.2s, color 0.2s;
     }
     
     .toggle-btn.active {
@@ -229,6 +249,12 @@
     
     .toggle-btn:hover:not(.active) {
         background: var(--card-sectionning-background-color);
+        color: var(--color);
+    }
+    
+    /* Ensure text visibility in light mode */
+    [data-theme="light"] .toggle-btn:not(.active) {
+        color: #333;
     }
     
     .product-grid {

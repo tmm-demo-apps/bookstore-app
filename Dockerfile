@@ -26,5 +26,9 @@ RUN mkdir -p /app/scripts/bin
 COPY --from=builder /app/seed-gutenberg-books /app/scripts/bin/
 COPY --from=builder /app/seed-images /app/scripts/bin/
 
+# Copy migration files (for init jobs)
+RUN mkdir -p /app/migrations
+COPY migrations/*.sql /app/migrations/
+
 EXPOSE 8080
 CMD ["/app/main"]

@@ -73,17 +73,42 @@ go run scripts/seed-images.go -force
 2025/12/19 14:43:05 Successfully seeded 0 product images (112 skipped, already exist)
 ```
 
-## Other Scripts
+## seed-gutenberg-books.go
 
-### seed-gutenberg-books.go
+The **source of truth** for all book data (150 books). Seeds the database with books from Project Gutenberg's catalog including:
+- Title, author, description
+- Category assignment
+- Stock quantity (varied 0-100, with specific demo values)
+- Popularity score (Gutenberg download counts for sorting)
 
-Seeds the database with books from Project Gutenberg's catalog.
+### Usage
 
-### categorize-books.go
+**Seed database directly:**
+```bash
+go run scripts/seed-gutenberg-books.go
+```
 
-Categorizes existing books in the database.
+**Generate SQL migration file:**
+```bash
+go run scripts/seed-gutenberg-books.go --generate-sql
+# Creates migrations/002_seed_books.sql
+```
 
-### add-more-books.go
+## Deployment Scripts
 
-Adds additional books to the database.
+| Script | Purpose |
+|--------|---------|
+| `deploy-complete.sh` | Full K8s deployment orchestration (calls harbor-remote-setup.sh) |
+| `harbor-remote-setup.sh` | Build, push to Harbor, create K8s secrets, mirror base images |
+| `k8s-diagnose.sh` | Diagnose K8s deployment issues |
+| `k8s-reindex-elasticsearch.sh` | Reindex Elasticsearch after data changes |
+| `install-go-remote.sh` | Install Go on remote VM |
+
+## bin/ Directory
+
+Contains pre-built Linux binaries for K8s deployment:
+- `seed-gutenberg-books` - Book seeding binary
+- `seed-images` - Image seeding binary
+
+These are built automatically by the Dockerfile during image creation.
 

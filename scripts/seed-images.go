@@ -61,6 +61,37 @@ func main() {
 
 	log.Println("Connected to MinIO")
 
+	// Create bucket if it doesn't exist
+	ctx := context.Background()
+	exists, err := client.BucketExists(ctx, bucketName)
+	if err != nil {
+		log.Fatalf("Failed to check bucket existence: %v", err)
+	}
+	if !exists {
+		err = client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Fatalf("Failed to create bucket: %v", err)
+		}
+		log.Printf("Created bucket: %s", bucketName)
+
+		// Set bucket policy to allow public read access
+		policy := `{
+			"Version": "2012-10-17",
+			"Statement": [{
+				"Effect": "Allow",
+				"Principal": {"AWS": ["*"]},
+				"Action": ["s3:GetObject"],
+				"Resource": ["arn:aws:s3:::` + bucketName + `/*"]
+			}]
+		}`
+		err = client.SetBucketPolicy(ctx, bucketName, policy)
+		if err != nil {
+			log.Printf("Warning: Could not set bucket policy: %v", err)
+		}
+	} else {
+		log.Printf("Bucket already exists: %s", bucketName)
+	}
+
 	// Connect to database
 	dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbName)
@@ -72,14 +103,32 @@ func main() {
 
 	log.Println("Connected to database")
 
-	// Get all products
-	rows, err := db.Query("SELECT id, name, sku, author FROM products ORDER BY id")
+	// Check if products already have images (idempotency check)
+	var productCount, imageCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM products").Scan(&productCount)
+	if err != nil {
+		log.Fatalf("Failed to count products: %v", err)
+	}
+	err = db.QueryRow("SELECT COUNT(*) FROM products WHERE image_url IS NOT NULL AND image_url != ''").Scan(&imageCount)
+	if err != nil {
+		log.Fatalf("Failed to count products with images: %v", err)
+	}
+
+	log.Printf("Found %d products, %d already have images", productCount, imageCount)
+
+	if !*forceRegenerate && imageCount == productCount && productCount > 0 {
+		log.Println("All products already have images. Use --force to regenerate.")
+		return
+	}
+
+	// Get products that need images (either no image_url or force regenerate)
+	query := "SELECT id, name, sku, author, image_url FROM products ORDER BY id"
+	rows, err := db.Query(query)
 	if err != nil {
 		log.Fatalf("Failed to query products: %v", err)
 	}
 	defer rows.Close()
 
-	ctx := context.Background()
 	count := 0
 	skipped := 0
 
@@ -88,28 +137,33 @@ func main() {
 		var name string
 		var sku sql.NullString
 		var author sql.NullString
-		if err := rows.Scan(&id, &name, &sku, &author); err != nil {
+		var imageURL sql.NullString
+		if err := rows.Scan(&id, &name, &sku, &author, &imageURL); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			continue
 		}
 
-		// Check if image already exists in MinIO (unless force flag is set)
+		// Check if image already exists in database and MinIO (unless force flag is set)
 		imageName := fmt.Sprintf("product-%d.png", id)
 		imageNameJpg := fmt.Sprintf("product-%d.jpg", id)
 
 		if !*forceRegenerate {
-			// Check if PNG exists
-			_, err := client.StatObject(ctx, bucketName, imageName, minio.StatObjectOptions{})
-			pngExists := err == nil
+			// First check: Does the database already have an image_url?
+			if imageURL.Valid && imageURL.String != "" {
+				// Second check: Does the image exist in MinIO?
+				_, err := client.StatObject(ctx, bucketName, imageName, minio.StatObjectOptions{})
+				pngExists := err == nil
 
-			// Check if JPG exists
-			_, err = client.StatObject(ctx, bucketName, imageNameJpg, minio.StatObjectOptions{})
-			jpgExists := err == nil
+				_, err = client.StatObject(ctx, bucketName, imageNameJpg, minio.StatObjectOptions{})
+				jpgExists := err == nil
 
-			if pngExists || jpgExists {
-				skipped++
-				log.Printf("Image already exists for product %d: %s, skipping", id, name)
-				continue
+				if pngExists || jpgExists {
+					skipped++
+					log.Printf("Image already exists for product %d: %s, skipping", id, name)
+					continue
+				}
+				// Image URL exists but file doesn't - need to re-download
+				log.Printf("Image URL exists but file missing for product %d: %s, re-downloading", id, name)
 			}
 		}
 
@@ -156,8 +210,8 @@ func main() {
 		}
 
 		// Update product image URL in database
-		imageURL := fmt.Sprintf("/images/%s", imageName)
-		_, err = db.Exec("UPDATE products SET image_url = $1 WHERE id = $2", imageURL, id)
+		newImageURL := fmt.Sprintf("/images/%s", imageName)
+		_, err = db.Exec("UPDATE products SET image_url = $1 WHERE id = $2", newImageURL, id)
 		if err != nil {
 			log.Printf("Error updating product %d image URL: %v", id, err)
 			continue

@@ -60,7 +60,7 @@ type postgresProductRepo struct {
 
 func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 	// Updated query for new schema
-	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	          FROM products WHERE status = 'active' ORDER BY name`
 	rows, err := r.DB.Query(query)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 	var products []models.Product
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author, &p.PopularityScore); err != nil {
 			// Handle case where columns might be NULL if left joined (though here we query products directly)
 			// The pointer types in struct handle NULLs automatically via Scan if valid.
 			return nil, err
@@ -101,7 +101,7 @@ func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models
 	offset := (page - 1) * pageSize
 
 	// Get paginated products
-	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	          FROM products WHERE status = 'active' ORDER BY name LIMIT $1 OFFSET $2`
 	rows, err := r.DB.Query(query, pageSize, offset)
 	if err != nil {
@@ -112,7 +112,7 @@ func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models
 	var products []models.Product
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author, &p.PopularityScore); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -134,9 +134,9 @@ func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models
 
 func (r *postgresProductRepo) GetProductByID(id int) (*models.Product, error) {
 	var p models.Product
-	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	          FROM products WHERE id = $1`
-	err := r.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author)
+	err := r.DB.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author, &p.PopularityScore)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 	}
 
 	// Fallback to SQL-based search (original implementation)
-	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	      FROM products WHERE status = 'active'`
 	var args []interface{}
 	argID := 1
@@ -195,7 +195,7 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 	var products []models.Product
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author, &p.PopularityScore); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -239,7 +239,7 @@ func (r *postgresProductRepo) SearchProductsPaginated(query string, categoryID, 
 	offset := (page - 1) * pageSize
 
 	// Build products query
-	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	      FROM products WHERE status = 'active'`
 	var args []interface{}
 	argID = 1
@@ -268,7 +268,7 @@ func (r *postgresProductRepo) SearchProductsPaginated(query string, categoryID, 
 	var products []models.Product
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author, &p.PopularityScore); err != nil {
 			return nil, err
 		}
 		products = append(products, p)
@@ -298,7 +298,7 @@ func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, err
 	productMap := make(map[int]models.Product)
 
 	// Build query with IN clause
-	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author 
+	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	      FROM products WHERE id = ANY($1) AND status = 'active'`
 
 	rows, err := r.DB.Query(q, pq.Array(ids))
@@ -310,7 +310,7 @@ func (r *postgresProductRepo) getProductsByIDs(ids []int) ([]models.Product, err
 	// Fetch all products into the map
 	for rows.Next() {
 		var p models.Product
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.SKU, &p.StockQuantity, &p.ImageURL, &p.CategoryID, &p.Status, &p.Author, &p.PopularityScore); err != nil {
 			return nil, err
 		}
 		productMap[p.ID] = p

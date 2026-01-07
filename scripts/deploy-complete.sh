@@ -36,20 +36,10 @@ kubectl wait --for=condition=Ready pod -l app=minio -n bookstore --timeout=300s
 
 echo "✅ Infrastructure ready!"
 
-# Step 3: Run migrations
+# Step 3: Deploy application
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 3: Running Database Migrations"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-kubectl cp migrations/ bookstore/postgres-0:/tmp/migrations/
-kubectl exec -n bookstore postgres-0 -- sh -c 'cd /tmp/migrations && for file in *.sql; do echo "Running $file..."; psql -U bookstore_user -d bookstore -f "$file"; done'
-
-echo "✅ Migrations complete!"
-
-# Step 4: Deploy application
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 4: Deploying Application"
+echo "Step 3: Deploying Application"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 kubectl apply -f kubernetes/configmap.yaml
 kubectl apply -f kubernetes/app.yaml
@@ -60,25 +50,29 @@ kubectl rollout status deployment/app-deployment -n bookstore
 
 echo "✅ Application deployed!"
 
-# Step 5: Seed database
+# Step 4: Run Database Init Job (migrations + image seeding)
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 5: Seeding Database"
+echo "Step 4: Database Initialization"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Run init job to seed data
+# Delete previous job if exists (jobs are immutable)
+kubectl delete job init-database -n bookstore --ignore-not-found=true
+
+# Run init job (migrations + seed images from Gutenberg)
 kubectl apply -f kubernetes/init-db-job.yaml
 
 echo ""
-echo "⏳ Waiting for database seeding to complete..."
+echo "⏳ Waiting for database initialization to complete..."
+echo "   (Runs migrations and downloads 150 book covers from Gutenberg)"
 kubectl wait --for=condition=complete job/init-database -n bookstore --timeout=600s
 
-echo "✅ Database seeded!"
+echo "✅ Database initialized!"
 
-# Step 6: Deploy ingress
+# Step 5: Deploy ingress
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 6: Deploying Ingress"
+echo "Step 5: Deploying Ingress"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 kubectl apply -f kubernetes/ingress.yaml
 

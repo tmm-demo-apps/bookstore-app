@@ -1,5 +1,38 @@
 # Cursor AI Rules for DemoApp Project
 
+## Go Version
+- **NEVER** downgrade the Go version in go.mod or Dockerfile
+- Current Go version: 1.25.5 (check https://go.dev/dl/ for latest stable)
+- Dockerfile should use `golang:1.25-alpine` for the builder stage
+- Do not change Go versions without explicit user request
+
+## Database Migrations
+
+### Migration File Structure
+- All schema changes MUST go through SQL migration files in `migrations/`
+- Schema is defined in `migrations/001_schema.sql` - complete table definitions
+- Seed data is defined in `migrations/002_seed_books.sql` - generated from Go script
+- Never create additional migration files for schema changes - modify 001_schema.sql instead
+- Archive old migrations to `migrations/archive/` before consolidating
+
+### Migration Guidelines
+1. **Idempotency**: All INSERT statements must use `ON CONFLICT` clauses
+2. **No Placeholder URLs**: Never use `placeholder.com`, `via.placeholder.com`, or similar dummy URLs
+3. **Single Source of Truth**: Book data comes from `scripts/seed-gutenberg-books.go`
+4. **Generate, Don't Edit**: Run `go run scripts/seed-gutenberg-books.go --generate-sql` to regenerate `002_seed_books.sql`
+5. **Test Fresh**: Always test migrations against a fresh database before committing
+
+### Adding New Books
+1. Add book data to `scripts/seed-gutenberg-books.go`
+2. Run `go run scripts/seed-gutenberg-books.go --generate-sql` to regenerate SQL
+3. Rebuild binary: `CGO_ENABLED=0 GOOS=linux go build -o scripts/bin/seed-gutenberg-books ./scripts/seed-gutenberg-books.go`
+4. Test locally with `./local-dev.sh`
+
+### Stock Quantity Rules
+- Book #1 (first in list): `stock_quantity = 3` (Low Stock demo)
+- Book #5 (fifth in list): `stock_quantity = 0` (Out of Stock demo)
+- All other books: Varied between 10-100
+
 ## Personal Development Documentation
 - **NEVER** commit or push files in the `dev_docs/` directory
 - These are personal development notes and should remain local only
@@ -13,9 +46,10 @@
 - Personal documentation updates should NOT be committed to Git
 
 ## Testing Requirements
-- All 16 smoke tests must pass before committing
+- All smoke tests must pass before committing
 - Run `docker compose down && docker compose up --build -d` to test changes
 - Check both authenticated and anonymous user flows
+- Verify stock quantity displays correctly (Low Stock, Out of Stock)
 
 ## Code Quality
 - Follow Go best practices and idioms
@@ -23,3 +57,14 @@
 - Use the Repository Pattern for all database access
 - Keep handlers thin, business logic in repositories
 
+## Image Seeding
+- Images are fetched at runtime from Project Gutenberg
+- `scripts/seed-images.go` handles downloading covers and uploading to MinIO
+- SKU format: `BOOK-{GutenbergID}` (e.g., `BOOK-1342` for Pride and Prejudice)
+- Image URL pattern: `https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.cover.medium.jpg`
+
+## Kubernetes Deployment
+- Init job runs migrations automatically - no manual scripts needed
+- Migrations are included in the Docker image at `/app/migrations/`
+- Seed images binary fetches covers from Gutenberg at runtime
+- Use `./scripts/deploy-complete.sh` for full deployment

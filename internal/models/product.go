@@ -1,16 +1,17 @@
 package models
 
 type Product struct {
-	ID            int
-	Name          string
-	Description   string
-	Price         float64
-	SKU           *string // Nullable
-	StockQuantity int
-	ImageURL      *string // Nullable
-	CategoryID    *int    // Nullable
-	Status        string
-	Author        *string // Nullable - for book products
+	ID              int
+	Name            string
+	Description     string
+	Price           float64
+	SKU             *string // Nullable
+	StockQuantity   int
+	ImageURL        *string // Nullable
+	CategoryID      *int    // Nullable
+	Status          string
+	Author          *string // Nullable - for book products
+	PopularityScore int     // Gutenberg download count, used for sorting
 }
 
 type Category struct {
