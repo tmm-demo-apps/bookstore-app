@@ -68,7 +68,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: vsan-default-storage-policy-latebinding
+  storageClassName: vsan-default-storage-policy
   resources:
     requests:
       storage: 5Gi
