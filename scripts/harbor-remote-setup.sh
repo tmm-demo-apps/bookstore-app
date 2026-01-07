@@ -223,56 +223,65 @@ echo "📝 Secrets saved to: ${SECRETS_FILE}"
 echo "⚠️  Keep this file secure and DO NOT commit to git!"
 echo ""
 
-# Step 8: Mirror base images to Harbor
-echo "Step 8: Mirroring Base Images to Harbor"
-echo "----------------------------------------"
-echo "Pulling and mirroring infrastructure images to Harbor..."
-echo "This avoids Docker Hub rate limits and improves pull performance."
+# Step 8: Mirror base images to Harbor (OPTIONAL - skip if already done)
+echo "Step 8: Mirroring Base Images to Harbor (Optional)"
+echo "---------------------------------------------------"
+echo "This step mirrors infrastructure images to Harbor to avoid Docker Hub rate limits."
+echo "Skip this if you've already mirrored these images before."
 echo ""
+read -p "Mirror base images? (y/n) [default: n]: " MIRROR_IMAGES
+MIRROR_IMAGES=${MIRROR_IMAGES:-n}
 
-# Define base images (Elasticsearch is large, mirror it manually if needed)
-BASE_IMAGES=(
-    "postgres:14-alpine"
-    "redis:7-alpine"
-    "minio/minio:latest"
-)
-
-# Mirror each image
-for IMAGE in "${BASE_IMAGES[@]}"; do
-    # Extract image name without tag
-    IMAGE_NAME=$(echo "$IMAGE" | cut -d':' -f1 | sed 's/\//-/g')
-    IMAGE_TAG=$(echo "$IMAGE" | cut -d':' -f2)
-    
-    echo "Processing: $IMAGE"
-    
-    # Check if image already exists in Harbor
-    HARBOR_IMAGE="${HARBOR_URL}/library/${IMAGE}"
-    
-    # Pull from Docker Hub (uses local cache if already present)
-    echo "  Pulling from Docker Hub..."
-    if docker pull "$IMAGE"; then
-        echo "  ✅ Pulled successfully"
-    else
-        echo "  ⚠️  Failed to pull $IMAGE - continuing anyway"
-        continue
-    fi
-    
-    # Tag for Harbor
-    echo "  Tagging for Harbor..."
-    docker tag "$IMAGE" "$HARBOR_IMAGE"
-    
-    # Push to Harbor
-    echo "  Pushing to Harbor..."
-    if docker push "$HARBOR_IMAGE"; then
-        echo "  ✅ Pushed to Harbor: $HARBOR_IMAGE"
-    else
-        echo "  ⚠️  Failed to push to Harbor - continuing anyway"
-    fi
-    
+if [ "$MIRROR_IMAGES" = "y" ]; then
+    echo "Pulling and mirroring infrastructure images to Harbor..."
     echo ""
-done
-
-echo "✅ Base images mirrored to Harbor"
+    
+    # Define base images (Elasticsearch is large, mirror it manually if needed)
+    BASE_IMAGES=(
+        "postgres:14-alpine"
+        "redis:7-alpine"
+        "minio/minio:latest"
+    )
+    
+    # Mirror each image
+    for IMAGE in "${BASE_IMAGES[@]}"; do
+        # Extract image name without tag
+        IMAGE_NAME=$(echo "$IMAGE" | cut -d':' -f1 | sed 's/\//-/g')
+        IMAGE_TAG=$(echo "$IMAGE" | cut -d':' -f2)
+        
+        echo "Processing: $IMAGE"
+        
+        # Check if image already exists in Harbor
+        HARBOR_IMAGE="${HARBOR_URL}/library/${IMAGE}"
+        
+        # Pull from Docker Hub (uses local cache if already present)
+        echo "  Pulling from Docker Hub..."
+        if docker pull "$IMAGE"; then
+            echo "  ✅ Pulled successfully"
+        else
+            echo "  ⚠️  Failed to pull $IMAGE - continuing anyway"
+            continue
+        fi
+        
+        # Tag for Harbor
+        echo "  Tagging for Harbor..."
+        docker tag "$IMAGE" "$HARBOR_IMAGE"
+        
+        # Push to Harbor
+        echo "  Pushing to Harbor..."
+        if docker push "$HARBOR_IMAGE"; then
+            echo "  ✅ Pushed to Harbor: $HARBOR_IMAGE"
+        else
+            echo "  ⚠️  Failed to push to Harbor - continuing anyway"
+        fi
+        
+        echo ""
+    done
+    
+    echo "✅ Base images mirrored to Harbor"
+else
+    echo "⏭️  Skipping base image mirroring"
+fi
 echo ""
 
 # Step 9: Verification
