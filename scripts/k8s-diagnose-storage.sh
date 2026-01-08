@@ -72,7 +72,11 @@ spec:
       storage: 1Gi
 EOF
 
+echo "Waiting 10 seconds..."
+sleep 10
+
 kubectl get pvc test-pvc-latebinding -n bookstore
+kubectl describe pvc test-pvc-latebinding -n bookstore | grep -A 10 "Events:"
 
 echo ""
 echo "Cleanup test PVCs? (y/n)"

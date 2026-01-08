@@ -51,3 +51,6 @@ dev_docs/
 # Archived migrations (kept locally for reference during validation)
 # Delete this line and migrations/archive/ folder after K8s validation
 migrations/archive/
+
+# Logs
+logs/
