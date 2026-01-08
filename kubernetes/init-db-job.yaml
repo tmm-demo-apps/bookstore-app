@@ -44,7 +44,7 @@ spec:
         
         # Run migrations using psql from the app image
         - name: run-migrations
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.1.0
           command:
             - sh
             - -c
@@ -85,16 +85,16 @@ spec:
             seccompProfile:
               type: RuntimeDefault
         
-        # Wait for MinIO to be ready
+        # Wait for MinIO to be ready (using postgres image which is already in Harbor)
         - name: wait-for-minio
-          image: harbor.corp.vmbeans.com/library/alpine:latest
+          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
           command:
             - sh
             - -c
             - |
               apk add --no-cache curl
               echo "Waiting for MinIO..."
-              until curl -f http://minio-service:9000/minio/health/live; do
+              until curl -sf http://minio-service:9000/minio/health/live; do
                 echo "MinIO is unavailable - sleeping"
                 sleep 2
               done
@@ -111,7 +111,7 @@ spec:
       containers:
         # Seed images from Gutenberg
         - name: seed-images
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.1.0
           command: ["/app/scripts/bin/seed-images"]
           env:
             - name: DB_HOST

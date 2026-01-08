@@ -27,7 +27,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: bookstore-app
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.0.0
+          image: harbor.corp.vmbeans.com/bookstore/app:v1.1.0
           ports:
             - containerPort: 8080
               name: http
