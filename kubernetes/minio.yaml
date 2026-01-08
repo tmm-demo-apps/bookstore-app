@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio-service
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   selector:
     app: minio
@@ -18,7 +18,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   replicas: 1
   selector:
@@ -84,7 +84,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: minio-pvc
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   accessModes:
     - ReadWriteOnce

@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: init-database
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   ttlSecondsAfterFinished: 600  # Auto-cleanup after 10 minutes
   template:

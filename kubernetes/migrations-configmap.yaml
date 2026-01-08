@@ -1725,4 +1725,4 @@ kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: migrations-configmap
-  namespace: bookstore
+  namespace: {{NAMESPACE}}

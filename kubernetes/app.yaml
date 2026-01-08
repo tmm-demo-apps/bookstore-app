@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: app-deployment
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
   labels:
     app: bookstore-app
     version: v1.0.0
@@ -97,7 +97,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: app-service
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   selector:
     app: bookstore-app

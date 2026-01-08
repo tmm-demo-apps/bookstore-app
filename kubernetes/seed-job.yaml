@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: db-seed-books
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   ttlSecondsAfterFinished: 300  # Auto-cleanup after 5 minutes
   template:
@@ -57,7 +57,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: db-seed-images
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 spec:
   ttlSecondsAfterFinished: 300  # Auto-cleanup after 5 minutes
   template:

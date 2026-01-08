@@ -129,19 +129,20 @@ get_harbor_tags() {
     echo "$tags"
 }
 
-# Function to apply a kubernetes manifest with image substitution
+# Function to apply a kubernetes manifest with image and namespace substitution
 apply_with_images() {
     local file="$1"
     local app_image="${HARBOR_URL}/${HARBOR_PROJECT}/app:${VERSION}"
     
     echo "  Applying: $file"
     
-    # Substitute image placeholders and apply
+    # Substitute all placeholders and apply
     sed -e "s|{{APP_IMAGE}}|${app_image}|g" \
         -e "s|{{POSTGRES_IMAGE}}|${POSTGRES_IMAGE}|g" \
         -e "s|{{REDIS_IMAGE}}|${REDIS_IMAGE}|g" \
         -e "s|{{ELASTICSEARCH_IMAGE}}|${ELASTICSEARCH_IMAGE}|g" \
         -e "s|{{MINIO_IMAGE}}|${MINIO_IMAGE}|g" \
+        -e "s|{{NAMESPACE}}|${K8S_NAMESPACE}|g" \
         "$file" | kubectl apply -f -
 }
 
@@ -331,7 +332,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Using app image: ${HARBOR_URL}/${HARBOR_PROJECT}/app:${VERSION}"
 echo ""
 
-kubectl apply -f kubernetes/configmap.yaml
+apply_with_images kubernetes/configmap.yaml
 apply_with_images kubernetes/app.yaml
 
 echo ""
@@ -350,7 +351,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 kubectl delete job init-database -n ${K8S_NAMESPACE} --ignore-not-found=true
 
 # Apply migrations ConfigMap first
-kubectl apply -f kubernetes/migrations-configmap.yaml
+apply_with_images kubernetes/migrations-configmap.yaml
 
 # Run init job (migrations + seed images from Gutenberg)
 apply_with_images kubernetes/init-db-job.yaml
@@ -367,7 +368,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 5: Deploying Ingress"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-kubectl apply -f kubernetes/ingress.yaml
+apply_with_images kubernetes/ingress.yaml
 
 # Get ingress info
 INGRESS_IP=$(kubectl get ingress bookstore-ingress -n ${K8S_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")

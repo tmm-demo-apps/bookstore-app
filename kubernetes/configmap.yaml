@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
-  namespace: bookstore
+  namespace: {{NAMESPACE}}
 data:
   DB_HOST: "postgres-service"
   DB_NAME: "bookstore"
