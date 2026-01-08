@@ -6,25 +6,27 @@ set -e
 # Options:
 #   --skip-build, -s    Skip building and pushing to Harbor (use existing image)
 #   --build, -b         Full build and push to Harbor
+#   --no-prompt, -y     Skip configuration prompts (use defaults)
 #
 # Examples:
 #   ./scripts/deploy-complete.sh                     # Interactive mode (prompts)
 #   ./scripts/deploy-complete.sh v1.1.0              # Build, push, and deploy
 #   ./scripts/deploy-complete.sh v1.1.0 --skip-build # Deploy existing image only
 #   ./scripts/deploy-complete.sh v1.1.0 -s           # Same as above (short flag)
+#   ./scripts/deploy-complete.sh v1.1.0 -y           # Non-interactive with defaults
 
 # ============================================================================
-# CONFIGURATION - Edit these values for your environment
+# DEFAULT CONFIGURATION - These can be changed interactively at runtime
 # ============================================================================
 HARBOR_URL="harbor.corp.vmbeans.com"
 HARBOR_PROJECT="bookstore"
 K8S_NAMESPACE="bookstore"
 
 # Infrastructure image versions (update when you mirror new versions to Harbor)
-POSTGRES_IMAGE="${HARBOR_URL}/library/postgres:14-alpine"
-REDIS_IMAGE="${HARBOR_URL}/library/redis:7-alpine"
-ELASTICSEARCH_IMAGE="${HARBOR_URL}/library/elasticsearch:8.11.0"
-MINIO_IMAGE="${HARBOR_URL}/library/minio/minio:latest"
+POSTGRES_TAG="14-alpine"
+REDIS_TAG="7-alpine"
+ELASTICSEARCH_TAG="8.11.0"
+MINIO_TAG="latest"
 # ============================================================================
 
 # Show help if requested
@@ -34,12 +36,14 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "Options:"
     echo "  --skip-build, -s    Skip building and pushing to Harbor (use existing image)"
     echo "  --build, -b         Full build and push to Harbor"
+    echo "  --no-prompt, -y     Skip configuration prompts (use defaults)"
     echo "  --help, -h          Show this help message"
     echo ""
     echo "Examples:"
     echo "  ./scripts/deploy-complete.sh                     # Interactive mode"
     echo "  ./scripts/deploy-complete.sh v1.1.0              # Build, push, and deploy"
     echo "  ./scripts/deploy-complete.sh v1.1.0 --skip-build # Deploy existing image only"
+    echo "  ./scripts/deploy-complete.sh v1.1.0 -y           # Non-interactive with defaults"
     exit 0
 fi
 
@@ -47,6 +51,72 @@ echo "╔═══════════════════════�
 echo "║          Complete Kubernetes Deployment                                    ║"
 echo "╚════════════════════════════════════════════════════════════════════════════╝"
 echo ""
+
+# Check for --no-prompt flag
+NO_PROMPT=false
+for arg in "$@"; do
+    if [[ "$arg" == "--no-prompt" || "$arg" == "-y" ]]; then
+        NO_PROMPT=true
+    fi
+done
+
+# Interactive configuration
+if [ "$NO_PROMPT" = false ]; then
+    echo "📋 Current Configuration:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Harbor URL:      ${HARBOR_URL}"
+    echo "  Harbor Project:  ${HARBOR_PROJECT}"
+    echo "  K8s Namespace:   ${K8S_NAMESPACE}"
+    echo ""
+    echo "  Infrastructure Images:"
+    echo "    Postgres:      ${HARBOR_URL}/library/postgres:${POSTGRES_TAG}"
+    echo "    Redis:         ${HARBOR_URL}/library/redis:${REDIS_TAG}"
+    echo "    Elasticsearch: ${HARBOR_URL}/library/elasticsearch:${ELASTICSEARCH_TAG}"
+    echo "    MinIO:         ${HARBOR_URL}/library/minio/minio:${MINIO_TAG}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    read -p "Do you want to change any configuration? (y/N): " CHANGE_CONFIG
+    
+    if [[ "$CHANGE_CONFIG" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo "Press Enter to keep the default value shown in brackets."
+        echo ""
+        
+        read -p "Harbor URL [${HARBOR_URL}]: " NEW_HARBOR_URL
+        HARBOR_URL="${NEW_HARBOR_URL:-$HARBOR_URL}"
+        
+        read -p "Harbor Project [${HARBOR_PROJECT}]: " NEW_HARBOR_PROJECT
+        HARBOR_PROJECT="${NEW_HARBOR_PROJECT:-$HARBOR_PROJECT}"
+        
+        read -p "Kubernetes Namespace [${K8S_NAMESPACE}]: " NEW_K8S_NAMESPACE
+        K8S_NAMESPACE="${NEW_K8S_NAMESPACE:-$K8S_NAMESPACE}"
+        
+        echo ""
+        echo "Infrastructure Image Tags:"
+        
+        read -p "Postgres tag [${POSTGRES_TAG}]: " NEW_POSTGRES_TAG
+        POSTGRES_TAG="${NEW_POSTGRES_TAG:-$POSTGRES_TAG}"
+        
+        read -p "Redis tag [${REDIS_TAG}]: " NEW_REDIS_TAG
+        REDIS_TAG="${NEW_REDIS_TAG:-$REDIS_TAG}"
+        
+        read -p "Elasticsearch tag [${ELASTICSEARCH_TAG}]: " NEW_ELASTICSEARCH_TAG
+        ELASTICSEARCH_TAG="${NEW_ELASTICSEARCH_TAG:-$ELASTICSEARCH_TAG}"
+        
+        read -p "MinIO tag [${MINIO_TAG}]: " NEW_MINIO_TAG
+        MINIO_TAG="${NEW_MINIO_TAG:-$MINIO_TAG}"
+        
+        echo ""
+        echo "✅ Configuration updated!"
+        echo ""
+    fi
+fi
+
+# Build full image paths from configuration
+POSTGRES_IMAGE="${HARBOR_URL}/library/postgres:${POSTGRES_TAG}"
+REDIS_IMAGE="${HARBOR_URL}/library/redis:${REDIS_TAG}"
+ELASTICSEARCH_IMAGE="${HARBOR_URL}/library/elasticsearch:${ELASTICSEARCH_TAG}"
+MINIO_IMAGE="${HARBOR_URL}/library/minio/minio:${MINIO_TAG}"
 
 # Function to get available tags from Harbor
 get_harbor_tags() {
@@ -86,6 +156,9 @@ for arg in "$@"; do
             ;;
         --build|-b)
             SKIP_BUILD=false
+            ;;
+        --no-prompt|-y)
+            # Already handled above
             ;;
         v*)
             VERSION="$arg"
