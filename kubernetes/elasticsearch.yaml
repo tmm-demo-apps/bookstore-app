@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: elasticsearch
-          image: harbor.corp.vmbeans.com/library/elasticsearch:8.11.0
+          image: {{ELASTICSEARCH_IMAGE}}
           ports:
             - containerPort: 9200
           securityContext:

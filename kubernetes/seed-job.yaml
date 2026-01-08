@@ -15,7 +15,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: seed-books
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.1.0
+          image: {{APP_IMAGE}}
           command:
             - /bin/sh
             - -c
@@ -70,7 +70,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: seed-images
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.1.0
+          image: {{APP_IMAGE}}
           command:
             - /bin/sh
             - -c

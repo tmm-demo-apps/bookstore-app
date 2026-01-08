@@ -35,7 +35,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: redis
-          image: harbor.corp.vmbeans.com/library/redis:7-alpine
+          image: {{REDIS_IMAGE}}
           ports:
             - containerPort: 6379
           securityContext:

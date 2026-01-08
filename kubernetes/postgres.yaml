@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: postgres
-          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
+          image: {{POSTGRES_IMAGE}}
           ports:
             - containerPort: 5432
           securityContext:
