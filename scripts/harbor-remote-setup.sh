@@ -197,9 +197,10 @@ echo "Step 7: Creating Application Secrets"
 echo "-------------------------------------"
 echo "Generating secure passwords for database and MinIO..."
 
-DB_PASSWORD=$(openssl rand -base64 32)
-MINIO_ACCESS_KEY=$(openssl rand -base64 20 | tr -d '/+=' | cut -c1-20)
-MINIO_SECRET_KEY=$(openssl rand -base64 32)
+# Use hex encoding to avoid special characters that break URL parsing in connection strings
+DB_PASSWORD=$(openssl rand -hex 16)
+MINIO_ACCESS_KEY=$(openssl rand -hex 10)
+MINIO_SECRET_KEY=$(openssl rand -hex 16)
 
 kubectl create secret generic app-secrets \
     --from-literal=DB_USER=bookstore_user \

@@ -185,11 +185,12 @@ else
     # Check app-secrets
     if ! kubectl get secret app-secrets -n bookstore &>/dev/null; then
         echo "⚠️  app-secrets not found - creating with random passwords..."
+        # Use hex encoding to avoid special characters that break URL parsing
         kubectl create secret generic app-secrets \
             --from-literal=DB_USER=bookstore_user \
-            --from-literal=DB_PASSWORD=$(openssl rand -base64 32) \
-            --from-literal=MINIO_ACCESS_KEY=$(openssl rand -base64 20 | tr -d '/+=' | cut -c1-20) \
-            --from-literal=MINIO_SECRET_KEY=$(openssl rand -base64 32) \
+            --from-literal=DB_PASSWORD=$(openssl rand -hex 16) \
+            --from-literal=MINIO_ACCESS_KEY=$(openssl rand -hex 10) \
+            --from-literal=MINIO_SECRET_KEY=$(openssl rand -hex 16) \
             -n bookstore
         echo "✅ app-secrets created"
     else
