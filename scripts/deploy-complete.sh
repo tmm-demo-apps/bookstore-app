@@ -154,6 +154,47 @@ else
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Step 1: Skipped (using existing image: ${HARBOR_URL}/${HARBOR_PROJECT}/app:$VERSION)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Ensure namespace exists
+    if ! kubectl get namespace bookstore &>/dev/null; then
+        echo "Creating namespace: bookstore"
+        kubectl create namespace bookstore
+    fi
+    
+    # Ensure secrets exist when skipping build
+    echo ""
+    echo "Checking required secrets..."
+    
+    # Check harbor-registry-secret
+    if ! kubectl get secret harbor-registry-secret -n bookstore &>/dev/null; then
+        echo "⚠️  harbor-registry-secret not found - creating..."
+        read -p "Harbor username: " HARBOR_USER
+        read -sp "Harbor password: " HARBOR_PASS
+        echo ""
+        kubectl create secret docker-registry harbor-registry-secret \
+            --docker-server="${HARBOR_URL}" \
+            --docker-username="${HARBOR_USER}" \
+            --docker-password="${HARBOR_PASS}" \
+            --docker-email="admin@bookstore.local" \
+            -n bookstore
+        echo "✅ harbor-registry-secret created"
+    else
+        echo "✅ harbor-registry-secret exists"
+    fi
+    
+    # Check app-secrets
+    if ! kubectl get secret app-secrets -n bookstore &>/dev/null; then
+        echo "⚠️  app-secrets not found - creating with random passwords..."
+        kubectl create secret generic app-secrets \
+            --from-literal=DB_USER=bookstore_user \
+            --from-literal=DB_PASSWORD=$(openssl rand -base64 32) \
+            --from-literal=MINIO_ACCESS_KEY=$(openssl rand -base64 20 | tr -d '/+=' | cut -c1-20) \
+            --from-literal=MINIO_SECRET_KEY=$(openssl rand -base64 32) \
+            -n bookstore
+        echo "✅ app-secrets created"
+    else
+        echo "✅ app-secrets exists"
+    fi
 fi
 
 # Step 2: Deploy infrastructure
