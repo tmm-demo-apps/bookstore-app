@@ -42,25 +42,22 @@ spec:
             seccompProfile:
               type: RuntimeDefault
         
-        # Run migrations using psql from the app image
+        # Run migrations using psql from postgres image (has psql built-in)
         - name: run-migrations
-          image: harbor.corp.vmbeans.com/bookstore/app:v1.1.0
+          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
           command:
             - sh
             - -c
             - |
               echo "Running migrations..."
               
-              # Install psql client (alpine-based image)
-              apk add --no-cache postgresql-client
-              
               # Run schema migration
               echo "Applying 001_schema.sql..."
-              PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U $DB_USER -d $DB_NAME -f /app/migrations/001_schema.sql || echo "Schema may already exist"
+              PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U $DB_USER -d $DB_NAME -f /migrations/001_schema.sql || echo "Schema may already exist"
               
               # Run seed data migration
               echo "Applying 002_seed_books.sql..."
-              PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U $DB_USER -d $DB_NAME -f /app/migrations/002_seed_books.sql
+              PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U $DB_USER -d $DB_NAME -f /migrations/002_seed_books.sql
               
               echo "Migrations complete!"
           env:
@@ -76,6 +73,9 @@ spec:
                   key: DB_PASSWORD
             - name: DB_NAME
               value: "bookstore"
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -148,3 +148,7 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
+      volumes:
+        - name: migrations
+          configMap:
+            name: migrations-configmap

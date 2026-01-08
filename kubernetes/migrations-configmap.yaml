@@ -1,12 +1,1728 @@
 apiVersion: v1
+data:
+  001_schema.sql: "-- DemoApp Database Schema\n-- Consolidated migration with complete
+    table definitions\n-- All tables created with final schema from day 1\n\n-- Categories\nCREATE
+    TABLE categories (\n    id SERIAL PRIMARY KEY,\n    name VARCHAR(255) NOT NULL
+    UNIQUE,\n    description TEXT\n);\n\n-- Products (all fields from day 1)\nCREATE
+    TABLE products (\n    id SERIAL PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n
+    \   description TEXT NOT NULL,\n    price DECIMAL(10, 2) NOT NULL,\n    sku VARCHAR(50)
+    UNIQUE,\n    stock_quantity INTEGER DEFAULT 0,\n    image_url VARCHAR(255),\n
+    \   category_id INTEGER REFERENCES categories(id),\n    status VARCHAR(20) DEFAULT
+    'active',\n    author VARCHAR(255),\n    popularity_score INTEGER DEFAULT 0  --
+    Gutenberg download count, used for sorting\n);\n\n-- Index for popularity sorting\nCREATE
+    INDEX idx_products_popularity ON products(popularity_score DESC);\nCREATE INDEX
+    idx_products_category_popularity ON products(category_id, popularity_score DESC);\n\n--
+    Users (complete schema)\nCREATE TABLE users (\n    id SERIAL PRIMARY KEY,\n    email
+    VARCHAR(255) UNIQUE NOT NULL,\n    password_hash VARCHAR(255) NOT NULL,\n    full_name
+    VARCHAR(255),\n    role VARCHAR(20) DEFAULT 'customer',\n    created_at TIMESTAMP
+    WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Cart Items (correct constraint
+    from start - session_id nullable when user_id present)\nCREATE TABLE cart_items
+    (\n    id SERIAL PRIMARY KEY,\n    session_id VARCHAR(255),\n    user_id INTEGER
+    REFERENCES users(id),\n    product_id INTEGER REFERENCES products(id),\n    quantity
+    INTEGER NOT NULL DEFAULT 1,\n    CONSTRAINT session_or_user CHECK (\n        session_id
+    IS NOT NULL OR user_id IS NOT NULL\n    )\n);\n\n-- Indexes to prevent duplicate
+    cart items\nCREATE UNIQUE INDEX idx_cart_items_session_product \n    ON cart_items(session_id,
+    product_id) \n    WHERE session_id IS NOT NULL AND user_id IS NULL;\n\nCREATE
+    UNIQUE INDEX idx_cart_items_user_product \n    ON cart_items(user_id, product_id)
+    \n    WHERE user_id IS NOT NULL;\n\n-- Orders (complete schema)\nCREATE TABLE
+    orders (\n    id SERIAL PRIMARY KEY,\n    session_id VARCHAR(255),\n    user_id
+    INTEGER REFERENCES users(id),\n    total_amount DECIMAL(10, 2),\n    status VARCHAR(20)
+    DEFAULT 'pending',\n    shipping_info JSONB,\n    created_at TIMESTAMP WITH TIME
+    ZONE DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE TABLE order_items (\n    id SERIAL
+    PRIMARY KEY,\n    order_id INTEGER REFERENCES orders(id),\n    product_id INTEGER
+    REFERENCES products(id),\n    quantity INTEGER NOT NULL,\n    price DECIMAL(10,
+    2) NOT NULL\n);\n\n-- Reviews (complete schema with indexes)\nCREATE TABLE reviews
+    (\n    id SERIAL PRIMARY KEY,\n    product_id INTEGER NOT NULL REFERENCES products(id)
+    ON DELETE CASCADE,\n    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE
+    CASCADE,\n    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),\n    title
+    VARCHAR(255),\n    comment TEXT,\n    created_at TIMESTAMP WITH TIME ZONE DEFAULT
+    CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,\n
+    \   UNIQUE(product_id, user_id)\n);\n\n-- Indexes for efficient queries\nCREATE
+    INDEX idx_reviews_product ON reviews(product_id);\nCREATE INDEX idx_reviews_user
+    ON reviews(user_id);\nCREATE INDEX idx_reviews_rating ON reviews(rating);\nCREATE
+    INDEX idx_reviews_created_at ON reviews(created_at DESC);\n\n-- Comments for documentation\nCOMMENT
+    ON TABLE categories IS 'Product categories for organizing books';\nCOMMENT ON
+    TABLE products IS 'Book products with metadata from Project Gutenberg';\nCOMMENT
+    ON COLUMN products.popularity_score IS 'Gutenberg 30-day download count for sorting';\nCOMMENT
+    ON TABLE users IS 'User accounts for authentication and orders';\nCOMMENT ON TABLE
+    cart_items IS 'Shopping cart items - supports both anonymous (session) and authenticated
+    users';\nCOMMENT ON TABLE orders IS 'Customer orders';\nCOMMENT ON TABLE order_items
+    IS 'Individual items within an order';\nCOMMENT ON TABLE reviews IS 'Product reviews
+    and ratings from users';\n\n"
+  002_seed_books.sql: |+
+    -- Auto-generated seed data for DemoApp Bookstore
+    -- Generated from seed-gutenberg-books.go
+    -- Contains categories and 150 books from Project Gutenberg
+
+    -- Seed Categories
+    INSERT INTO categories (name, description) VALUES
+        ('Fiction', 'Novels and stories'),
+        ('Non-Fiction', 'Factual books and biographies'),
+        ('Science', 'Physics, Chemistry, Biology'),
+        ('Technology', 'Computers and Programming'),
+        ('Philosophy', 'Philosophical works and treatises'),
+        ('Science Fiction', 'Science fiction and speculative fiction'),
+        ('Drama', 'Plays and dramatic works'),
+        ('Poetry', 'Poems and poetic works'),
+        ('History', 'Historical accounts and biographies'),
+        ('Political Science', 'Political theory and governance')
+    ON CONFLICT (name) DO NOTHING;
+
+    -- Seed Books (150 titles from Project Gutenberg)
+    -- Stock rules: 'A Christmas Carol' = 0 (out of stock, first alphabetically), 'Pride and Prejudice' = 3 (low stock), others = 10-100
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Pride and Prejudice', 'A romantic novel of manners that follows the character development of Elizabeth Bennet, who learns about the repercussions of hasty judgments and comes to appreciate the difference between superficial goodness and actual goodness.', 12.29, 'BOOK-1342', 3, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jane Austen', 65000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Alice''s Adventures in Wonderland', 'A young girl named Alice falls through a rabbit hole into a fantasy world populated by peculiar, anthropomorphic creatures. A classic tale of childhood imagination and Victorian nonsense literature.', 11.97, 'BOOK-11', 17, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Lewis Carroll', 45000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Great Gatsby', 'A tragic love story set in the Jazz Age that explores themes of decadence, idealism, resistance to change, and excess. Chronicles Jay Gatsby''s pursuit of his lost love, Daisy Buchanan.', 11.83, 'BOOK-64317', 24, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'F. Scott Fitzgerald', 42000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Moby-Dick; or, The Whale', 'The saga of Captain Ahab''s obsessive quest to avenge himself on Moby Dick, the white whale that destroyed his ship and took his leg. A masterpiece of American literature exploring obsession, revenge, and man versus nature.', 12.21, 'BOOK-2701', 31, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Herman Melville', 38000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('A Tale of Two Cities', 'Set in London and Paris before and during the French Revolution, this novel depicts the plight of the French peasantry under the brutal oppression of the aristocracy. Features the famous opening line ''It was the best of times, it was the worst of times.''', 12.53, 'BOOK-98', 38, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 55000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Adventures of Sherlock Holmes', 'A collection of twelve short stories featuring the legendary detective Sherlock Holmes and his companion Dr. Watson. Includes classics like ''A Scandal in Bohemia'' and ''The Red-Headed League.''', 11.90, 'BOOK-1661', 45, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Arthur Conan Doyle', 52000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Frankenstein; Or, The Modern Prometheus', 'The story of Victor Frankenstein, a young scientist who creates a sapient creature in an unorthodox scientific experiment. A Gothic novel that explores themes of ambition, responsibility, and the consequences of playing God.', 12.23, 'BOOK-84', 52, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Mary Wollstonecraft Shelley', 48000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Picture of Dorian Gray', 'A philosophical novel about a young man who sells his soul for eternal youth and beauty. As Dorian descends into a life of sin and corruption, his portrait ages and reflects his moral decay while he remains young and beautiful.', 12.26, 'BOOK-174', 59, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Oscar Wilde', 35000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Dracula', 'The classic vampire novel told through journal entries, letters, and newspaper clippings. Follows the attempt to defeat Count Dracula, a centuries-old vampire terrorizing England. The definitive vampire story that launched a genre.', 12.30, 'BOOK-345', 66, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Bram Stoker', 47000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Adventures of Tom Sawyer', 'The adventures of a mischievous boy growing up along the Mississippi River. Tom''s escapades include witnessing a murder, getting lost in a cave, and attending his own funeral. A beloved American classic.', 12.02, 'BOOK-74', 73, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Mark Twain', 32000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Adventures of Huckleberry Finn', 'Often called ''The Great American Novel,'' this story follows Huck Finn and Jim, a runaway slave, as they journey down the Mississippi River. A powerful exploration of racism, morality, and freedom in pre-Civil War America.', 12.20, 'BOOK-76', 80, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Mark Twain', 36000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Jane Eyre', 'The story of an orphaned girl who becomes a governess and falls in love with her employer, Mr. Rochester. A groundbreaking novel that explores themes of class, sexuality, religion, and feminism.', 11.93, 'BOOK-1260', 87, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charlotte Brontë', 41000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Wuthering Heights', 'A tale of passion and revenge set on the Yorkshire moors. The turbulent relationship between Catherine Earnshaw and Heathcliff spans two generations and explores the destructive nature of obsessive love.', 12.02, 'BOOK-768', 94, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Emily Brontë', 33000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Count of Monte Cristo', 'An adventure novel of revenge and redemption. After being wrongly imprisoned, Edmond Dantès escapes and discovers a treasure that allows him to exact elaborate revenge on those who betrayed him.', 11.94, 'BOOK-1184', 10, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Alexandre Dumas', 29000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Three Musketeers', 'Set in 17th century France, this swashbuckling adventure follows d''Artagnan as he joins forces with three musketeers—Athos, Porthos, and Aramis. Famous for the motto ''All for one, one for all!''', 11.94, 'BOOK-1257', 17, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Alexandre Dumas', 27000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Little Women', 'The story of the four March sisters—Meg, Jo, Beth, and Amy—growing up in Civil War-era New England. A timeless tale of family, love, loss, and the pursuit of dreams.', 11.68, 'BOOK-514', 24, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Louisa May Alcott', 31000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Scarlet Letter', 'Set in Puritan Massachusetts, this novel tells the story of Hester Prynne, who conceives a daughter through an affair and struggles to create a new life of repentance and dignity. A powerful exploration of sin, guilt, and redemption.', 12.32, 'BOOK-25344', 31, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Nathaniel Hawthorne', 24000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Wonderful Wizard of Oz', 'Dorothy and her dog Toto are swept away to the magical Land of Oz, where they meet the Scarecrow, Tin Woodman, and Cowardly Lion on a journey to meet the Wizard. An American fairy tale classic.', 11.92, 'BOOK-55', 38, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'L. Frank Baum', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Secret Garden', 'A young orphan discovers a hidden, neglected garden and brings it back to life, transforming herself and those around her in the process. A beloved children''s classic about healing, growth, and the power of nature.', 12.13, 'BOOK-113', 45, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Frances Hodgson Burnett', 26000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Treasure Island', 'Young Jim Hawkins discovers a treasure map and sets sail on an adventure filled with pirates, mutiny, and buried gold. Features the iconic Long John Silver and established many pirate story tropes.', 11.96, 'BOOK-120', 52, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Robert Louis Stevenson', 25000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Strange Case of Dr. Jekyll and Mr. Hyde', 'A London lawyer investigates strange occurrences between his friend Dr. Jekyll and the evil Mr. Hyde. A psychological thriller exploring the duality of human nature and the battle between good and evil.', 12.01, 'BOOK-43', 59, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Robert Louis Stevenson', 34000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Heart of Darkness', 'A voyage up the Congo River into the heart of Africa and the human psyche. Marlow''s journey to find the mysterious Kurtz becomes a meditation on colonialism, civilization, and the darkness within humanity.', 12.04, 'BOOK-219', 66, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Joseph Conrad', 23000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Metamorphosis', 'Gregor Samsa wakes one morning to find himself transformed into a giant insect. This surreal novella explores themes of alienation, identity, guilt, and absurdity in modern life.', 11.77, 'BOOK-5200', 73, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Franz Kafka', 30000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Iliad', 'An ancient Greek epic poem set during the Trojan War, focusing on the hero Achilles. One of the oldest works of Western literature, exploring themes of honor, glory, wrath, and mortality.', 11.86, 'BOOK-6130', 80, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Homer', 22000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Odyssey', 'The epic tale of Odysseus''s ten-year journey home after the Trojan War. Filled with mythical creatures, gods, and adventures, this foundational work explores themes of perseverance, cunning, and homecoming.', 12.05, 'BOOK-1727', 87, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Homer', 24000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Don Quixote', 'A Spanish nobleman reads so many chivalric romances that he loses his sanity and decides to become a knight-errant. Often considered the first modern novel and one of the greatest works of fiction ever published.', 12.11, 'BOOK-996', 94, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Miguel de Cervantes Saavedra', 21000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('War and Peace', 'An epic novel chronicling the French invasion of Russia and its impact on Tsarist society through the lives of five aristocratic families. A masterpiece exploring history, philosophy, love, and war.', 11.97, 'BOOK-2600', 10, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Leo Tolstoy', 19000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Anna Karenina', 'A tragic love story of a married aristocrat who has an affair with Count Vronsky, leading to her social ostracism and downfall. Explores themes of family, faith, and Russian society.', 11.81, 'BOOK-1399', 17, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Leo Tolstoy', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Crime and Punishment', 'A psychological drama following Raskolnikov, an impoverished student who murders a pawnbroker. The novel explores themes of guilt, redemption, morality, and the psychological torment of crime.', 11.91, 'BOOK-2554', 24, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Fyodor Dostoevsky', 20000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Brothers Karamazov', 'A philosophical novel exploring faith, doubt, free will, and morality through the story of three brothers and their father''s murder. Considered one of the greatest novels ever written.', 11.83, 'BOOK-28054', 31, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Fyodor Dostoevsky', 17000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Les Misérables', 'The story of ex-convict Jean Valjean''s quest for redemption in 19th century France. An epic tale of justice, love, sacrifice, and revolution that examines the nature of law and grace.', 11.82, 'BOOK-135', 38, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Victor Hugo', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Hunchback of Notre-Dame', 'Set in medieval Paris, this Gothic novel tells the story of Quasimodo, the deformed bell-ringer of Notre-Dame Cathedral, and his love for the beautiful gypsy Esmeralda.', 11.67, 'BOOK-2610', 45, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Victor Hugo', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Madame Bovary', 'The story of Emma Bovary, a doctor''s wife who has adulterous affairs and lives beyond her means in search of passion and fulfillment. A landmark novel of literary realism.', 11.70, 'BOOK-2413', 52, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Gustave Flaubert', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('A Christmas Carol', 'Ebenezer Scrooge, a miserly old man, is visited by three ghosts on Christmas Eve who show him his past, present, and future. A timeless tale of redemption and the Christmas spirit.', 11.79, 'BOOK-46', 0, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 44000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Great Expectations', 'The coming-of-age story of Pip, an orphan who dreams of becoming a gentleman. A tale of ambition, love, and the true meaning of being a gentleman in Victorian England.', 11.66, 'BOOK-1400', 66, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Oliver Twist', 'An orphan boy escapes a workhouse and falls in with a gang of pickpockets in London. A scathing critique of poverty and child labor in Victorian England.', 11.52, 'BOOK-730', 73, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 26000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('David Copperfield', 'The life story of David Copperfield from childhood to maturity. Dickens''s most autobiographical novel, exploring themes of perseverance, memory, and personal growth.', 11.64, 'BOOK-766', 80, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Bleak House', 'A complex narrative centered around a long-running court case. A critique of the British legal system and a mystery involving hidden identities and dark secrets.', 11.60, 'BOOK-1023', 87, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Pickwick Papers', 'The episodic adventures of Samuel Pickwick and his club members as they travel through England. Dickens''s first novel, full of humor and memorable characters.', 11.57, 'BOOK-580', 94, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Charles Dickens', 11000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Time Machine', 'A scientist invents a machine that allows him to travel through time, journeying to the year 802,701 AD where he discovers a dystopian future. A pioneering work of science fiction.', 11.79, 'BOOK-35', 10, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'H. G. Wells', 39000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The War of the Worlds', 'Martians invade Earth with advanced technology, devastating Victorian England. One of the earliest stories depicting conflict between mankind and an extraterrestrial race, and a science fiction classic.', 12.01, 'BOOK-36', 17, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'H. G. Wells', 37000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Invisible Man', 'A scientist discovers how to make himself invisible but cannot reverse the process. His descent into madness and terror makes this a classic tale of science gone wrong.', 11.67, 'BOOK-5230', 24, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'H. G. Wells', 25000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Island of Doctor Moreau', 'A shipwrecked man discovers an island where a scientist creates human-like beings from animals. A disturbing exploration of ethics, identity, and the nature of humanity.', 11.68, 'BOOK-159', 31, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'H. G. Wells', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The First Men in the Moon', 'Two men travel to the moon and discover an alien civilization living beneath its surface. An imaginative early work of science fiction exploring space travel.', 11.57, 'BOOK-1013', 38, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'H. G. Wells', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Twenty Thousand Leagues Under the Sea', 'The adventures of Captain Nemo and his submarine Nautilus as seen through the eyes of Professor Aronnax. A pioneering work of science fiction featuring underwater exploration and marine biology.', 11.93, 'BOOK-164', 45, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'Jules Verne', 32000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Around the World in Eighty Days', 'Phileas Fogg bets that he can circumnavigate the globe in 80 days. An adventure novel filled with exotic locations, narrow escapes, and a race against time.', 11.55, 'BOOK-103', 52, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jules Verne', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Journey to the Center of the Earth', 'A German professor discovers a coded message that leads him on an expedition to the Earth''s core. A classic adventure novel of underground exploration and prehistoric discoveries.', 11.78, 'BOOK-18857', 59, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'Jules Verne', 24000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('From the Earth to the Moon', 'Members of a post-Civil War gun club build a cannon to shoot a projectile to the moon. A remarkably prescient tale of space exploration written in 1865.', 11.51, 'BOOK-83', 66, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'Jules Verne', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Mysterious Island', 'Five prisoners escape the American Civil War in a balloon and crash on a mysterious island. A tale of survival, ingenuity, and adventure with connections to Captain Nemo.', 11.69, 'BOOK-1268', 73, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'Jules Verne', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Jungle Book', 'A collection of stories set in India, most notably about Mowgli, a boy raised by wolves in the jungle. Features beloved characters like Baloo the bear and Bagheera the panther.', 11.75, 'BOOK-236', 80, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Rudyard Kipling', 23000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Kim', 'The story of an Irish orphan boy in India who becomes a spy for the British. A vivid portrait of colonial India and a coming-of-age adventure.', 11.41, 'BOOK-2226', 87, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Rudyard Kipling', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Call of the Wild', 'Buck, a domesticated dog, is stolen and sold as a sled dog in Alaska during the Klondike Gold Rush. He must adapt to survive in the harsh wilderness, eventually answering the call of his wild ancestors.', 12.01, 'BOOK-215', 94, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jack London', 27000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('White Fang', 'The mirror image of The Call of the Wild—a wild wolf-dog''s journey toward domestication. Set during the Klondike Gold Rush, exploring themes of survival, nature versus nurture, and redemption.', 11.93, 'BOOK-910', 10, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jack London', 19000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Sea-Wolf', 'A literary critic is rescued by a seal-hunting ship captained by the brutal Wolf Larsen. A tale of survival, philosophy, and the clash between civilization and nature.', 11.66, 'BOOK-1074', 17, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jack London', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Sense and Sensibility', 'The story of the Dashwood sisters, Elinor and Marianne, who represent sense and sensibility respectively. A novel about love, heartbreak, and finding balance.', 11.57, 'BOOK-161', 24, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jane Austen', 22000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Emma', 'The story of Emma Woodhouse, a young woman who fancies herself a matchmaker. A comedy of manners exploring self-deception, social class, and the journey to self-awareness.', 11.70, 'BOOK-158', 31, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jane Austen', 21000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Mansfield Park', 'Fanny Price is sent to live with wealthy relatives at Mansfield Park. A novel exploring morality, social mobility, and the contrast between country and city values.', 11.63, 'BOOK-141', 38, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jane Austen', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Persuasion', 'Anne Elliot, persuaded years ago to reject a suitor, gets a second chance at love. Austen''s last completed novel, exploring themes of constancy, regret, and mature love.', 11.68, 'BOOK-105', 45, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jane Austen', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Northanger Abbey', 'A satire of Gothic novels following Catherine Morland''s adventures and romantic misunderstandings. A witty commentary on reading, imagination, and coming of age.', 11.60, 'BOOK-121', 52, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Jane Austen', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Turn of the Screw', 'A governess becomes convinced that the children in her care are being haunted by ghosts. A masterpiece of psychological horror and ambiguity.', 11.40, 'BOOK-209', 59, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Henry James', 17000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Daisy Miller', 'A young American woman''s unconventional behavior scandalizes European society. A study of cultural clash and the ''American Girl'' abroad.', 11.35, 'BOOK-208', 66, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Henry James', 11000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Portrait of a Lady', 'Isabel Archer, a young American heiress, travels to Europe where she falls prey to scheming expatriates. A profound study of freedom, choice, and their consequences.', 11.64, 'BOOK-2833', 73, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Henry James', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Tess of the d''Urbervilles', 'The tragic story of Tess Durbeyfield, a peasant girl whose life is destroyed by the men around her. A powerful critique of Victorian morality and social hypocrisy.', 11.62, 'BOOK-110', 80, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Thomas Hardy', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Far from the Madding Crowd', 'Bathsheba Everdene, an independent young woman, attracts three very different suitors. A pastoral romance set in Hardy''s fictional Wessex.', 11.37, 'BOOK-107', 87, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Thomas Hardy', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Jude the Obscure', 'Jude Fawley dreams of attending university but is thwarted by class barriers and tragic circumstances. Hardy''s most controversial and pessimistic novel.', 11.51, 'BOOK-153', 94, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Thomas Hardy', 11000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Mayor of Casterbridge', 'A man sells his wife and daughter while drunk, then spends years trying to atone. A tragedy of pride, fate, and the consequences of past actions.', 11.44, 'BOOK-143', 10, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Thomas Hardy', 10000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Middlemarch', 'A study of provincial life in a Midlands town, following several interconnected stories. Often considered one of the greatest novels in the English language.', 11.56, 'BOOK-145', 17, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'George Eliot', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Silas Marner', 'A weaver, betrayed and exiled, finds redemption through the love of an orphaned child. A moral tale about community, faith, and human connection.', 11.44, 'BOOK-550', 24, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'George Eliot', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Mill on the Floss', 'The story of Maggie Tulliver and her brother Tom, growing up in rural England. A tragedy exploring family loyalty, gender expectations, and social constraints.', 11.58, 'BOOK-6688', 31, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'George Eliot', 10000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Vanity Fair', 'A satirical panorama of English society following the contrasting fortunes of Becky Sharp and Amelia Sedley. A novel without a hero.', 11.31, 'BOOK-599', 38, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'William Makepeace Thackeray', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Scarlet Pimpernel', 'A mysterious English nobleman rescues French aristocrats from the guillotine during the Reign of Terror. The original masked hero adventure.', 11.39, 'BOOK-60', 45, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Baroness Orczy', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Phantom of the Opera', 'A masked musical genius haunts the Paris Opera House and becomes obsessed with a young soprano. The original Gothic romance that inspired countless adaptations.', 11.59, 'BOOK-175', 52, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Gaston Leroux', 20000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Hound of the Baskervilles', 'Sherlock Holmes investigates the legend of a supernatural hound haunting an aristocratic family. The most famous of all Holmes novels.', 11.33, 'BOOK-2852', 59, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Arthur Conan Doyle', 35000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('A Study in Scarlet', 'The first appearance of Sherlock Holmes and Dr. Watson, as they investigate a mysterious murder with connections to America.', 11.23, 'BOOK-244', 66, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Arthur Conan Doyle', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Sign of the Four', 'Holmes and Watson investigate a case involving a missing father, a mysterious pact, and a stolen treasure from India.', 11.16, 'BOOK-2097', 73, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Arthur Conan Doyle', 22000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Lost World', 'Professor Challenger leads an expedition to a South American plateau where dinosaurs still exist. A thrilling adventure that inspired countless imitators.', 11.53, 'BOOK-139', 80, (SELECT id FROM categories WHERE name = 'Science Fiction'), 'active', 'Arthur Conan Doyle', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Uncle Tom''s Cabin', 'The story of Uncle Tom, an enslaved man, and the people whose lives he touches. The novel that helped lay the groundwork for the American Civil War.', 11.47, 'BOOK-203', 87, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Harriet Beecher Stowe', 19000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Red Badge of Courage', 'A young Union soldier faces the horrors of the Civil War and struggles with his own cowardice. A groundbreaking psychological study of fear and courage.', 11.51, 'BOOK-73', 94, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Stephen Crane', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Sister Carrie', 'A young woman moves to Chicago and rises in society while her lover falls. A naturalistic novel about ambition, desire, and the American Dream.', 11.42, 'BOOK-5267', 10, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Theodore Dreiser', 9000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Age of Innocence', 'A lawyer in 1870s New York falls in love with his fiancée''s unconventional cousin. A Pulitzer Prize-winning novel about society, duty, and forbidden passion.', 11.57, 'BOOK-541', 17, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Edith Wharton', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Ethan Frome', 'A tragic love triangle in rural New England ends in disaster. A stark, powerful novella about unfulfilled desire and the constraints of duty.', 11.40, 'BOOK-4517', 24, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Edith Wharton', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The House of Mirth', 'Lily Bart, a beautiful but poor woman, navigates New York high society in search of a wealthy husband. A tragedy of social ambition and moral compromise.', 11.52, 'BOOK-284', 31, (SELECT id FROM categories WHERE name = 'Fiction'), 'active', 'Edith Wharton', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Importance of Being Earnest', 'A farcical comedy about two men who create fictitious personas to escape their social obligations. Wilde''s masterpiece of wit and satire skewering Victorian society and its hypocrisies.', 11.84, 'BOOK-844', 38, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'Oscar Wilde', 31000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Romeo and Juliet', 'The tragic love story of two young star-crossed lovers whose deaths ultimately reconcile their feuding families.', 11.11, 'BOOK-1513', 45, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 38000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Hamlet', 'A tragedy about Prince Hamlet''s quest to avenge his father''s murder by his uncle, who has married Hamlet''s mother and seized the throne.', 11.35, 'BOOK-1524', 52, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 42000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Macbeth', 'A Scottish general receives a prophecy that he will become king, leading him down a path of murder and madness. A tragedy about ambition, guilt, and the supernatural.', 11.65, 'BOOK-1533', 59, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 36000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('A Midsummer Night''s Dream', 'A comedy about love, magic, and mischief in an enchanted forest, involving four young lovers and a troupe of amateur actors.', 11.23, 'BOOK-1514', 66, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Othello', 'A Moorish general in the Venetian army is manipulated into believing his wife is unfaithful. A tragedy of jealousy, manipulation, and betrayal.', 11.42, 'BOOK-1531', 73, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 26000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Tempest', 'A sorcerer stranded on an island uses magic to bring his enemies to justice. A story of magic, betrayal, forgiveness, and redemption.', 11.32, 'BOOK-1540', 80, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 22000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('King Lear', 'An aging king divides his kingdom among his daughters based on their flattery, with tragic consequences. A profound exploration of family, madness, and mortality.', 11.61, 'BOOK-1532', 87, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 24000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Julius Caesar', 'The conspiracy against and assassination of Julius Caesar, and its aftermath. A political tragedy exploring power, honor, and betrayal.', 11.34, 'BOOK-1522', 94, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 25000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Merchant of Venice', 'A merchant borrows money from a Jewish moneylender to help his friend woo a wealthy heiress. A complex play about justice, mercy, and prejudice.', 11.43, 'BOOK-1515', 10, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 21000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Much Ado About Nothing', 'Two couples navigate love and deception in Messina. A witty romantic comedy featuring the sparring lovers Beatrice and Benedick.', 11.27, 'BOOK-1519', 17, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Twelfth Night', 'A shipwrecked woman disguises herself as a man, leading to romantic complications. A festive comedy of mistaken identity and unrequited love.', 11.40, 'BOOK-1526', 24, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 17000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('As You Like It', 'Rosalind, banished to the Forest of Arden, disguises herself as a man and encounters her love. A pastoral comedy celebrating love and nature.', 11.40, 'BOOK-1523', 31, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Taming of the Shrew', 'Petruchio attempts to tame the headstrong Katherina. A controversial comedy about gender, marriage, and power.', 11.09, 'BOOK-1508', 38, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Richard III', 'The villainous Richard plots his way to the English throne. A historical tragedy featuring one of Shakespeare''s most memorable villains.', 11.35, 'BOOK-1503', 45, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Henry V', 'The young King Henry V leads England to victory at Agincourt. A stirring historical drama about leadership, war, and national identity.', 11.34, 'BOOK-1521', 52, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'William Shakespeare', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Antigone', 'A young woman defies the king''s order and buries her brother, facing death as punishment. A Greek tragedy about duty, honor, and civil disobedience.', 11.47, 'BOOK-31', 59, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'Sophocles', 19000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Oedipus Rex', 'A king discovers he has unknowingly killed his father and married his mother. The archetypal Greek tragedy about fate and the consequences of hubris.', 11.48, 'BOOK-27673', 66, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'Sophocles', 21000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('A Doll''s House', 'Nora Helmer discovers the hollowness of her marriage and makes a radical choice. A groundbreaking play about marriage, identity, and women''s rights.', 11.47, 'BOOK-2542', 73, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'Henrik Ibsen', 17000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Cherry Orchard', 'An aristocratic family faces the loss of their beloved estate. Chekhov''s final play, a tragicomedy about change, memory, and the passing of an era.', 11.46, 'BOOK-7986', 80, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'Anton Chekhov', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Faust', 'A scholar makes a pact with the devil in exchange for unlimited knowledge and worldly pleasures. Germany''s most famous literary work.', 11.32, 'BOOK-14591', 87, (SELECT id FROM categories WHERE name = 'Drama'), 'active', 'Johann Wolfgang von Goethe', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Leaves of Grass', 'A collection of poetry celebrating nature, democracy, the human body, and the American spirit. One of the most influential works in American literature.', 11.51, 'BOOK-1322', 94, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Walt Whitman', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Divine Comedy', 'An epic poem describing Dante''s journey through Hell, Purgatory, and Paradise, guided by Virgil and Beatrice. One of the greatest works of world literature.', 11.55, 'BOOK-8800', 10, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Dante Alighieri', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Paradise Lost', 'An epic poem about the Fall of Man, the temptation of Adam and Eve, and their expulsion from the Garden of Eden. A masterpiece of English literature.', 11.48, 'BOOK-20', 17, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'John Milton', 19000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Raven and Other Poems', 'A collection including the famous narrative poem of a talking raven''s mysterious visit to a distraught lover. Poe''s most celebrated poetry.', 11.38, 'BOOK-17192', 24, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Edgar Allan Poe', 22000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Beowulf', 'An Old English epic poem about the hero Beowulf and his battles against monsters and a dragon. The oldest surviving long poem in English.', 11.36, 'BOOK-16328', 31, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Unknown', 17000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Songs of Innocence and Experience', 'A collection of poems showing two contrary states of the human soul. Blake''s illuminated poetry exploring childhood, society, and spirituality.', 11.42, 'BOOK-1934', 38, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'William Blake', 11000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Canterbury Tales', 'A collection of stories told by pilgrims on their way to Canterbury. A vivid portrait of medieval English society in all its variety.', 11.32, 'BOOK-2383', 45, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Geoffrey Chaucer', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Sonnets', '154 sonnets exploring themes of love, beauty, mortality, and time. Some of the most famous love poetry in the English language.', 11.26, 'BOOK-1041', 52, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'William Shakespeare', 20000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Complete Poems of Emily Dickinson', 'The collected works of one of America''s greatest poets, exploring death, immortality, nature, and the inner life.', 11.12, 'BOOK-12242', 59, (SELECT id FROM categories WHERE name = 'Poetry'), 'active', 'Emily Dickinson', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Prince', 'A political treatise on acquiring and maintaining political power. Famous for its pragmatic and sometimes ruthless advice, giving rise to the term ''Machiavellian.''', 11.62, 'BOOK-1232', 66, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Niccolò Machiavelli', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Republic', 'A Socratic dialogue concerning justice, the order and character of the just city-state, and the just man. One of the most influential works in philosophy and political theory.', 11.74, 'BOOK-1497', 73, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Plato', 24000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Meditations', 'Personal writings of the Roman Emperor on Stoic philosophy. A timeless guide to self-improvement and living a virtuous life.', 11.23, 'BOOK-2680', 80, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Marcus Aurelius', 32000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Social Contract', 'A treatise on political philosophy arguing that legitimate political authority must be based on a social contract. Foundational to modern political thought.', 11.55, 'BOOK-46333', 87, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Jean-Jacques Rousseau', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Beyond Good and Evil', 'A critique of traditional morality and philosophy, introducing concepts like the ''will to power.'' One of Nietzsche''s most important works.', 11.37, 'BOOK-4363', 94, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Friedrich Nietzsche', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Thus Spoke Zarathustra', 'A philosophical novel about the prophet Zarathustra, introducing the concepts of the Übermensch and eternal recurrence.', 11.19, 'BOOK-1998', 10, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Friedrich Nietzsche', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Critique of Pure Reason', 'A foundational work in modern philosophy examining the limits and possibilities of human knowledge. One of the most influential philosophical works ever written.', 11.60, 'BOOK-4280', 17, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Immanuel Kant', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Discourse on Method', 'A philosophical and autobiographical treatise introducing Descartes'' method of systematic doubt. Contains the famous ''I think, therefore I am.''', 11.42, 'BOOK-59', 24, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'René Descartes', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Leviathan', 'A work of political philosophy on the structure of society and legitimate government. Argues for a social contract and rule by an absolute sovereign.', 11.48, 'BOOK-3207', 31, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Thomas Hobbes', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Nicomachean Ethics', 'Aristotle''s best-known work on ethics, exploring virtue, happiness, and the good life. Foundational to Western moral philosophy.', 11.27, 'BOOK-8438', 38, (SELECT id FROM categories WHERE name = 'Philosophy'), 'active', 'Aristotle', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Federalist Papers', 'Essays promoting the ratification of the US Constitution. Essential reading for understanding American government and political philosophy.', 11.38, 'BOOK-1404', 45, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Hamilton, Madison, Jay', 19000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Common Sense', 'A pamphlet advocating independence from Great Britain. One of the most influential documents in American history.', 11.12, 'BOOK-147', 52, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Thomas Paine', 21000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Rights of Man', 'A defense of the French Revolution and human rights against Edmund Burke''s criticisms. A foundational text of liberal democracy.', 11.27, 'BOOK-3742', 59, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Thomas Paine', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('On Liberty', 'An essay on the nature and limits of state power over the individual. A classic defense of individual freedom and free speech.', 11.25, 'BOOK-34901', 66, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'John Stuart Mill', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Wealth of Nations', 'A foundational work on economics and free market capitalism. Introduced concepts like the ''invisible hand'' and division of labor.', 11.28, 'BOOK-3300', 73, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Adam Smith', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Democracy in America', 'An analysis of American democracy and its strengths and weaknesses. One of the most insightful studies of American society.', 11.22, 'BOOK-815', 80, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Alexis de Tocqueville', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Second Treatise of Government', 'A work on natural rights and the social contract. Foundational to liberal political philosophy and the American founding.', 11.20, 'BOOK-7370', 87, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'John Locke', 13000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Utopia', 'A work of fiction describing an ideal society on an island. Coined the term ''utopia'' and influenced political thought for centuries.', 11.31, 'BOOK-2130', 94, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Thomas More', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Walden', 'A reflection upon simple living in natural surroundings, based on Thoreau''s two-year experiment living in a cabin near Walden Pond. A foundational text of American transcendentalism.', 11.81, 'BOOK-205', 10, (SELECT id FROM categories WHERE name = 'Non-Fiction'), 'active', 'Henry David Thoreau', 23000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Communist Manifesto', 'A political pamphlet outlining the theory of Communism and the class struggle between the bourgeoisie and proletariat. One of the most influential political documents in history.', 11.77, 'BOOK-61', 17, (SELECT id FROM categories WHERE name = 'Political Science'), 'active', 'Karl Marx and Friedrich Engels', 26000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Art of War', 'An ancient Chinese military treatise on strategy and tactics. Its principles have been applied to business, sports, and diplomacy, making it one of the most influential strategy texts.', 11.83, 'BOOK-132', 24, (SELECT id FROM categories WHERE name = 'Non-Fiction'), 'active', 'Sun Tzu', 35000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Souls of Black Folk', 'A seminal work in African American literature exploring the history and condition of Black Americans. Introduced the concept of ''double consciousness.''', 11.50, 'BOOK-408', 31, (SELECT id FROM categories WHERE name = 'Non-Fiction'), 'active', 'W. E. B. Du Bois', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Civil Disobedience', 'An essay arguing that individuals should not permit governments to overrule their consciences. Influenced Gandhi, Martin Luther King Jr., and others.', 11.48, 'BOOK-71', 38, (SELECT id FROM categories WHERE name = 'Non-Fiction'), 'active', 'Henry David Thoreau', 17000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('On the Origin of Species', 'The foundational work of evolutionary biology, introducing the scientific theory that populations evolve through natural selection. One of the most influential books in scientific history.', 11.87, 'BOOK-1228', 45, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Charles Darwin', 28000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Descent of Man', 'Darwin''s second major work on evolutionary theory, applying evolution to human origins and discussing sexual selection.', 11.18, 'BOOK-2300', 52, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Charles Darwin', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Principia Mathematica', 'Newton''s masterwork laying the foundations of classical mechanics, including his laws of motion and universal gravitation.', 11.21, 'BOOK-28233', 59, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Isaac Newton', 15000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Voyage of the Beagle', 'Darwin''s journal of his five-year voyage around the world, documenting the observations that led to his theory of evolution.', 11.23, 'BOOK-944', 66, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Charles Darwin', 14000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Relativity: The Special and General Theory', 'Einstein''s own explanation of his revolutionary theories of special and general relativity, written for a general audience.', 11.22, 'BOOK-5001', 73, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Albert Einstein', 22000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Elements', 'The foundational textbook of geometry and mathematics, used for over two thousand years. One of the most influential works in the history of mathematics.', 11.52, 'BOOK-21076', 80, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Euclid', 11000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Dialogue Concerning the Two Chief World Systems', 'Galileo''s comparison of the Copernican and Ptolemaic systems, a landmark work in the history of science.', 11.03, 'BOOK-46036', 87, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Galileo Galilei', 9000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Interpretation of Dreams', 'Freud''s groundbreaking work introducing his theory of the unconscious and dream analysis. A foundational text in psychology.', 11.23, 'BOOK-38219', 94, (SELECT id FROM categories WHERE name = 'Science'), 'active', 'Sigmund Freud', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The History of the Decline and Fall of the Roman Empire', 'A comprehensive history of the Roman Empire from its height to its fall. One of the greatest historical works ever written.', 11.22, 'BOOK-25717', 10, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Edward Gibbon', 11000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Histories', 'Ancient Greek historical accounts of the Greco-Persian Wars. The first great work of history in Western literature.', 11.14, 'BOOK-2707', 17, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Herodotus', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Peloponnesian War', 'A historical account of the war between Athens and Sparta. A masterpiece of historical analysis and political realism.', 11.17, 'BOOK-7142', 24, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Thucydides', 10000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Gallic Wars', 'Caesar''s firsthand account of his military campaigns in Gaul. A classic of military history and Latin prose.', 11.07, 'BOOK-10657', 31, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Julius Caesar', 9000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('The Autobiography of Benjamin Franklin', 'The life story of one of America''s Founding Fathers. A classic American autobiography full of wit and wisdom.', 11.08, 'BOOK-20203', 38, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Benjamin Franklin', 16000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Narrative of the Life of Frederick Douglass', 'An autobiography of the famous abolitionist and former slave. A powerful firsthand account of slavery in America.', 11.12, 'BOOK-23', 45, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Frederick Douglass', 18000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
+    INSERT INTO products (name, description, price, sku, stock_quantity, category_id, status, author, popularity_score)
+    VALUES ('Up From Slavery', 'An autobiography of an African American educator and leader. A story of determination and achievement against tremendous odds.', 11.25, 'BOOK-2376', 52, (SELECT id FROM categories WHERE name = 'History'), 'active', 'Booker T. Washington', 12000)
+    ON CONFLICT (sku) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price = EXCLUDED.price,
+        stock_quantity = EXCLUDED.stock_quantity,
+        category_id = EXCLUDED.category_id,
+        author = EXCLUDED.author,
+        popularity_score = EXCLUDED.popularity_score;
+
 kind: ConfigMap
 metadata:
+  creationTimestamp: null
   name: migrations-configmap
   namespace: bookstore
-data:
-  # This ConfigMap is auto-generated. Do not edit manually.
-  # To regenerate, run from the project root:
-  # kubectl create configmap migrations-configmap --from-file=migrations/001_schema.sql --from-file=migrations/002_seed_books.sql -n bookstore --dry-run=client -o yaml > kubernetes/migrations-configmap.yaml
-  #
-  # Note: The migrations are also included in the Docker image at /app/migrations/
-  # This ConfigMap provides an alternative way to mount migrations for init jobs.
