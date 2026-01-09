@@ -1,3 +1,10 @@
+# Ingress resource for the Bookstore application
+# The hostname is dynamically set based on the namespace:
+#   - bookstore namespace -> bookstore.corp.vmbeans.com
+#   - bookstore-test namespace -> bookstore-test.corp.vmbeans.com
+#
+# Requires: NGINX Ingress Controller installed (see ingress-nginx.yaml)
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,10 +13,13 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
 spec:
   ingressClassName: nginx
   rules:
-    - host: bookstore.corp.vmbeans.com
+    - host: {{INGRESS_HOST}}
       http:
         paths:
           - path: /
@@ -19,4 +29,3 @@ spec:
                 name: app-service
                 port:
                   number: 80
-

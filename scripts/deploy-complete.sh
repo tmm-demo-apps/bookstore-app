@@ -27,6 +27,13 @@ POSTGRES_TAG="14-alpine"
 REDIS_TAG="7-alpine"
 ELASTICSEARCH_TAG="8.11.0"
 MINIO_TAG="latest"
+
+# NGINX Ingress Controller versions
+NGINX_INGRESS_TAG="v1.9.4"
+NGINX_WEBHOOK_TAG="v1.3.0"
+
+# Domain for ingress hostnames (namespace.DOMAIN)
+INGRESS_DOMAIN="corp.vmbeans.com"
 # ============================================================================
 
 # Show help if requested
@@ -67,6 +74,7 @@ if [ "$NO_PROMPT" = false ]; then
     echo "  Harbor URL:      ${HARBOR_URL}"
     echo "  Harbor Project:  ${HARBOR_PROJECT}"
     echo "  K8s Namespace:   ${K8S_NAMESPACE}"
+    echo "  Ingress Host:    ${K8S_NAMESPACE}.${INGRESS_DOMAIN}"
     echo ""
     echo "  Infrastructure Images:"
     echo "    Postgres:      ${HARBOR_URL}/library/postgres:${POSTGRES_TAG}"
@@ -112,11 +120,19 @@ if [ "$NO_PROMPT" = false ]; then
     fi
 fi
 
+# Recalculate INGRESS_HOST in case namespace was changed interactively
+INGRESS_HOST="${K8S_NAMESPACE}.${INGRESS_DOMAIN}"
+
 # Build full image paths from configuration
 POSTGRES_IMAGE="${HARBOR_URL}/library/postgres:${POSTGRES_TAG}"
 REDIS_IMAGE="${HARBOR_URL}/library/redis:${REDIS_TAG}"
 ELASTICSEARCH_IMAGE="${HARBOR_URL}/library/elasticsearch:${ELASTICSEARCH_TAG}"
 MINIO_IMAGE="${HARBOR_URL}/library/minio/minio:${MINIO_TAG}"
+NGINX_INGRESS_IMAGE="${HARBOR_URL}/library/ingress-nginx/controller:${NGINX_INGRESS_TAG}"
+NGINX_WEBHOOK_IMAGE="${HARBOR_URL}/library/ingress-nginx/kube-webhook-certgen:${NGINX_WEBHOOK_TAG}"
+
+# Build ingress hostname from namespace and domain
+INGRESS_HOST="${K8S_NAMESPACE}.${INGRESS_DOMAIN}"
 
 # Function to get available tags from Harbor
 get_harbor_tags() {
@@ -142,8 +158,59 @@ apply_with_images() {
         -e "s|{{REDIS_IMAGE}}|${REDIS_IMAGE}|g" \
         -e "s|{{ELASTICSEARCH_IMAGE}}|${ELASTICSEARCH_IMAGE}|g" \
         -e "s|{{MINIO_IMAGE}}|${MINIO_IMAGE}|g" \
+        -e "s|{{NGINX_INGRESS_IMAGE}}|${NGINX_INGRESS_IMAGE}|g" \
+        -e "s|{{NGINX_WEBHOOK_IMAGE}}|${NGINX_WEBHOOK_IMAGE}|g" \
         -e "s|{{NAMESPACE}}|${K8S_NAMESPACE}|g" \
+        -e "s|{{INGRESS_HOST}}|${INGRESS_HOST}|g" \
         "$file" | kubectl apply -f -
+}
+
+# Function to check if NGINX Ingress Controller is installed
+check_ingress_controller() {
+    if kubectl get namespace ingress-nginx &>/dev/null && \
+       kubectl get deployment ingress-nginx-controller -n ingress-nginx &>/dev/null; then
+        return 0  # Installed
+    else
+        return 1  # Not installed
+    fi
+}
+
+# Function to install NGINX Ingress Controller
+install_ingress_controller() {
+    echo ""
+    echo "📦 Installing NGINX Ingress Controller..."
+    echo "   Using images from Harbor:"
+    echo "   - Controller: ${NGINX_INGRESS_IMAGE}"
+    echo "   - Webhook: ${NGINX_WEBHOOK_IMAGE}"
+    echo ""
+    
+    # Apply the ingress-nginx manifest with image substitution
+    apply_with_images kubernetes/ingress-nginx.yaml
+    
+    echo ""
+    echo "⏳ Waiting for NGINX Ingress Controller to be ready..."
+    kubectl wait --for=condition=Available deployment/ingress-nginx-controller -n ingress-nginx --timeout=300s
+    
+    echo ""
+    echo "⏳ Waiting for LoadBalancer IP assignment..."
+    local retries=30
+    local lb_ip=""
+    while [ $retries -gt 0 ]; do
+        lb_ip=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        if [ -n "$lb_ip" ]; then
+            echo "✅ NGINX Ingress Controller ready!"
+            echo "   LoadBalancer IP: $lb_ip"
+            break
+        fi
+        echo "   Waiting for LoadBalancer IP... ($retries attempts remaining)"
+        sleep 10
+        retries=$((retries - 1))
+    done
+    
+    if [ -z "$lb_ip" ]; then
+        echo "⚠️  LoadBalancer IP not yet assigned. It may take a few more minutes."
+        echo "   Check with: kubectl get svc -n ingress-nginx ingress-nginx-controller"
+    fi
 }
 
 # Parse command line arguments
@@ -363,15 +430,43 @@ kubectl wait --for=condition=complete job/init-database -n ${K8S_NAMESPACE} --ti
 
 echo "✅ Database initialized!"
 
-# Step 5: Deploy ingress
+# Step 5: Ensure NGINX Ingress Controller is installed
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 5: Deploying Ingress"
+echo "Step 5: Checking NGINX Ingress Controller"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if check_ingress_controller; then
+    echo "✅ NGINX Ingress Controller already installed"
+    INGRESS_LB_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+    echo "   LoadBalancer IP: $INGRESS_LB_IP"
+else
+    echo "⚠️  NGINX Ingress Controller not found"
+    if [ "$NO_PROMPT" = true ]; then
+        echo "   Installing automatically (--no-prompt mode)..."
+        install_ingress_controller
+    else
+        read -p "   Install NGINX Ingress Controller? (Y/n): " INSTALL_INGRESS
+        if [[ ! "$INSTALL_INGRESS" =~ ^[Nn]$ ]]; then
+            install_ingress_controller
+        else
+            echo "   Skipping ingress controller installation."
+            echo "   ⚠️  Ingress will not work without an ingress controller!"
+        fi
+    fi
+fi
+
+# Step 6: Deploy application ingress
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Step 6: Deploying Application Ingress"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Hostname: ${INGRESS_HOST}"
+echo ""
 apply_with_images kubernetes/ingress.yaml
 
 # Get ingress info
-INGRESS_IP=$(kubectl get ingress bookstore-ingress -n ${K8S_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+INGRESS_LB_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════════════════════╗"
@@ -381,15 +476,20 @@ echo ""
 echo "📊 Deployment Summary:"
 echo "  - Version: $VERSION"
 echo "  - Namespace: ${K8S_NAMESPACE}"
-echo "  - Ingress IP: $INGRESS_IP"
+echo "  - Ingress Host: ${INGRESS_HOST}"
+echo "  - LoadBalancer IP: $INGRESS_LB_IP"
 echo ""
 echo "🌐 Access your application:"
-echo "  - http://${K8S_NAMESPACE}.corp.vmbeans.com"
-echo "  - http://$INGRESS_IP"
+echo "  - http://${INGRESS_HOST}"
+echo "  - http://$INGRESS_LB_IP (direct IP access)"
+echo ""
+echo "📝 DNS Configuration:"
+echo "  Add this DNS record: ${INGRESS_HOST} -> $INGRESS_LB_IP"
 echo ""
 echo "📊 Check status:"
 echo "  kubectl get pods -n ${K8S_NAMESPACE}"
 echo "  kubectl get svc -n ${K8S_NAMESPACE}"
 echo "  kubectl get ingress -n ${K8S_NAMESPACE}"
+echo "  kubectl get svc -n ingress-nginx"
 echo ""
 
