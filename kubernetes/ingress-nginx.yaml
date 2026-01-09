@@ -404,7 +404,7 @@ spec:
       containers:
         - name: create
           # Using Harbor mirror - update tag as needed
-          # Original: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.7
+          # Original: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.5
           image: {{NGINX_WEBHOOK_IMAGE}}
           imagePullPolicy: IfNotPresent
           args:
@@ -449,7 +449,7 @@ spec:
       containers:
         - name: patch
           # Using Harbor mirror - update tag as needed
-          # Original: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.7
+          # Original: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.5
           image: {{NGINX_WEBHOOK_IMAGE}}
           imagePullPolicy: IfNotPresent
           args:

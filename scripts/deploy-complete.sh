@@ -31,7 +31,7 @@ MINIO_TAG="latest"
 # NGINX Ingress Controller versions (kubernetes/ingress-nginx)
 # Check latest at: https://github.com/kubernetes/ingress-nginx/releases
 NGINX_INGRESS_TAG="v1.14.1"
-NGINX_WEBHOOK_TAG="v1.4.7"
+NGINX_WEBHOOK_TAG="v1.6.5"
 
 # Domain for ingress hostnames (namespace.DOMAIN)
 INGRESS_DOMAIN="corp.vmbeans.com"
