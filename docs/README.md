@@ -2,86 +2,94 @@
 
 ## 🚀 Getting Started
 
-### New to the Project?
-Start here in order:
+### Quick Start
+The bookstore application is deployed using a single command:
 
-1. **[START-HERE.md](START-HERE.md)** - Quick 3-step deployment guide
-2. **[DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)** - Local development & K8s workflow
-3. **[REMOTE-VM-DEPLOYMENT.md](REMOTE-VM-DEPLOYMENT.md)** - Remote VM deployment guide
+```bash
+# Deploy to Kubernetes (from remote VM)
+./scripts/deploy-complete.sh v1.1.0 bookstore
+
+# Deploy to test namespace
+./scripts/deploy-complete.sh v1.1.0 bookstore-test
+```
+
+This handles everything: Harbor image build/push, NGINX Ingress auto-install, database migrations, seeding, and application deployment.
+
+### Local Development
+```bash
+# Start local environment
+./local-dev.sh start
+
+# Run tests
+./local-dev.sh test
+
+# Stop
+./local-dev.sh stop
+```
 
 ## 📖 Documentation by Category
 
-### Local Development
-- **[DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)** - Complete local development guide
-  - Docker Compose setup
-  - Testing workflow
-  - Troubleshooting
+### Core Guides
+| Document | Purpose |
+|----------|---------|
+| [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) | Local development with Docker Compose |
+| [HARBOR-SETUP.md](HARBOR-SETUP.md) | Harbor registry configuration |
+| [GRACEFUL-STARTUP.md](GRACEFUL-STARTUP.md) | Health checks and retry logic |
 
-### Deployment Guides
-- **[START-HERE.md](START-HERE.md)** - Quick start (3 steps)
-- **[REMOTE-VM-DEPLOYMENT.md](REMOTE-VM-DEPLOYMENT.md)** - Remote VM workflow
-- **[DEPLOYMENT-PLAN.md](DEPLOYMENT-PLAN.md)** - Complete Kubernetes deployment
-- **[DEPLOYMENT-SUMMARY.md](DEPLOYMENT-SUMMARY.md)** - What's included & ready
-- **[PRE-PUSH-CHECKLIST.md](PRE-PUSH-CHECKLIST.md)** - Pre-deployment verification
+### VCF 9.1 Features
+| Document | Purpose |
+|----------|---------|
+| [DUAL-NETWORK-VKS-DEMO.md](DUAL-NETWORK-VKS-DEMO.md) | Dual-NIC VKS cluster demo plan |
 
-### Harbor Registry
-- **[HARBOR-QUICKSTART.md](HARBOR-QUICKSTART.md)** - Quick reference
-- **[HARBOR-SETUP.md](HARBOR-SETUP.md)** - Detailed setup guide
-- **[HARBOR-CHECKLIST.md](HARBOR-CHECKLIST.md)** - Step-by-step checklist
+### Future Features (Phase 2+)
+| Document | Purpose |
+|----------|---------|
+| [ADMIN-CONSOLE-PLAN.md](ADMIN-CONSOLE-PLAN.md) | Admin dashboard implementation plan |
+| [AI-ASSISTANT-PLAN.md](AI-ASSISTANT-PLAN.md) | AI chat bot microservice plan |
 
-### Architecture & Planning
-- **[architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)** - System architecture
-- **[ADMIN-CONSOLE-PLAN.md](ADMIN-CONSOLE-PLAN.md)** - Admin console (Phase 2)
-- **[AI-ASSISTANT-PLAN.md](AI-ASSISTANT-PLAN.md)** - AI assistant (Phase 2)
-- **[GRACEFUL-STARTUP.md](GRACEFUL-STARTUP.md)** - Graceful startup implementation
+### Architecture
+| Document | Purpose |
+|----------|---------|
+| [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | System architecture overview |
 
-## 🎯 Quick Links by Task
+## 📊 Current Deployment
 
-### I want to...
+### Clusters
+- **Production (vks-04)**: `http://bookstore.corp.vmbeans.com` (32.32.0.16)
+- **Test (vks-03)**: `http://bookstore-test.corp.vmbeans.com` (32.32.0.17)
 
-**Test locally**
-→ [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)
+### Services
+- **PostgreSQL**: StatefulSet with vSAN storage (10Gi)
+- **Redis**: Session management and caching (5Gi)
+- **Elasticsearch**: Full-text search (10Gi)
+- **MinIO**: Object storage for images (20Gi)
+- **Application**: 3 replicas with HPA
+- **NGINX Ingress**: Auto-installed per cluster
 
-**Deploy to Kubernetes**
-→ [START-HERE.md](START-HERE.md) → [REMOTE-VM-DEPLOYMENT.md](REMOTE-VM-DEPLOYMENT.md)
-
-**Set up Harbor registry**
-→ [HARBOR-QUICKSTART.md](HARBOR-QUICKSTART.md) → [HARBOR-SETUP.md](HARBOR-SETUP.md)
-
-**Understand the architecture**
-→ [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)
-
-**See what's next**
-→ [ADMIN-CONSOLE-PLAN.md](ADMIN-CONSOLE-PLAN.md) + [AI-ASSISTANT-PLAN.md](AI-ASSISTANT-PLAN.md)
-
-## 📊 Documentation Overview
-
+### Key Files
 ```
-docs/
-├── START-HERE.md                    ← Start here for deployment
-├── DEVELOPMENT-WORKFLOW.md          ← Local development guide
-├── REMOTE-VM-DEPLOYMENT.md          ← Remote VM deployment
-├── DEPLOYMENT-PLAN.md               ← Complete K8s deployment
-├── DEPLOYMENT-SUMMARY.md            ← What's included
-├── PRE-PUSH-CHECKLIST.md            ← Pre-deployment check
-├── HARBOR-QUICKSTART.md             ← Harbor quick reference
-├── HARBOR-SETUP.md                  ← Harbor detailed guide
-├── HARBOR-CHECKLIST.md              ← Harbor step-by-step
-├── ADMIN-CONSOLE-PLAN.md            ← Admin feature plan
-├── AI-ASSISTANT-PLAN.md             ← AI assistant plan
-├── GRACEFUL-STARTUP.md              ← Startup implementation
-└── architecture/
-    └── ARCHITECTURE.md              ← System architecture
+scripts/
+├── deploy-complete.sh          # One-command deployment
+├── harbor-remote-setup.sh      # Harbor integration
+└── k8s-diagnose.sh             # Troubleshooting
+
+kubernetes/
+├── ingress-nginx.yaml          # NGINX Ingress Controller
+├── ingress.yaml                # Application ingress
+├── init-db-job.yaml            # Automated migrations + seeding
+├── app.yaml                    # Application deployment
+├── postgres.yaml               # PostgreSQL
+├── redis.yaml                  # Redis
+├── elasticsearch.yaml          # Elasticsearch
+└── minio.yaml                  # MinIO
 ```
 
 ## 🔗 External Resources
 
 - **Main README**: [../README.md](../README.md)
 - **Kubernetes Manifests**: [../kubernetes/README.md](../kubernetes/README.md)
-- **Scripts**: [../scripts/README.md](../scripts/README.md)
-- **Tests**: [../tests/README.md](../tests/README.md)
+- **Personal Dev Notes**: `../dev_docs/` (not in git)
 
 ---
 
-**Need help?** Start with [START-HERE.md](START-HERE.md) or [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)
-
+**Last Updated**: January 9, 2026

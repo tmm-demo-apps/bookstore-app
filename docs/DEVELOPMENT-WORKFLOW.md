@@ -1,11 +1,13 @@
 # Development Workflow Guide
 
+**Last Updated**: January 9, 2026
+
 ## Overview
 
 This guide explains how to work with the application in **two environments**:
 
 1. **Local Development** - Docker Compose on your machine (for testing)
-2. **Production Deployment** - Kubernetes cluster via remote VM (for deployment)
+2. **Production Deployment** - Kubernetes cluster via `deploy-complete.sh`
 
 ---
 
@@ -167,10 +169,18 @@ go fmt ./...
 #### Step 2: Push to GitHub
 
 ```bash
+# Create feature branch
+git checkout -b feature/your-feature-name
+
 # Commit changes
 git add -A
 git commit -m "feat: your changes"
-git push origin main
+
+# Push branch and create PR
+git push origin feature/your-feature-name
+
+# Then create a Pull Request on GitHub for review
+# After approval, merge to main
 ```
 
 #### Step 3: Deploy from Remote VM
@@ -184,21 +194,22 @@ git clone https://github.com/johnnyr0x/bookstore-app.git
 # OR
 cd bookstore-app && git pull
 
-# Build and push to Harbor
-./scripts/harbor-remote-setup.sh v1.0.1
+# One-command deployment (handles everything)
+./scripts/deploy-complete.sh v1.1.0 bookstore
 
-# Deploy to Kubernetes
-kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f kubernetes/configmap.yaml
-kubectl apply -f kubernetes/postgres.yaml
-kubectl apply -f kubernetes/redis.yaml
-kubectl apply -f kubernetes/elasticsearch.yaml
-kubectl apply -f kubernetes/minio.yaml
-kubectl apply -f kubernetes/app.yaml
+# Or deploy to test namespace
+./scripts/deploy-complete.sh v1.1.0 bookstore-test
 
 # Verify
 kubectl get pods -n bookstore -w
 ```
+
+The `deploy-complete.sh` script handles:
+- Harbor login, image build, and push
+- NGINX Ingress Controller installation (if missing)
+- Database migrations and seeding
+- All Kubernetes manifests
+- Dynamic hostname based on namespace
 
 ---
 
@@ -217,10 +228,12 @@ kubectl get pods -n bookstore -w
 ./local-dev.sh restart
 ./local-dev.sh test
 
-# 4. Commit and push
+# 4. Create branch, commit and push
+git checkout -b feature/your-feature
 git add -A
 git commit -m "feat: your feature"
-git push origin main
+git push origin feature/your-feature
+# Create PR on GitHub, get review, merge to main
 
 # 5. Deploy to K8s (from remote VM)
 ssh devops@cli-vm
@@ -364,10 +377,12 @@ curl http://localhost:8080/health
 ### Production Deployment
 
 ```bash
-# On remote VM
-./scripts/harbor-remote-setup.sh v1.0.0    # Build & push
-kubectl apply -f kubernetes/               # Deploy
-kubectl get pods -n bookstore -w           # Monitor
+# On remote VM - one command does everything
+./scripts/deploy-complete.sh v1.1.0 bookstore
+
+# Check status
+kubectl get pods -n bookstore -w
+kubectl get ingress -n bookstore
 ```
 
 ### Testing
@@ -386,9 +401,9 @@ docker compose exec redis redis-cli PING
 
 ## 🔗 Related Documentation
 
-- **local-dev.sh** - Local development manager (this workflow)
-- **START-HERE.md** - Quick start for deployment
-- **REMOTE-VM-DEPLOYMENT.md** - Complete K8s deployment guide
+- **local-dev.sh** - Local development manager
+- **deploy-complete.sh** - One-command Kubernetes deployment
+- **HARBOR-SETUP.md** - Harbor registry details
 - **tests/smoke.sh** - Smoke test suite
 
 ---

@@ -1,79 +1,61 @@
 # Scripts Documentation
 
+**Last Updated**: January 9, 2026
+
 This directory contains utility scripts for managing the DemoApp.
 
-## seed-images.go
+## Deployment Scripts
 
-Generates and uploads product images to MinIO storage.
+### deploy-complete.sh (Primary)
 
-### Features
+**One-command Kubernetes deployment** that handles everything:
 
-- **Smart Caching**: Only generates/uploads images that don't already exist in MinIO
-- **Gutenberg Integration**: Attempts to download real book covers from Project Gutenberg for books with `BOOK-*` SKUs
-- **Fallback Generation**: Creates colored placeholder images with title and author text for books without real covers
-- **TrueType Font Rendering**: Uses high-quality font rendering for readable text on generated images
-
-### Usage
-
-**Normal mode** (skip existing images):
 ```bash
-go run scripts/seed-images.go
+# Deploy to production namespace
+./scripts/deploy-complete.sh v1.1.0 bookstore
+
+# Deploy to test namespace
+./scripts/deploy-complete.sh v1.1.0 bookstore-test
 ```
 
-**Force mode** (regenerate all images):
+**What it does**:
+1. Logs into Harbor registry
+2. Builds and pushes Docker image
+3. Mirrors base images (postgres, redis, elasticsearch, minio) to Harbor
+4. Installs NGINX Ingress Controller if missing
+5. Creates Kubernetes namespace and secrets
+6. Deploys all infrastructure (postgres, redis, elasticsearch, minio)
+7. Runs init-db-job (migrations + seeding)
+8. Deploys application
+9. Configures ingress with dynamic hostname (`{namespace}.corp.vmbeans.com`)
+
+### harbor-remote-setup.sh
+
+Harbor integration script called by `deploy-complete.sh`. Can be run standalone for Harbor-only operations:
+
 ```bash
-go run scripts/seed-images.go -force
+./scripts/harbor-remote-setup.sh v1.1.0
 ```
 
-### Environment Variables
+### k8s-diagnose.sh
 
-- `MINIO_ENDPOINT` - MinIO server endpoint (default: `localhost:9000`)
-- `MINIO_ACCESS_KEY` - MinIO access key (default: `minioadmin`)
-- `MINIO_SECRET_KEY` - MinIO secret key (default: `minioadmin`)
-- `DB_USER` - Database user (default: `user`)
-- `DB_PASSWORD` - Database password (default: `password`)
-- `DB_HOST` - Database host (default: `localhost`)
-- `DB_NAME` - Database name (default: `bookstore`)
+Diagnose Kubernetes deployment issues:
 
-### Performance
-
-- **With caching** (existing images): ~2 seconds for 112 products
-- **Without caching** (regenerate all): ~30-40 seconds for 112 products
-
-### Generated Image Specifications
-
-- **Dimensions**: 400x600 pixels (book cover aspect ratio)
-- **Background**: HSL-based color generation (unique per product ID)
-- **Border**: 20px white border
-- **Title Font**: Go Bold, 32pt
-- **Author Font**: Go Bold, 24pt
-- **Text Color**: White
-- **Format**: PNG for generated images, JPEG for downloaded covers
-
-### How It Works
-
-1. Connects to database and MinIO
-2. Queries all products with their IDs, names, SKUs, and authors
-3. For each product:
-   - Checks if image already exists in MinIO (skips if found, unless `-force` flag is used)
-   - If SKU starts with `BOOK-`, attempts to download cover from Project Gutenberg
-   - If download fails or no SKU, generates a colored placeholder with text
-   - Uploads image to MinIO
-   - Updates product's `image_url` in database
-4. Reports statistics (uploaded, skipped)
-
-### Example Output
-
-```
-2025/12/19 14:43:05 Connected to MinIO
-2025/12/19 14:43:05 Connected to database
-2025/12/19 14:43:05 Image already exists for product 1: Sample Product 1, skipping
-2025/12/19 14:43:05 Image already exists for product 2: Sample Product 2, skipping
-...
-2025/12/19 14:43:05 Successfully seeded 0 product images (112 skipped, already exist)
+```bash
+./scripts/k8s-diagnose.sh
 ```
 
-## seed-gutenberg-books.go
+### k8s-reindex-elasticsearch.sh
+
+Reindex Elasticsearch after data changes:
+
+```bash
+./scripts/k8s-reindex-elasticsearch.sh
+```
+
+## Data Seeding Scripts
+
+### seed-gutenberg-books.go
 
 The **source of truth** for all book data (150 books). Seeds the database with books from Project Gutenberg's catalog including:
 - Title, author, description
@@ -81,34 +63,88 @@ The **source of truth** for all book data (150 books). Seeds the database with b
 - Stock quantity (varied 0-100, with specific demo values)
 - Popularity score (Gutenberg download counts for sorting)
 
-### Usage
+**Usage**:
 
-**Seed database directly:**
 ```bash
+# Seed database directly
 go run scripts/seed-gutenberg-books.go
-```
 
-**Generate SQL migration file:**
-```bash
+# Generate SQL migration file
 go run scripts/seed-gutenberg-books.go --generate-sql
 # Creates migrations/002_seed_books.sql
 ```
 
-## Deployment Scripts
+**Stock Quantity Rules** (per project rules):
+- Book #1 (first in list): `stock_quantity = 3` (Low Stock demo)
+- Book #5 (fifth in list): `stock_quantity = 0` (Out of Stock demo)
+- All other books: Varied between 10-100
 
-| Script | Purpose |
-|--------|---------|
-| `deploy-complete.sh` | Full K8s deployment orchestration (calls harbor-remote-setup.sh) |
-| `harbor-remote-setup.sh` | Build, push to Harbor, create K8s secrets, mirror base images |
-| `k8s-diagnose.sh` | Diagnose K8s deployment issues |
-| `k8s-reindex-elasticsearch.sh` | Reindex Elasticsearch after data changes |
-| `install-go-remote.sh` | Install Go on remote VM |
+### seed-images.go
+
+Generates and uploads product images to MinIO storage.
+
+**Features**:
+- **Smart Caching**: Only generates/uploads images that don't already exist in MinIO
+- **Gutenberg Integration**: Downloads real book covers from Project Gutenberg for books with `BOOK-*` SKUs
+- **Fallback Generation**: Creates colored placeholder images with title and author text
+- **TrueType Font Rendering**: High-quality font rendering for readable text
+
+**Usage**:
+
+```bash
+# Normal mode (skip existing images)
+go run scripts/seed-images.go
+
+# Force mode (regenerate all images)
+go run scripts/seed-images.go -force
+```
+
+**Environment Variables**:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MINIO_ENDPOINT` | `localhost:9000` | MinIO server endpoint |
+| `MINIO_ACCESS_KEY` | `minioadmin` | MinIO access key |
+| `MINIO_SECRET_KEY` | `minioadmin` | MinIO secret key |
+| `DB_USER` | `user` | Database user |
+| `DB_PASSWORD` | `password` | Database password |
+| `DB_HOST` | `localhost` | Database host |
+| `DB_NAME` | `bookstore` | Database name |
+
+**Performance**:
+- With caching (existing images): ~2 seconds for 150 products
+- Without caching (regenerate all): ~30-40 seconds for 150 products
+
+**Generated Image Specifications**:
+- Dimensions: 400x600 pixels (book cover aspect ratio)
+- Background: HSL-based color generation (unique per product ID)
+- Border: 20px white border
+- Title Font: Go Bold, 32pt
+- Author Font: Go Bold, 24pt
+- Text Color: White
+- Format: PNG for generated images, JPEG for downloaded covers
 
 ## bin/ Directory
 
-Contains pre-built Linux binaries for K8s deployment:
+Contains pre-built Linux binaries for Kubernetes deployment:
 - `seed-gutenberg-books` - Book seeding binary
 - `seed-images` - Image seeding binary
 
-These are built automatically by the Dockerfile during image creation.
+These are built automatically by the Dockerfile during image creation and used by the `init-db-job.yaml` Kubernetes Job.
 
+## Other Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `install-go-remote.sh` | Install Go on remote VM |
+| `build-seed-binaries.sh` | Build Linux binaries locally |
+
+## Script Summary
+
+| Script | When to Use |
+|--------|-------------|
+| `deploy-complete.sh` | Full deployment to Kubernetes |
+| `harbor-remote-setup.sh` | Harbor-only operations |
+| `k8s-diagnose.sh` | Troubleshooting K8s issues |
+| `k8s-reindex-elasticsearch.sh` | After manual data changes |
+| `seed-gutenberg-books.go` | Update book data or regenerate SQL |
+| `seed-images.go` | Regenerate product images |

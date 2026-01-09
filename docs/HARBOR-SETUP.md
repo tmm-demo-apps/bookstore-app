@@ -1,15 +1,30 @@
 # Harbor Registry Setup Guide
 
+**Last Updated**: January 9, 2026
+
 ## Overview
 
-This guide walks through setting up Harbor registry integration for the DemoApp bookstore application.
+This guide covers Harbor registry integration for the DemoApp bookstore application. Most Harbor operations are automated via `deploy-complete.sh`, but this document provides details for troubleshooting and manual operations.
+
+## Quick Reference
+
+```bash
+# Automated deployment (handles Harbor automatically)
+./scripts/deploy-complete.sh v1.1.0 bookstore
+
+# Manual Harbor login
+docker login harbor.corp.vmbeans.com
+
+# Check images in Harbor
+curl -k https://harbor.corp.vmbeans.com/api/v2.0/projects/bookstore/repositories
+```
 
 ## Prerequisites
 
-- ✅ Harbor registry accessible (URL and credentials)
-- ✅ Docker installed locally
+- ✅ Harbor registry accessible at `harbor.corp.vmbeans.com`
+- ✅ Docker installed on deployment machine
 - ✅ Kubernetes cluster with kubectl access
-- ✅ Application tested locally with `./test-smoke.sh`
+- ✅ CA certificate at `/etc/docker/certs.d/harbor.corp.vmbeans.com/ca.crt`
 
 ## Step 1: Harbor Project Setup
 
@@ -359,14 +374,23 @@ HARBOR_ROBOT_NAME   # Robot account username (e.g., robot$bookstore-ci)
 HARBOR_ROBOT_TOKEN  # Robot account token (JWT)
 ```
 
-## Next Steps
+## Automated Deployment
 
-After successfully pushing to Harbor:
+The `deploy-complete.sh` script handles all Harbor operations:
 
-1. ✅ **Deploy to Kubernetes** - See `DEPLOYMENT-PLAN.md`
-2. ✅ **Set up Argo CD** - GitOps workflow
-3. ✅ **Configure monitoring** - Prometheus/Grafana
-4. ✅ **Add admin console** - Phase 2 feature
+1. Logs into Harbor automatically
+2. Builds and pushes images with proper tags
+3. Creates Kubernetes image pull secrets
+4. Mirrors base images (postgres, redis, elasticsearch, minio) to Harbor
+
+```bash
+# Full deployment with Harbor integration
+./scripts/deploy-complete.sh v1.1.0 bookstore
+
+# The script uses these Harbor settings:
+# HARBOR_URL=harbor.corp.vmbeans.com
+# HARBOR_PROJECT=bookstore
+```
 
 ## Resources
 
