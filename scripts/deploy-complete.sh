@@ -28,9 +28,10 @@ REDIS_TAG="7-alpine"
 ELASTICSEARCH_TAG="8.11.0"
 MINIO_TAG="latest"
 
-# NGINX Ingress Controller versions
-NGINX_INGRESS_TAG="v1.9.4"
-NGINX_WEBHOOK_TAG="v1.3.0"
+# NGINX Ingress Controller versions (kubernetes/ingress-nginx)
+# Check latest at: https://github.com/kubernetes/ingress-nginx/releases
+NGINX_INGRESS_TAG="v1.14.1"
+NGINX_WEBHOOK_TAG="v1.4.7"
 
 # Domain for ingress hostnames (namespace.DOMAIN)
 INGRESS_DOMAIN="corp.vmbeans.com"
