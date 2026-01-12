@@ -1085,13 +1085,23 @@
                 }
             });
             
-            // Event delegation for form submissions
-            document.addEventListener('submit', function(e) {
-                const form = e.target;
-                if (form.dataset.productId) {
-                    const productId = form.dataset.productId;
-                    const view = form.dataset.view || 'grid';
-                    setQuantity(e, productId, view);
+            // Sync hidden form input when user types in visible quantity input
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('qty-input') || e.target.classList.contains('table-qty-input')) {
+                    const input = e.target;
+                    const productId = input.id.replace('product-qty-', '').replace('product-qty-table-', '');
+                    const maxStock = parseInt(input.getAttribute('data-max-stock')) || 99;
+                    
+                    let qty = parseInt(input.value) || 1;
+                    if (qty < 1) qty = 1;
+                    if (qty > maxStock) qty = maxStock;
+                    if (qty > 99) qty = 99;
+                    
+                    // Update hidden form inputs
+                    const gridFormInput = document.getElementById('form-qty-' + productId);
+                    const tableFormInput = document.getElementById('form-qty-table-' + productId);
+                    if (gridFormInput) gridFormInput.value = qty;
+                    if (tableFormInput) tableFormInput.value = qty;
                 }
             });
         });
@@ -1100,6 +1110,8 @@
             // Update both grid and table inputs
             const gridInput = document.getElementById('product-qty-' + productId);
             const tableInput = document.getElementById('product-qty-table-' + productId);
+            const gridFormInput = document.getElementById('form-qty-' + productId);
+            const tableFormInput = document.getElementById('form-qty-table-' + productId);
             
             const input = gridInput || tableInput;
             const currentQty = parseInt(input.value) || 1;
@@ -1113,9 +1125,11 @@
             if (newQty > maxStock) newQty = maxStock;
             if (newQty > 99) newQty = 99;
             
-            // Sync both inputs
+            // Sync both visible inputs AND hidden form inputs
             if (gridInput) gridInput.value = newQty;
             if (tableInput) tableInput.value = newQty;
+            if (gridFormInput) gridFormInput.value = newQty;
+            if (tableFormInput) tableFormInput.value = newQty;
         }
         
         function setQuantity(event, productId, view) {
