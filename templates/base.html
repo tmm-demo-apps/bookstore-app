@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{block "title" .}}Bookstore{{end}}</title>
+    <!-- Set theme BEFORE loading CSS to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme');
+            if (!theme) {
+                theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -99,6 +109,13 @@
             color: inherit;
         }
         
+        /* Cart count - reserve space to prevent layout shift */
+        #cart-count {
+            display: inline-block;
+            min-width: 2.5em;
+            text-align: left;
+        }
+        
         /* Main content spacing */
         main.container {
             padding-top: 1rem;
@@ -164,6 +181,17 @@
             </ul>
 
             <ul>
+                <!-- Theme Toggle -->
+                <li>
+                    <button id="theme-toggle" 
+                            class="outline secondary" 
+                            style="padding: 0.4rem 0.6rem; margin: 0; border-radius: var(--border-radius); cursor: pointer;"
+                            aria-label="Toggle dark/light mode"
+                            onclick="toggleTheme()">
+                        <span id="theme-icon">🌙</span>
+                    </button>
+                </li>
+                
                 <!-- Cart -->
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
@@ -226,6 +254,29 @@
     </main>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+        
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+            }
+        }
+        
+        // Initialize theme icon on page load (theme already set in <head>)
+        (function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            updateThemeIcon(currentTheme);
+        })();
+        
         // Sticky header scroll behavior
         const header = document.getElementById('header');
         let lastScrollTop = 0;
