@@ -19,7 +19,8 @@ on:
 jobs:
   deploy:
     name: Build and Push to Harbor
-    runs-on: ubuntu-latest
+    # Use self-hosted runner with 'harbor' label (inside corporate network)
+    runs-on: [self-hosted, linux, harbor]
     # Only run if CI succeeded (or manual trigger)
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     
@@ -27,24 +28,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Free up disk space
+    - name: Clean up disk space
       run: |
-        echo "Before cleanup:"
-        df -h
+        echo "Disk usage before cleanup:"
+        df -h /
         
-        # Remove unnecessary packages
-        sudo apt-get remove -y '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*' azure-cli google-chrome-stable firefox powershell mono-devel libgl1-mesa-dri || true
-        sudo apt-get autoremove -y
-        sudo apt-get clean
+        # Clean old Docker resources (keep recent cache)
+        docker system prune -f --filter "until=24h" || true
         
-        # Remove large directories
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
-        
-        # Clean docker
-        docker system prune -af --volumes || true
-        
-        echo "After cleanup:"
-        df -h
+        echo "Disk usage after cleanup:"
+        df -h /
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -77,8 +70,9 @@ jobs:
         tags: |
           ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}
           ${{ secrets.HARBOR_URL }}/bookstore/app:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        # Use local Docker layer cache (better for self-hosted runners)
+        cache-from: type=registry,ref=${{ secrets.HARBOR_URL }}/bookstore/app:buildcache
+        cache-to: type=registry,ref=${{ secrets.HARBOR_URL }}/bookstore/app:buildcache,mode=max
         platforms: linux/amd64
 
     - name: Summary

@@ -46,7 +46,10 @@ Add these secrets:
 4. Configure:
    - Name: `bookstore-ci`
    - Expiration: 365 days (or never)
-   - Permissions: Push, Pull, Read artifacts
+   - Permissions (check these boxes):
+     - **Repository**: ✅ Pull, ✅ Push
+     - **Artifact**: ✅ Read
+     - **Tag**: ✅ Create, ✅ List
 5. Copy the generated token immediately
 
 ## Workflow Behavior
