@@ -105,7 +105,6 @@
         transition: all 0.3s ease;
         max-height: calc(100vh - 7rem);
         overflow-y: auto;
-        z-index: 10;
         background: var(--background-color);
     }
     
@@ -204,19 +203,6 @@
     .products-content {
         flex: 1;
         min-width: 0;
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Ensure product cards and their controls stay above sidebar */
-    .product-card {
-        position: relative;
-        z-index: 2;
-    }
-    
-    .product-actions {
-        position: relative;
-        z-index: 3;
     }
     
     .view-toggle {
@@ -224,6 +210,40 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1.5rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .view-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .sort-dropdown {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .sort-dropdown label {
+        font-size: 0.9rem;
+        color: var(--muted-color);
+        white-space: nowrap;
+        margin-bottom: 0;
+    }
+    
+    .sort-dropdown select {
+        padding: 0.4rem 0.6rem;
+        padding-right: 2rem;
+        font-size: 0.9rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--muted-border-color);
+        background: var(--card-background-color);
+        color: var(--contrast);
+        margin-bottom: 0;
+        min-width: 150px;
     }
     
     .toggle-buttons {
@@ -238,23 +258,19 @@
         border: none;
         background: var(--card-background-color);
         cursor: pointer;
-        color: var(--color);
+        color: var(--contrast);
         transition: background 0.2s, color 0.2s;
+        font-weight: 500;
     }
     
     .toggle-btn.active {
         background: var(--primary);
-        color: white;
+        color: var(--primary-inverse);
     }
     
     .toggle-btn:hover:not(.active) {
         background: var(--card-sectionning-background-color);
-        color: var(--color);
-    }
-    
-    /* Ensure text visibility in light mode */
-    [data-theme="light"] .toggle-btn:not(.active) {
-        color: #333;
+        color: var(--contrast);
     }
     
     .product-grid {
@@ -397,49 +413,76 @@
         height: fit-content;
     }
     
-    .qty-controls {
+    .product-actions .qty-controls {
         display: inline-flex;
-        align-items: center;
+        align-items: stretch;
         border: 1px solid var(--muted-border-color);
         border-radius: var(--border-radius);
-        overflow: hidden;
         background: var(--card-background-color);
-        height: 60%;
+        overflow: visible;
+        height: auto;
+        flex-shrink: 0;
     }
     
-    .qty-btn {
-        border: none;
-        background: transparent;
-        padding: calc(var(--form-element-spacing-vertical) * 0.35) calc(var(--form-element-spacing-horizontal) * 0.4);
+    .qty-controls .qty-btn {
+        border: none !important;
+        background: transparent !important;
+        padding: 0.3rem 0 !important;
         cursor: pointer;
         color: var(--muted-color);
-        font-size: 0.8rem;
+        font-size: 0.85rem !important;
         transition: color 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
-        line-height: 1.2;
-        
+        line-height: 1;
+        margin: 0 !important;
+        flex: 1 1 0;
+        min-width: 1.2rem;
+        width: 1.5rem;
     }
     
     .qty-btn:hover {
         color: var(--color);
     }
     
-    .qty-input {
-        width: 2.5rem;
-        text-align: center;
-        border: none;
-        border-left: 1px solid var(--muted-border-color);
-        border-right: 1px solid var(--muted-border-color);
-        padding: calc(var(--form-element-spacing-vertical) * 0.35) 0.4rem;
-        background: transparent;
-        font-size: 0.8rem;
-        color: var(--color);
-        line-height: 1.2;
-        height: 65%;
+    .qty-controls .qty-btn:focus,
+    .qty-controls .qty-btn:active {
+        outline: none !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    .qty-controls input[type="text"].qty-input {
+        width: 2rem !important;
+        min-width: 2rem !important;
+        text-align: center !important;
+        border: none !important;
+        border-left: 1px solid var(--muted-border-color) !important;
+        border-right: 1px solid var(--muted-border-color) !important;
+        padding: 0.25rem 0.1rem !important;
+        background: transparent !important;
+        font-size: 0.8rem !important;
+        color: var(--color) !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        height: 100% !important;
+        -moz-appearance: textfield;
+        box-sizing: border-box !important;
+    }
+    
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
         margin: 0;
-        
+    }
+    
+    .qty-controls input[type="text"].qty-input:focus {
+        outline: none !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-left: 1px solid var(--muted-border-color) !important;
+        border-right: 1px solid var(--muted-border-color) !important;
     }
     
     /* Table View Styles */
@@ -574,14 +617,14 @@
         <div class="category-content">
             <ul class="category-list">
                 <li class="category-item">
-                    <a href="/products{{if .SearchQuery}}?q={{.SearchQuery}}{{end}}" 
+                    <a href="/products?sort={{.SortBy}}{{if .SearchQuery}}&q={{.SearchQuery}}{{end}}" 
                        class="category-link {{if eq .SelectedCategory 0}}active{{end}}">
                         All Categories
                     </a>
                 </li>
                 {{range .Categories}}
                 <li class="category-item">
-                    <a href="/products?category={{.ID}}{{if $.SearchQuery}}&q={{$.SearchQuery}}{{end}}" 
+                    <a href="/products?category={{.ID}}&sort={{$.SortBy}}{{if $.SearchQuery}}&q={{$.SearchQuery}}{{end}}" 
                        class="category-link {{if eq $.SelectedCategory .ID}}active{{end}}">
                         {{.Name}}
                     </a>
@@ -595,13 +638,26 @@
     <div class="products-content">
         <div class="view-toggle">
             <h1 style="margin: 0;">Products</h1>
-            <div class="toggle-buttons">
-                <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn">
-                    <span>🔲 Tiles</span>
-                </button>
-                <button class="toggle-btn" onclick="setView('table')" id="table-btn">
-                    <span>☰ Table</span>
-                </button>
+            <div class="view-controls">
+                <!-- Sort Dropdown -->
+                <div class="sort-dropdown">
+                    <label for="sort-select">Sort by:</label>
+                    <select id="sort-select" onchange="changeSort(this.value)">
+                        {{range .SortOptions}}
+                        <option value="{{.Value}}" {{if eq $.SortBy .Value}}selected{{end}}>{{.Label}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                
+                <!-- View Toggle -->
+                <div class="toggle-buttons">
+                    <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn">
+                        <span>🔲 Tiles</span>
+                    </button>
+                    <button class="toggle-btn" onclick="setView('table')" id="table-btn">
+                        <span>☰ Table</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -752,11 +808,11 @@
     <nav class="pagination" style="display: flex; gap: 0.5rem; align-items: center;">
         <!-- First Page -->
         {{if gt .Pagination.Page 1}}
-        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page=1&pageSize={{.PageSize}}" 
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page=1&pageSize={{.PageSize}}&sort={{.SortBy}}" 
            style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">«</a>
         
         <!-- Previous Page -->
-        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{sub .Pagination.Page 1}}&pageSize={{.PageSize}}" 
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{sub .Pagination.Page 1}}&pageSize={{.PageSize}}&sort={{.SortBy}}" 
            style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">‹ Prev</a>
         {{else}}
         <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); color: var(--muted-color); font-size: 0.9rem; opacity: 0.5;">«</span>
@@ -769,6 +825,7 @@
         {{$searchQuery := .SearchQuery}}
         {{$selectedCategory := .SelectedCategory}}
         {{$pageSize := .PageSize}}
+        {{$sortBy := .SortBy}}
         
         {{range $i := iterate $totalPages}}
         {{$page := add $i 1}}
@@ -776,7 +833,7 @@
         {{if eq $page $currentPage}}
         <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--primary); background: var(--primary); color: white; border-radius: var(--border-radius); font-weight: bold; font-size: 0.9rem;">{{$page}}</span>
         {{else}}
-        <a href="?{{if $searchQuery}}q={{$searchQuery}}&{{end}}{{if $selectedCategory}}category={{$selectedCategory}}&{{end}}page={{$page}}&pageSize={{$pageSize}}" 
+        <a href="?{{if $searchQuery}}q={{$searchQuery}}&{{end}}{{if $selectedCategory}}category={{$selectedCategory}}&{{end}}page={{$page}}&pageSize={{$pageSize}}&sort={{$sortBy}}" 
            style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">{{$page}}</a>
         {{end}}
         {{else if or (eq $page 3) (eq $page (sub $totalPages 2))}}
@@ -786,11 +843,11 @@
 
         <!-- Next Page -->
         {{if lt .Pagination.Page .Pagination.TotalPages}}
-        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{add .Pagination.Page 1}}&pageSize={{.PageSize}}" 
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{add .Pagination.Page 1}}&pageSize={{.PageSize}}&sort={{.SortBy}}" 
            style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">Next ›</a>
         
         <!-- Last Page -->
-        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{.Pagination.TotalPages}}&pageSize={{.PageSize}}" 
+        <a href="?{{if .SearchQuery}}q={{.SearchQuery}}&{{end}}{{if .SelectedCategory}}category={{.SelectedCategory}}&{{end}}page={{.Pagination.TotalPages}}&pageSize={{.PageSize}}&sort={{.SortBy}}" 
            style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); text-decoration: none; color: var(--color); font-size: 0.9rem;">»</a>
         {{else}}
         <span style="padding: 0.4rem 0.75rem; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); color: var(--muted-color); font-size: 0.9rem; opacity: 0.5;">Next ›</span>
@@ -812,11 +869,20 @@
             urlParams.set('page', '1'); // Reset to first page
             window.location.search = urlParams.toString();
         }
+        
+        // Sort change handler
+        function changeSort(newSort) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('sort', newSort);
+            urlParams.set('page', '1'); // Reset to first page when sorting
+            window.location.search = urlParams.toString();
+        }
 
         // Mobile category filter
         function filterByCategory(categoryId) {
             const urlParams = new URLSearchParams(window.location.search);
             const searchQuery = urlParams.get('q');
+            const sort = urlParams.get('sort');
             
             let url = '/products';
             const params = [];
@@ -827,6 +893,10 @@
             
             if (searchQuery) {
                 params.push('q=' + encodeURIComponent(searchQuery));
+            }
+            
+            if (sort) {
+                params.push('sort=' + sort);
             }
             
             if (params.length > 0) {
@@ -844,6 +914,7 @@
             // Save state to localStorage
             const isCollapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('sidebarCollapsed', isCollapsed);
+            
         }
         
         // View toggle
@@ -876,6 +947,7 @@
             if (isCollapsed && sidebar) {
                 sidebar.classList.add('collapsed');
             }
+            
             
             // Restore view preference
             const savedView = localStorage.getItem('productView') || 'grid';
