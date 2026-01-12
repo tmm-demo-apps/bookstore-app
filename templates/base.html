@@ -35,6 +35,11 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        .header-wrapper > .container {
+            max-width: 1600px;
+            width: 95%;
+        }
+        
         .header-wrapper.scrolled {
             padding: 0.25rem 0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -44,7 +49,9 @@
         }
         
         .header-nav {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
             padding: 0.5rem 0;
             transition: padding 0.3s ease;
             margin-bottom: 0 !important;
@@ -58,6 +65,14 @@
             margin-bottom: 0;
         }
         
+        .header-nav > ul:first-child {
+            flex-shrink: 0;
+        }
+        
+        .header-nav > ul:last-child {
+            flex-shrink: 0;
+        }
+        
         .header-nav .brand {
             transition: font-size 0.3s ease;
         }
@@ -67,8 +82,11 @@
         }
         
         .search-bar {
-            flex-grow: 1;
-            margin: 0 2rem !important;
+            flex-grow: 0;
+            flex-shrink: 0;
+            width: 600px;
+            max-width: 50%;
+            margin: 0 auto !important;
         }
         .search-bar input {
             margin-bottom: 0 !important;

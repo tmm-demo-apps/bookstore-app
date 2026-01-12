@@ -82,6 +82,10 @@ func (r *postgresProductRepo) ListProducts() ([]models.Product, error) {
 }
 
 func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models.ProductsResult, error) {
+	return r.ListProductsPaginatedSorted(page, pageSize, "name")
+}
+
+func (r *postgresProductRepo) ListProductsPaginatedSorted(page, pageSize int, sortBy string) (*models.ProductsResult, error) {
 	// Validate pagination parameters
 	if page < 1 {
 		page = 1
@@ -100,9 +104,12 @@ func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models
 	// Calculate offset
 	offset := (page - 1) * pageSize
 
+	// Determine ORDER BY clause based on sortBy parameter
+	orderClause := getOrderClause(sortBy)
+
 	// Get paginated products
-	query := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
-	          FROM products WHERE status = 'active' ORDER BY name LIMIT $1 OFFSET $2`
+	query := fmt.Sprintf(`SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
+	          FROM products WHERE status = 'active' ORDER BY %s LIMIT $1 OFFSET $2`, orderClause)
 	rows, err := r.DB.Query(query, pageSize, offset)
 	if err != nil {
 		return nil, err
@@ -130,6 +137,22 @@ func (r *postgresProductRepo) ListProductsPaginated(page, pageSize int) (*models
 			TotalPages: totalPages,
 		},
 	}, nil
+}
+
+// getOrderClause returns a safe ORDER BY clause based on the sortBy parameter
+func getOrderClause(sortBy string) string {
+	switch sortBy {
+	case "price_asc":
+		return "price ASC, name ASC"
+	case "price_desc":
+		return "price DESC, name ASC"
+	case "popularity":
+		return "popularity_score DESC, name ASC"
+	case "newest":
+		return "id DESC, name ASC"
+	default:
+		return "name ASC"
+	}
 }
 
 func (r *postgresProductRepo) GetProductByID(id int) (*models.Product, error) {
@@ -204,6 +227,10 @@ func (r *postgresProductRepo) SearchProducts(query string, categoryID int) ([]mo
 }
 
 func (r *postgresProductRepo) SearchProductsPaginated(query string, categoryID, page, pageSize int) (*models.ProductsResult, error) {
+	return r.SearchProductsPaginatedSorted(query, categoryID, page, pageSize, "name")
+}
+
+func (r *postgresProductRepo) SearchProductsPaginatedSorted(query string, categoryID, page, pageSize int, sortBy string) (*models.ProductsResult, error) {
 	// Validate pagination parameters
 	if page < 1 {
 		page = 1
@@ -238,6 +265,9 @@ func (r *postgresProductRepo) SearchProductsPaginated(query string, categoryID, 
 	// Calculate offset
 	offset := (page - 1) * pageSize
 
+	// Determine ORDER BY clause based on sortBy parameter
+	orderClause := getOrderClause(sortBy)
+
 	// Build products query
 	q := `SELECT id, name, description, price, sku, stock_quantity, image_url, category_id, status, author, COALESCE(popularity_score, 0) 
 	      FROM products WHERE status = 'active'`
@@ -256,7 +286,7 @@ func (r *postgresProductRepo) SearchProductsPaginated(query string, categoryID, 
 		argID++
 	}
 
-	q += fmt.Sprintf(" ORDER BY name LIMIT $%d OFFSET $%d", argID, argID+1)
+	q += fmt.Sprintf(" ORDER BY %s LIMIT $%d OFFSET $%d", orderClause, argID, argID+1)
 	args = append(args, pageSize, offset)
 
 	rows, err := r.DB.Query(q, args...)
@@ -521,14 +551,14 @@ func (r *postgresCartRepo) GetCartItems(userID int, sessionID string) ([]models.
 
 	if userID > 0 {
 		rows, err = r.DB.Query(`
-			SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
+			SELECT ci.id, ci.product_id, p.name, p.description, p.price, p.image_url, ci.quantity
 			FROM cart_items ci
 			JOIN products p ON ci.product_id = p.id
 			WHERE ci.user_id = $1
 			ORDER BY p.name`, userID)
 	} else {
 		rows, err = r.DB.Query(`
-			SELECT ci.id, ci.product_id, p.name, p.description, p.price, ci.quantity
+			SELECT ci.id, ci.product_id, p.name, p.description, p.price, p.image_url, ci.quantity
 			FROM cart_items ci
 			JOIN products p ON ci.product_id = p.id
 			WHERE ci.session_id = $1
@@ -546,8 +576,13 @@ func (r *postgresCartRepo) GetCartItems(userID int, sessionID string) ([]models.
 	for rows.Next() {
 		var item models.CartItem
 		var p models.Product
-		if err := rows.Scan(&item.ID, &item.ProductID, &p.Name, &p.Description, &p.Price, &item.Quantity); err != nil {
+		var imageURL sql.NullString
+		if err := rows.Scan(&item.ID, &item.ProductID, &p.Name, &p.Description, &p.Price, &imageURL, &item.Quantity); err != nil {
 			return nil, 0, err
+		}
+		if imageURL.Valid {
+			imgURL := imageURL.String
+			p.ImageURL = &imgURL
 		}
 		item.Product = p
 		item.Subtotal = p.Price * float64(item.Quantity)

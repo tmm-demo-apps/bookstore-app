@@ -18,6 +18,13 @@ type ProductListViewData struct {
 	Pagination       *models.Pagination
 	PageSize         int
 	PageSizeOptions  []int
+	SortBy           string
+	SortOptions      []SortOption
+}
+
+type SortOption struct {
+	Value string
+	Label string
 }
 
 type ProductDetailViewData struct {
@@ -35,6 +42,7 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	categoryIDStr := r.URL.Query().Get("category")
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")
+	sortBy := r.URL.Query().Get("sort")
 
 	// Parse category ID
 	categoryID := 0
@@ -59,13 +67,19 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate sort parameter
+	validSorts := map[string]bool{"name": true, "price_asc": true, "price_desc": true, "popularity": true, "newest": true}
+	if sortBy == "" || !validSorts[sortBy] {
+		sortBy = "name" // Default sort
+	}
+
 	var products []models.Product
 	var pagination *models.Pagination
 	var err error
 
-	// Use paginated methods
+	// Use paginated methods with sorting
 	if query != "" || categoryID > 0 {
-		result, err := h.Repo.Products().SearchProductsPaginated(query, categoryID, page, pageSize)
+		result, err := h.Repo.Products().SearchProductsPaginatedSorted(query, categoryID, page, pageSize, sortBy)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)
@@ -74,7 +88,7 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		products = result.Products
 		pagination = &result.Pagination
 	} else {
-		result, err := h.Repo.Products().ListProductsPaginated(page, pageSize)
+		result, err := h.Repo.Products().ListProductsPaginatedSorted(page, pageSize, sortBy)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Internal Server Error", 500)
@@ -91,6 +105,15 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		categories = []models.Category{} // Continue with empty categories
 	}
 
+	// Sort options for dropdown
+	sortOptions := []SortOption{
+		{Value: "name", Label: "Name (A-Z)"},
+		{Value: "price_asc", Label: "Price (Low to High)"},
+		{Value: "price_desc", Label: "Price (High to Low)"},
+		{Value: "popularity", Label: "Most Popular"},
+		{Value: "newest", Label: "Newest First"},
+	}
+
 	data := ProductListViewData{
 		IsAuthenticated:  h.IsAuthenticated(r),
 		Products:         products,
@@ -101,6 +124,8 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 		Pagination:       pagination,
 		PageSize:         pageSize,
 		PageSizeOptions:  []int{10, 20, 30, 50, 100},
+		SortBy:           sortBy,
+		SortOptions:      sortOptions,
 	}
 
 	// Create template with helper functions

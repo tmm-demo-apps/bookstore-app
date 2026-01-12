@@ -3,7 +3,22 @@
 {{define "title"}}Products{{end}}
 
 {{define "content"}}
+<!-- Prevent view flash by setting initial visibility based on saved preference -->
+<script>
+(function() {
+    var savedView = localStorage.getItem('productView');
+    if (savedView === 'table') {
+        document.write('<style>#product-grid{display:none !important;}.product-table{display:table !important;}</style>');
+    }
+})();
+</script>
 <style>
+    /* Make the products page use more horizontal space */
+    main.container {
+        max-width: 1600px;
+        width: 95%;
+    }
+    
     .search-indicator {
         background: var(--card-background-color);
         border: 1px solid var(--primary);
@@ -122,7 +137,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
     }
     
     .category-header h3 {
@@ -135,18 +150,26 @@
         background: var(--card-background-color);
         border: 1px solid var(--muted-border-color);
         border-radius: var(--border-radius);
-        padding: 0.25rem 0.5rem;
+        width: 32px;
+        height: 32px;
+        padding: 0;
         cursor: pointer;
         color: var(--contrast);
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         transition: all 0.2s;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
     
     .collapse-btn:hover {
         background: var(--card-sectionning-background-color);
         border-color: var(--primary);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .category-sidebar.collapsed .category-header {
+        justify-content: center;
     }
     
     .category-sidebar.collapsed .category-header h3,
@@ -165,17 +188,18 @@
     }
     
     .category-item {
-        margin-bottom: 0.25rem;
+        margin-bottom: 0;
     }
     
     .category-link {
         display: block;
-        padding: 0.5rem 0.75rem;
+        padding: 0.25rem 0.5rem;
         border-radius: var(--border-radius);
         text-decoration: none;
         color: var(--color);
         transition: all 0.2s;
         border: 1px solid transparent;
+        font-size: 0.85rem;
     }
     
     .category-link:hover {
@@ -248,29 +272,35 @@
     
     .toggle-buttons {
         display: inline-flex;
-        border: 1px solid var(--muted-border-color);
-        border-radius: var(--border-radius);
-        overflow: hidden;
+        gap: 0.1rem;
     }
     
     .toggle-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        background: var(--card-background-color);
+        padding: 0.25rem 0.35rem;
+        border: 1px solid transparent;
+        border-radius: var(--border-radius);
+        background: transparent;
         cursor: pointer;
-        color: var(--contrast);
-        transition: background 0.2s, color 0.2s;
-        font-weight: 500;
+        color: var(--muted-color);
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+        font-size: 0.85rem;
+        line-height: 1;
     }
     
     .toggle-btn.active {
         background: var(--primary);
         color: var(--primary-inverse);
+        border-color: var(--primary);
     }
     
     .toggle-btn:hover:not(.active) {
-        background: var(--card-sectionning-background-color);
         color: var(--contrast);
+        border-color: var(--muted-border-color);
+    }
+    
+    .toggle-btn:focus {
+        outline: none;
+        box-shadow: none;
     }
     
     .product-grid {
@@ -525,6 +555,100 @@
         font-size: 1.5rem;
     }
     
+    /* Table View Quantity Controls - match tile view styling */
+    .table-qty-controls {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--muted-border-color);
+        border-radius: var(--border-radius);
+        background: var(--card-background-color);
+        overflow: visible;
+        height: auto;
+        flex-shrink: 0;
+    }
+    
+    .table-qty-controls .table-qty-btn {
+        border: none !important;
+        background: transparent !important;
+        padding: 0.3rem 0 !important;
+        cursor: pointer;
+        color: var(--muted-color);
+        font-size: 0.85rem !important;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        margin: 0 !important;
+        flex: 1 1 0;
+        min-width: 1.2rem;
+        width: 1.5rem;
+    }
+    
+    .table-qty-controls .table-qty-btn:hover {
+        color: var(--color);
+    }
+    
+    .table-qty-controls .table-qty-btn:focus,
+    .table-qty-controls .table-qty-btn:active {
+        outline: none !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    .table-qty-controls input[type="text"].table-qty-input {
+        width: 2rem !important;
+        min-width: 2rem !important;
+        text-align: center !important;
+        border: none !important;
+        border-left: 1px solid var(--muted-border-color) !important;
+        border-right: 1px solid var(--muted-border-color) !important;
+        padding: 0.25rem 0.1rem !important;
+        background: transparent !important;
+        font-size: 0.8rem !important;
+        color: var(--color) !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        height: 100% !important;
+        -moz-appearance: textfield;
+        box-sizing: border-box !important;
+    }
+    
+    .table-qty-controls input[type="text"].table-qty-input:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Table text styling - match tile view */
+    .table-description {
+        color: var(--muted-color);
+        font-size: 0.8rem;
+        line-height: 1.4;
+        min-width: 200px;
+        max-width: 350px;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+    }
+    
+    .table-author {
+        color: var(--muted-color);
+        font-size: 0.85rem;
+    }
+    
+    .product-table td {
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+    
+    .product-table td strong {
+        font-size: 0.9rem;
+    }
+    
     @media (max-width: 768px) {
         .products-layout {
             flex-direction: column;
@@ -651,11 +775,11 @@
                 
                 <!-- View Toggle -->
                 <div class="toggle-buttons">
-                    <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn">
-                        <span>🔲 Tiles</span>
+                    <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn" title="Tile View">
+                        🔲
                     </button>
-                    <button class="toggle-btn" onclick="setView('table')" id="table-btn">
-                        <span>☰ Table</span>
+                    <button class="toggle-btn" onclick="setView('table')" id="table-btn" title="Table View">
+                        ☰
                     </button>
                 </div>
             </div>
@@ -746,8 +870,8 @@
                 </a>
             </td>
             <td><strong><a href="/products/{{.ID}}" class="product-link" style="display: inline;">{{.Name}}</a></strong></td>
-            <td>{{if .Author}}<em style="color: var(--muted-color);">{{.Author}}</em>{{else}}-{{end}}</td>
-            <td>{{.Description}}</td>
+            <td>{{if .Author}}<em class="table-author">{{.Author}}</em>{{else}}-{{end}}</td>
+            <td><p class="table-description">{{.Description}}</p></td>
             <td><strong>${{printf "%.2f" .Price}}</strong></td>
             <td>
                 {{if gt .StockQuantity 10}}
@@ -760,14 +884,14 @@
             </td>
             {{if gt .StockQuantity 0}}
             <td>
-                <div style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
-                    <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="-1" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
+                <div class="table-qty-controls">
+                    <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="-1">−</button>
                     <input type="text" value="1" id="product-qty-table-{{.ID}}"
-                           style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.4rem 0.25rem; background: transparent; font-size: 0.85rem;"
+                           class="table-qty-input"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            inputmode="numeric" pattern="[0-9]*"
                            data-max-stock="{{.StockQuantity}}">
-                    <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="1" style="border: none; background: transparent; padding: 0.4rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+                    <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="1">+</button>
                 </div>
             </td>
             <td>

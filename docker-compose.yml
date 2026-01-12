@@ -16,6 +16,10 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_USE_SSL=false
+    volumes:
+      # Mount templates for hot-reload during development
+      # Changes to templates take effect on next page refresh (no rebuild needed)
+      - ./templates:/app/templates:ro
     depends_on:
       db-init:
         condition: service_completed_successfully

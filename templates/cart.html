@@ -57,33 +57,62 @@
         align-items: stretch;
         border: 1px solid var(--muted-border-color);
         border-radius: var(--border-radius);
-        overflow: hidden;
         background: var(--card-background-color);
+        overflow: visible;
+        height: auto;
+        flex-shrink: 0;
     }
     
-    .cart-qty-btn {
-        border: none;
-        background: transparent;
-        padding: 0.25rem 0.5rem;
+    .cart-qty-controls .cart-qty-btn {
+        border: none !important;
+        background: transparent !important;
+        padding: 0.3rem 0 !important;
         cursor: pointer;
         color: var(--muted-color);
-        font-size: 0.9rem;
+        font-size: 0.85rem !important;
         transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        margin: 0 !important;
+        flex: 1 1 0;
+        min-width: 1.2rem;
+        width: 1.5rem;
     }
     
-    .cart-qty-btn:hover {
+    .cart-qty-controls .cart-qty-btn:hover {
         color: var(--color);
     }
     
-    .cart-qty-input {
-        width: 40px;
-        text-align: center;
-        border: none;
-        border-left: 1px solid var(--muted-border-color);
-        border-right: 1px solid var(--muted-border-color);
-        padding: 0.25rem 0.25rem;
-        background: transparent;
-        font-size: 0.85rem;
+    .cart-qty-controls .cart-qty-btn:focus,
+    .cart-qty-controls .cart-qty-btn:active {
+        outline: none !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    .cart-qty-controls input[type="text"].cart-qty-input {
+        width: 2rem !important;
+        min-width: 2rem !important;
+        text-align: center !important;
+        border: none !important;
+        border-left: 1px solid var(--muted-border-color) !important;
+        border-right: 1px solid var(--muted-border-color) !important;
+        padding: 0.25rem 0.1rem !important;
+        background: transparent !important;
+        font-size: 0.8rem !important;
+        color: var(--color) !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        height: 100% !important;
+        -moz-appearance: textfield;
+        box-sizing: border-box !important;
+    }
+    
+    .cart-qty-controls input[type="text"].cart-qty-input:focus {
+        outline: none !important;
+        box-shadow: none !important;
     }
     
     .cart-item-subtotal {
@@ -166,13 +195,12 @@
             ${{printf "%.2f" .Product.Price}}
         </div>
         
-        <div class="cart-qty-controls" data-cart-item-id="{{.ID}}" style="display: inline-flex; border: 1px solid var(--muted-border-color); border-radius: var(--border-radius); overflow: hidden;">
-            <button type="button" class="qty-decrease" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">−</button>
-            <input type="text" value="{{.Quantity}}" class="qty-input" id="qty-{{.ID}}"
-                   style="width: 40px; text-align: center; border: none; border-left: 1px solid var(--muted-border-color); border-right: 1px solid var(--muted-border-color); padding: 0.25rem; background: transparent; font-size: 0.85rem;"
+        <div class="cart-qty-controls" data-cart-item-id="{{.ID}}">
+            <button type="button" class="cart-qty-btn qty-decrease">−</button>
+            <input type="text" value="{{.Quantity}}" class="cart-qty-input" id="qty-{{.ID}}"
                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                    inputmode="numeric" pattern="[0-9]*">
-            <button type="button" class="qty-increase" style="border: none; background: transparent; padding: 0.25rem 0.5rem; cursor: pointer; color: var(--muted-color); font-size: 0.9rem;">+</button>
+            <button type="button" class="cart-qty-btn qty-increase">+</button>
         </div>
         
         <div class="cart-item-subtotal">
@@ -214,7 +242,7 @@
                 btn.addEventListener('click', function() {
                     const container = this.closest('[data-cart-item-id]');
                     const cartItemId = container.dataset.cartItemId;
-                    const input = container.querySelector('.qty-input');
+                    const input = container.querySelector('.cart-qty-input');
                     const currentQty = parseInt(input.value) || 1;
                     updateQuantity(cartItemId, currentQty - 1);
                 });
@@ -224,13 +252,13 @@
                 btn.addEventListener('click', function() {
                     const container = this.closest('[data-cart-item-id]');
                     const cartItemId = container.dataset.cartItemId;
-                    const input = container.querySelector('.qty-input');
+                    const input = container.querySelector('.cart-qty-input');
                     const currentQty = parseInt(input.value) || 1;
                     updateQuantity(cartItemId, currentQty + 1);
                 });
             });
             
-            document.querySelectorAll('.qty-input').forEach(function(input) {
+            document.querySelectorAll('.cart-qty-input').forEach(function(input) {
                 input.addEventListener('change', function() {
                     const container = this.closest('[data-cart-item-id]');
                     const cartItemId = container.dataset.cartItemId;
