@@ -46,6 +46,11 @@ jobs:
     name: Test and Build
     runs-on: [self-hosted, linux, harbor]
     
+    # Use PVC for Go caches (root disk is small)
+    env:
+      GOCACHE: /var/lib/docker/go-cache
+      GOMODCACHE: /var/lib/docker/go-mod-cache
+    
     services:
       postgres:
         image: postgres:14-alpine
@@ -65,11 +70,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Ensure Go cache directories exist
+      run: |
+        # Create cache directories on PVC if they don't exist
+        sudo mkdir -p $GOCACHE $GOMODCACHE
+        sudo chown -R $(whoami):$(whoami) $GOCACHE $GOMODCACHE
+        echo "Go cache directories:"
+        echo "  GOCACHE: $GOCACHE"
+        echo "  GOMODCACHE: $GOMODCACHE"
+        df -h /var/lib/docker
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.25'
-        cache: true
+        cache: false  # Disable built-in cache, we're using PVC
 
     - name: Download dependencies
       run: go mod download

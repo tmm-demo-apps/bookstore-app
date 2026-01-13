@@ -43,8 +43,13 @@ GitHub's hosted runners cannot access private registries like `harbor.corp.vmbea
 |----------|---------|-------------|
 | vCPUs | 2 | 4 |
 | RAM | 4 GB | 8 GB |
-| Disk | 50 GB | 100 GB |
+| Root Disk | 10 GB | 10 GB |
+| PVC (Data) | 50 GB | 100 GB |
 | OS | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
+
+**Storage Layout:**
+- **Root disk** (10 GB): OS, runner binaries, runner work directory
+- **PVC** (70-100 GB): Mounted to `/var/lib/docker` for Docker images, Go cache, and build artifacts
 
 ### Option B: Use Existing CLI VM
 
@@ -59,11 +64,38 @@ If using your existing `cli-vm`:
 
 ```bash
 # If creating new VM, use your standard provisioning process
+# Use cloud-config from: dev_docs/cloud-config-runner.yml
 # If using existing cli-vm, SSH in:
 ssh devops@cli-vm
 ```
 
-### 1.2 Install Prerequisites
+### 1.2 Mount PVC for Docker and Go Cache (Important!)
+
+If using a separate PVC for storage (recommended):
+
+```bash
+# Find your PVC device (usually /dev/sdb)
+lsblk
+
+# Stop Docker, format PVC, mount to /var/lib/docker
+sudo systemctl stop docker
+sudo mkfs.ext4 /dev/sdb
+sudo mount /dev/sdb /var/lib/docker
+echo '/dev/sdb /var/lib/docker ext4 defaults 0 2' | sudo tee -a /etc/fstab
+sudo systemctl start docker
+
+# Create Go cache directories on PVC
+sudo mkdir -p /var/lib/docker/go-cache /var/lib/docker/go-mod-cache
+sudo chown $USER:$USER /var/lib/docker/go-cache /var/lib/docker/go-mod-cache
+
+# Verify
+df -h /var/lib/docker
+ls -la /var/lib/docker/go-*
+```
+
+**Why this matters:** The CI workflow sets `GOCACHE` and `GOMODCACHE` environment variables to use `/var/lib/docker/go-cache` and `/var/lib/docker/go-mod-cache`. This keeps the root disk free for the OS and runner binaries while the large Go build cache uses the PVC.
+
+### 1.3 Install Prerequisites
 
 ```bash
 # Update system
@@ -309,6 +341,26 @@ rm -rf ~/actions-runner/_work/*
 1. Pre-pull base images
 2. Enable Docker BuildKit caching
 3. Consider adding more vCPUs/RAM to the VM
+
+### Root disk filling up (Go cache)
+
+The CI workflow is configured to use `/var/lib/docker/go-cache` and `/var/lib/docker/go-mod-cache` for Go build caches. If these directories don't exist on the PVC:
+
+```bash
+# Check disk usage
+df -h
+
+# Create Go cache directories on PVC
+sudo mkdir -p /var/lib/docker/go-cache /var/lib/docker/go-mod-cache
+sudo chown $USER:$USER /var/lib/docker/go-cache /var/lib/docker/go-mod-cache
+
+# Verify they're on the PVC (should show /dev/sdb or similar)
+df -h /var/lib/docker/go-cache
+```
+
+If the Go cache is still on the root disk, check that the CI workflow has the environment variables set:
+- `GOCACHE=/var/lib/docker/go-cache`
+- `GOMODCACHE=/var/lib/docker/go-mod-cache`
 
 ## Security Considerations
 
