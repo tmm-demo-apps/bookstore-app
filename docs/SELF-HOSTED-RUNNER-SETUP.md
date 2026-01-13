@@ -71,13 +71,13 @@ sudo apt-get update && sudo apt-get upgrade -y
 
 # Install required packages
 sudo apt-get install -y \
+    ca-certificates \
     curl \
+    wget \
     git \
     jq \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    python3-pip
+    zip \
+    unzip
 
 # Install Docker (if not already installed)
 curl -fsSL https://get.docker.com | sudo sh

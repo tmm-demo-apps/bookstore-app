@@ -53,4 +53,7 @@ dev_docs/
 migrations/archive/
 
 # Logs
-logs/.cursor/
+logs/
+
+# Cursor IDE
+.cursor/
