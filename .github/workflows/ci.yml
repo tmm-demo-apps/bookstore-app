@@ -73,11 +73,14 @@ jobs:
     - name: Ensure Go cache directories exist
       run: |
         # Create cache directories on PVC if they don't exist
+        # Runner runs as 'devops' user, so set ownership accordingly
         sudo mkdir -p $GOCACHE $GOMODCACHE
-        sudo chown -R $(whoami):$(whoami) $GOCACHE $GOMODCACHE
+        sudo chown -R devops:devops $GOCACHE $GOMODCACHE
         echo "Go cache directories:"
         echo "  GOCACHE: $GOCACHE"
         echo "  GOMODCACHE: $GOMODCACHE"
+        echo "Current user: $(whoami) (should be devops)"
+        ls -la /var/lib/docker/ | grep go || echo "No go directories yet"
         df -h /var/lib/docker
 
     - name: Set up Go
