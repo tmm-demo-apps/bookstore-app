@@ -18,8 +18,8 @@ on:
 
 jobs:
   deploy:
-    name: Build and Push to Harbor
-    # Use self-hosted runner with 'harbor' label (inside corporate network)
+    name: Tag and Push to Harbor
+    # Use same self-hosted runner (image already built by CI)
     runs-on: [self-hosted, linux, harbor]
     # Only run if CI succeeded (or manual trigger)
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
@@ -27,20 +27,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Clean up disk space
-      run: |
-        echo "Disk usage before cleanup:"
-        df -h /
-        
-        # Clean old Docker resources (keep recent cache)
-        docker system prune -f --filter "until=24h" || true
-        
-        echo "Disk usage after cleanup:"
-        df -h /
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
 
     - name: Generate version tag
       id: version
@@ -55,25 +41,41 @@ jobs:
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
         echo "Generated version: ${VERSION}"
 
-    - name: Login to Harbor
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ secrets.HARBOR_URL }}
-        username: ${{ secrets.HARBOR_USERNAME }}
-        password: ${{ secrets.HARBOR_PASSWORD }}
+    - name: Check for existing image
+      id: check_image
+      run: |
+        # Check if CI already built the image
+        if docker image inspect bookstore-app:${{ github.sha }} > /dev/null 2>&1; then
+          echo "found=true" >> $GITHUB_OUTPUT
+          echo "✅ Found existing image: bookstore-app:${{ github.sha }}"
+        else
+          echo "found=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Image not found, will build fresh"
+        fi
 
-    - name: Build and Push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: |
-          ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}
-          ${{ secrets.HARBOR_URL }}/bookstore/app:latest
-        # Use local Docker layer cache (better for self-hosted runners)
-        cache-from: type=registry,ref=${{ secrets.HARBOR_URL }}/bookstore/app:buildcache
-        cache-to: type=registry,ref=${{ secrets.HARBOR_URL }}/bookstore/app:buildcache,mode=max
-        platforms: linux/amd64
+    - name: Build Docker image (if not cached)
+      if: steps.check_image.outputs.found != 'true'
+      run: |
+        echo "Building fresh Docker image..."
+        docker build -t bookstore-app:${{ github.sha }} .
+        docker tag bookstore-app:${{ github.sha }} bookstore-app:latest
+
+    - name: Login to Harbor
+      run: |
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ secrets.HARBOR_URL }} -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+
+    - name: Tag and Push to Harbor
+      run: |
+        # Tag for Harbor
+        docker tag bookstore-app:${{ github.sha }} ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}
+        docker tag bookstore-app:${{ github.sha }} ${{ secrets.HARBOR_URL }}/bookstore/app:latest
+        
+        # Push to Harbor
+        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}..."
+        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}
+        
+        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:latest..."
+        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:latest
 
     - name: Summary
       run: |
@@ -83,19 +85,15 @@ jobs:
         echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:latest\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Build Info:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Git SHA: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Image reused from CI: ${{ steps.check_image.outputs.found }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
         echo "- Argo CD will automatically sync the new image, OR" >> $GITHUB_STEP_SUMMARY
         echo "- Manually update: \`kubectl set image deployment/app-deployment bookstore-app=${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }} -n bookstore\`" >> $GITHUB_STEP_SUMMARY
 
-  # Optional: Notify on failure
-  notify-failure:
-    name: Notify on Failure
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: failure()
-    steps:
-      - name: Create failure summary
-        run: |
-          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The deployment workflow failed. Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+    - name: Cleanup old images
+      run: |
+        # Keep only recent images to save disk space
+        docker image prune -f --filter "until=24h" || true
