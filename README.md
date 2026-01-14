@@ -52,16 +52,16 @@ A production-ready e-commerce platform built to demonstrate **VMware Cloud Found
 
 ```bash
 # Start all services
-./local-dev.sh start
+./scripts/local-dev.sh start
 
 # Run tests (25 automated tests)
-./local-dev.sh test
+./scripts/local-dev.sh test
 
 # View logs
-./local-dev.sh logs
+./scripts/local-dev.sh logs
 
 # Stop services
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 ```
 
 **Local URLs**:
@@ -131,7 +131,7 @@ bookstore-app/
 ./tests/smoke.sh
 
 # Or via local-dev.sh
-./local-dev.sh test
+./scripts/local-dev.sh test
 
 # Tests cover:
 # - Application health
@@ -217,7 +217,7 @@ bookstore-app/
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Make your changes
-4. Run tests: `./local-dev.sh test`
+4. Run tests: `./scripts/local-dev.sh test`
 5. Format code: `go fmt ./...`
 6. Commit: `git commit -m "feat: your feature"`
 7. Push: `git push origin feature/your-feature`

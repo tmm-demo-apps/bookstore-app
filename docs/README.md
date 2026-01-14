@@ -18,13 +18,13 @@ This handles everything: Harbor image build/push, NGINX Ingress auto-install, da
 ### Local Development
 ```bash
 # Start local environment
-./local-dev.sh start
+./scripts/local-dev.sh start
 
 # Run tests
-./local-dev.sh test
+./scripts/local-dev.sh test
 
 # Stop
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 ```
 
 ## 📖 Documentation by Category

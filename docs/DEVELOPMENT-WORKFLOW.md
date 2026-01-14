@@ -23,44 +23,44 @@ This guide explains how to work with the application in **two environments**:
 
 ```bash
 # Start all services
-./local-dev.sh start
+./scripts/local-dev.sh start
 
 # Wait for services to start, then run tests
-./local-dev.sh test
+./scripts/local-dev.sh test
 
 # View logs
-./local-dev.sh logs
+./scripts/local-dev.sh logs
 
 # Stop services
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 ```
 
 ### Local Development Commands
 
 ```bash
 # Start services
-./local-dev.sh start          # Start all services
-./local-dev.sh stop           # Stop all services
-./local-dev.sh restart        # Restart all services
-./local-dev.sh status         # Show service status
+./scripts/local-dev.sh start          # Start all services
+./scripts/local-dev.sh stop           # Stop all services
+./scripts/local-dev.sh restart        # Restart all services
+./scripts/local-dev.sh status         # Show service status
 
 # Testing
-./local-dev.sh test           # Run all 25 smoke tests
+./scripts/local-dev.sh test           # Run all 25 smoke tests
 ./tests/smoke.sh              # Run tests directly (if services running)
 
 # Logs
-./local-dev.sh logs           # Show all logs
-./local-dev.sh logs app       # Show app logs only
-./local-dev.sh logs db        # Show database logs
+./scripts/local-dev.sh logs           # Show all logs
+./scripts/local-dev.sh logs app       # Show app logs only
+./scripts/local-dev.sh logs db        # Show database logs
 
 # Database & Services
-./local-dev.sh db             # Open PostgreSQL shell
-./local-dev.sh redis          # Open Redis CLI
-./local-dev.sh shell          # Open shell in app container
+./scripts/local-dev.sh db             # Open PostgreSQL shell
+./scripts/local-dev.sh redis          # Open Redis CLI
+./scripts/local-dev.sh shell          # Open shell in app container
 
 # Maintenance
-./local-dev.sh rebuild        # Clean rebuild
-./local-dev.sh clean          # Remove all containers and volumes
+./scripts/local-dev.sh rebuild        # Clean rebuild
+./scripts/local-dev.sh clean          # Remove all containers and volumes
 ```
 
 ### Local Development Workflow
@@ -69,22 +69,22 @@ This guide explains how to work with the application in **two environments**:
 # 1. Start Docker Desktop (make sure it's running!)
 
 # 2. Start services
-./local-dev.sh start
+./scripts/local-dev.sh start
 
 # 3. Make code changes
 # Edit files in cmd/, internal/, templates/, etc.
 
 # 4. Restart to see changes
-./local-dev.sh restart
+./scripts/local-dev.sh restart
 
 # 5. Run tests
-./local-dev.sh test
+./scripts/local-dev.sh test
 
 # 6. View logs if needed
-./local-dev.sh logs app
+./scripts/local-dev.sh logs app
 
 # 7. Stop when done
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 ```
 
 ### Local URLs
@@ -102,28 +102,28 @@ When running locally:
 ```bash
 # Start Docker Desktop application
 # Wait for it to fully start
-# Try again: ./local-dev.sh start
+# Try again: ./scripts/local-dev.sh start
 ```
 
 #### "Services are not running"
 ```bash
 # Check status
-./local-dev.sh status
+./scripts/local-dev.sh status
 
 # View logs
-./local-dev.sh logs
+./scripts/local-dev.sh logs
 
 # Restart
-./local-dev.sh restart
+./scripts/local-dev.sh restart
 ```
 
 #### "Tests are failing"
 ```bash
 # Make sure services are healthy
-./local-dev.sh status
+./scripts/local-dev.sh status
 
 # Check app logs
-./local-dev.sh logs app
+./scripts/local-dev.sh logs app
 
 # Verify app is responding
 curl http://localhost:8080/health
@@ -132,7 +132,7 @@ curl http://localhost:8080/health
 #### "Port already in use"
 ```bash
 # Stop any existing services
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 
 # Or find what's using the port
 lsof -i :8080
@@ -156,14 +156,14 @@ lsof -i :5432
 
 ```bash
 # Always test locally before deploying
-./local-dev.sh start
-./local-dev.sh test
+./scripts/local-dev.sh start
+./scripts/local-dev.sh test
 
 # Format code
 go fmt ./...
 
 # Stop local services
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 ```
 
 #### Step 2: Push to GitHub
@@ -219,14 +219,14 @@ The `deploy-complete.sh` script handles:
 
 ```bash
 # 1. Start local environment
-./local-dev.sh start
+./scripts/local-dev.sh start
 
 # 2. Make code changes
 # Edit your files...
 
 # 3. Test locally
-./local-dev.sh restart
-./local-dev.sh test
+./scripts/local-dev.sh restart
+./scripts/local-dev.sh test
 
 # 4. Create branch, commit and push
 git checkout -b feature/your-feature
@@ -243,7 +243,7 @@ git pull
 kubectl apply -f kubernetes/app.yaml
 
 # 6. Stop local environment
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 ```
 
 ---
@@ -267,10 +267,10 @@ kubectl apply -f kubernetes/app.yaml
 ### Local Development
 
 1. **Always start Docker Desktop first**
-2. **Use `./local-dev.sh` for all operations**
-3. **Run tests before committing**: `./local-dev.sh test`
-4. **Check logs when debugging**: `./local-dev.sh logs app`
-5. **Stop services when done**: `./local-dev.sh stop`
+2. **Use `./scripts/local-dev.sh` for all operations**
+3. **Run tests before committing**: `./scripts/local-dev.sh test`
+4. **Check logs when debugging**: `./scripts/local-dev.sh logs app`
+5. **Stop services when done**: `./scripts/local-dev.sh stop`
 
 ### Production Deployment
 
@@ -285,7 +285,7 @@ kubectl apply -f kubernetes/app.yaml
 ```bash
 # Before every commit
 go fmt ./...                  # Format code
-./local-dev.sh test          # Run tests
+./scripts/local-dev.sh test          # Run tests
 git status                   # Review changes
 ```
 
@@ -300,7 +300,7 @@ git status                   # Review changes
 ```bash
 # macOS: Open Docker Desktop from Applications
 # Wait for Docker icon in menu bar to show "running"
-# Then try: ./local-dev.sh start
+# Then try: ./scripts/local-dev.sh start
 ```
 
 ### Issue: "Port 8080 already in use"
@@ -308,7 +308,7 @@ git status                   # Review changes
 **Solution**: Stop existing services
 
 ```bash
-./local-dev.sh stop
+./scripts/local-dev.sh stop
 
 # Or find and kill the process
 lsof -i :8080
@@ -321,16 +321,16 @@ kill <PID>
 
 ```bash
 # Check all services
-./local-dev.sh status
+./scripts/local-dev.sh status
 
 # Check app health
 curl http://localhost:8080/health
 
 # View app logs
-./local-dev.sh logs app
+./scripts/local-dev.sh logs app
 
 # Restart if needed
-./local-dev.sh restart
+./scripts/local-dev.sh restart
 ```
 
 ### Issue: "Can't connect to database"
@@ -339,10 +339,10 @@ curl http://localhost:8080/health
 
 ```bash
 # Check database
-./local-dev.sh status | grep db
+./scripts/local-dev.sh status | grep db
 
 # Test connection
-./local-dev.sh db
+./scripts/local-dev.sh db
 # Should open psql shell
 ```
 
@@ -352,10 +352,10 @@ curl http://localhost:8080/health
 
 ```bash
 # Check MinIO status
-./local-dev.sh status | grep minio
+./scripts/local-dev.sh status | grep minio
 
 # View MinIO logs
-./local-dev.sh logs minio
+./scripts/local-dev.sh logs minio
 
 # Access MinIO console
 # http://localhost:9001 (minioadmin/minioadmin)
@@ -368,10 +368,10 @@ curl http://localhost:8080/health
 ### Local Development
 
 ```bash
-./local-dev.sh start     # Start everything
-./local-dev.sh test      # Run tests
-./local-dev.sh logs      # View logs
-./local-dev.sh stop      # Stop everything
+./scripts/local-dev.sh start     # Start everything
+./scripts/local-dev.sh test      # Run tests
+./scripts/local-dev.sh logs      # View logs
+./scripts/local-dev.sh stop      # Stop everything
 ```
 
 ### Production Deployment
@@ -389,7 +389,7 @@ kubectl get ingress -n bookstore
 
 ```bash
 # Local
-./local-dev.sh test
+./scripts/local-dev.sh test
 
 # Check specific service
 curl http://localhost:8080/health
@@ -410,12 +410,12 @@ docker compose exec redis redis-cli PING
 
 ## 💡 Tips
 
-1. **Use `./local-dev.sh` for everything** - It handles Docker checks and errors
+1. **Use `./scripts/local-dev.sh` for everything** - It handles Docker checks and errors
 2. **Keep Docker Desktop running** - Services won't work without it
 3. **Test locally before deploying** - Catch issues early
 4. **Use semantic versioning** - v1.0.0, v1.0.1, v1.1.0, v2.0.0
 5. **Monitor logs** - Both locally and in K8s
-6. **Clean up when done** - `./local-dev.sh stop` to free resources
+6. **Clean up when done** - `./scripts/local-dev.sh stop` to free resources
 
 ---
 

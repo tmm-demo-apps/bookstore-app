@@ -3,8 +3,20 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - '**.sh'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - '**.sh'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
 
 jobs:
   # Lint runs on GitHub-hosted (fast, no secrets needed)
@@ -59,7 +71,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: bookstore_test
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U user -d bookstore_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -72,28 +84,9 @@ jobs:
 
     - name: Ensure Go cache directories exist on PVC
       run: |
-        # Go cache is at /mnt/data/go-cache (separate from Docker at /mnt/data/docker)
-        # This avoids permission issues with Docker's restricted directory
-        
-        echo "PVC mount status:"
-        df -h /mnt/data || echo "WARNING: /mnt/data not mounted!"
-        
-        echo ""
-        echo "Current directory structure:"
-        ls -la /mnt/data/ || echo "Cannot list /mnt/data"
-        
-        # Create cache directories if they don't exist
+        # Go cache at /mnt/data (separate from Docker) - devops owns these directories
         sudo mkdir -p $GOCACHE $GOMODCACHE
-        sudo chown -R $(whoami):$(whoami) $GOCACHE $GOMODCACHE
-        
-        # Verify access
-        echo ""
-        echo "Verifying Go cache access..."
-        ls -la $GOCACHE && echo "✅ GOCACHE accessible"
-        ls -la $GOMODCACHE && echo "✅ GOMODCACHE accessible"
-        
-        # Write test
-        touch $GOCACHE/test-write && rm $GOCACHE/test-write && echo "✅ Write test PASSED"
+        sudo chown -R $(whoami):$(whoami) $GOCACHE $GOMODCACHE 2>/dev/null || true
 
     - name: Set up Go
       uses: actions/setup-go@v5

@@ -17,7 +17,7 @@ function show_help() {
     cat << EOF
 Local Development Environment Manager
 
-Usage: ./local-dev.sh [command]
+Usage: ./scripts/local-dev.sh [command]
 
 Commands:
     start       Start all services (build if needed)
@@ -36,10 +36,10 @@ Commands:
     help        Show this help message
 
 Examples:
-    ./local-dev.sh start
-    ./local-dev.sh logs app
-    ./local-dev.sh test
-    ./local-dev.sh db
+    ./scripts/local-dev.sh start
+    ./scripts/local-dev.sh logs app
+    ./scripts/local-dev.sh test
+    ./scripts/local-dev.sh db
 
 EOF
 }
@@ -83,7 +83,7 @@ function start_services() {
         fi
         if [ $i -eq 60 ]; then
             echo -e "${YELLOW}Application is still starting...${NC}"
-            echo "Check logs: ./local-dev.sh logs app"
+            echo "Check logs: ./scripts/local-dev.sh logs app"
         fi
         sleep 2
     done
@@ -93,7 +93,7 @@ function start_services() {
     echo "MinIO Console: http://localhost:9001 (minioadmin/minioadmin)"
     echo "Elasticsearch: http://localhost:9200"
     echo ""
-    echo "Run './local-dev.sh test' to run smoke tests"
+    echo "Run './scripts/local-dev.sh test' to run smoke tests"
     echo "See 'docs/DEVELOPMENT-WORKFLOW.md' for complete guide"
 }
 
@@ -131,7 +131,7 @@ function run_tests() {
     # Check if services are running
     if ! docker compose ps | grep -q "Up"; then
         echo -e "${RED}Services are not running${NC}"
-        echo "Start services first: ./local-dev.sh start"
+        echo "Start services first: ./scripts/local-dev.sh start"
         exit 1
     fi
     
@@ -144,7 +144,7 @@ function run_tests() {
         fi
         if [ $i -eq 30 ]; then
             echo -e "${RED}Application did not start in time${NC}"
-            echo "Check logs: ./local-dev.sh logs app"
+            echo "Check logs: ./scripts/local-dev.sh logs app"
             exit 1
         fi
         sleep 1
