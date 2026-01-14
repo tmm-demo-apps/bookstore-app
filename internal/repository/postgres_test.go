@@ -237,18 +237,22 @@ func TestCartOperations(t *testing.T) {
 	// Clean up any existing cart items for this session
 	_, _ = db.Exec("DELETE FROM cart_items WHERE session_id = $1", sessionID)
 
-	// Get a product to add
-	products, err := repo.Products().ListProducts()
+	// Find a product with sufficient stock (at least 10)
+	// Note: AddToCart caps quantity at available stock
+	var testProductID int
+	var testProductStock int
+	err := db.QueryRow(`
+		SELECT id, stock_quantity FROM products 
+		WHERE status = 'active' AND stock_quantity >= 10 
+		ORDER BY id LIMIT 1
+	`).Scan(&testProductID, &testProductStock)
 	if err != nil {
-		t.Fatalf("ListProducts failed: %v", err)
+		t.Fatalf("Failed to find product with sufficient stock: %v", err)
 	}
-	if len(products) == 0 {
-		t.Fatal("No products found")
-	}
-	testProduct := products[0]
+	t.Logf("Using product ID %d with stock %d", testProductID, testProductStock)
 
 	// Add to cart (userID=0 means anonymous, use sessionID)
-	err = repo.Cart().AddToCart(0, sessionID, testProduct.ID, 2)
+	err = repo.Cart().AddToCart(0, sessionID, testProductID, 2)
 	if err != nil {
 		t.Fatalf("AddToCart failed: %v", err)
 	}
@@ -262,8 +266,8 @@ func TestCartOperations(t *testing.T) {
 	if len(items) != 1 {
 		t.Errorf("Expected 1 cart item, got %d", len(items))
 	} else {
-		if items[0].ProductID != testProduct.ID {
-			t.Errorf("Expected product ID %d, got %d", testProduct.ID, items[0].ProductID)
+		if items[0].ProductID != testProductID {
+			t.Errorf("Expected product ID %d, got %d", testProductID, items[0].ProductID)
 		}
 		if items[0].Quantity != 2 {
 			t.Errorf("Expected quantity 2, got %d", items[0].Quantity)
@@ -274,8 +278,8 @@ func TestCartOperations(t *testing.T) {
 		t.Errorf("Expected positive total, got %f", total)
 	}
 
-	// Update quantity
-	err = repo.Cart().UpdateQuantity(0, sessionID, testProduct.ID, 5)
+	// Update quantity (should work since stock >= 10)
+	err = repo.Cart().UpdateQuantity(0, sessionID, testProductID, 5)
 	if err != nil {
 		t.Fatalf("UpdateQuantity failed: %v", err)
 	}
@@ -287,7 +291,7 @@ func TestCartOperations(t *testing.T) {
 	}
 
 	// Remove from cart
-	err = repo.Cart().RemoveItem(0, sessionID, testProduct.ID)
+	err = repo.Cart().RemoveItem(0, sessionID, testProductID)
 	if err != nil {
 		t.Fatalf("RemoveItem failed: %v", err)
 	}
