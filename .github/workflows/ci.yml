@@ -46,10 +46,10 @@ jobs:
     name: Test and Build
     runs-on: [self-hosted, linux, harbor]
     
-    # Use PVC for Go caches (root disk is small)
+    # Use PVC for Go caches (mounted at /mnt/data, separate from Docker)
     env:
-      GOCACHE: /var/lib/docker/go-cache
-      GOMODCACHE: /var/lib/docker/go-mod-cache
+      GOCACHE: /mnt/data/go-cache
+      GOMODCACHE: /mnt/data/go-mod-cache
     
     services:
       postgres:
@@ -70,56 +70,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Debug - Diagnose permissions and user context
+    - name: Ensure Go cache directories exist on PVC
       run: |
-        echo "========== HYPOTHESIS 1: Who is the runner user? =========="
-        echo "whoami: $(whoami)"
-        echo "id: $(id)"
-        echo "HOME: $HOME"
-        echo "USER env: $USER"
+        # Go cache is at /mnt/data/go-cache (separate from Docker at /mnt/data/docker)
+        # This avoids permission issues with Docker's restricted directory
+        
+        echo "PVC mount status:"
+        df -h /mnt/data || echo "WARNING: /mnt/data not mounted!"
         
         echo ""
-        echo "========== HYPOTHESIS 2 & 4: Parent directory permissions =========="
-        echo "ls -la /var/lib/docker (parent dir):"
-        ls -la /var/lib/ | grep docker || echo "Cannot see docker dir"
-        echo ""
-        echo "ls -la /var/lib/docker/ (contents):"
-        sudo ls -la /var/lib/docker/ | head -20 || echo "Cannot list docker contents"
+        echo "Current directory structure:"
+        ls -la /mnt/data/ || echo "Cannot list /mnt/data"
         
-        echo ""
-        echo "========== HYPOTHESIS 3: Previous Go cache locations =========="
-        echo "Default GOCACHE would be: $(go env GOCACHE 2>/dev/null || echo 'go not installed yet')"
-        echo "Default GOMODCACHE would be: $(go env GOMODCACHE 2>/dev/null || echo 'go not installed yet')"
-        echo "~/.cache contents:"
-        ls -la ~/.cache/ 2>/dev/null || echo "No ~/.cache directory"
-        echo "~/go contents:"
-        ls -la ~/go/ 2>/dev/null || echo "No ~/go directory"
-        
-        echo ""
-        echo "========== HYPOTHESIS 5: Can we create and own dirs? =========="
-        echo "Attempting to create $GOCACHE..."
-        sudo mkdir -p $GOCACHE && echo "mkdir succeeded" || echo "mkdir FAILED"
-        echo "Attempting chown to $(whoami)..."
-        sudo chown -R $(whoami):$(whoami) $GOCACHE && echo "chown succeeded" || echo "chown FAILED"
-        echo ""
-        echo "Result - ls -la /var/lib/docker/go-cache:"
-        ls -la /var/lib/docker/go-cache 2>/dev/null || echo "Cannot access go-cache"
-        echo ""
-        echo "Result - ls -la /var/lib/docker/ | grep go:"
-        sudo ls -la /var/lib/docker/ | grep go || echo "No go dirs visible"
-        
-        echo ""
-        echo "========== Can current user write to the directory? =========="
-        touch $GOCACHE/test-write && echo "Write test PASSED" && rm $GOCACHE/test-write || echo "Write test FAILED"
-
-    - name: Ensure Go cache directories exist
-      run: |
-        # Create cache directories on PVC if they don't exist
+        # Create cache directories if they don't exist
         sudo mkdir -p $GOCACHE $GOMODCACHE
         sudo chown -R $(whoami):$(whoami) $GOCACHE $GOMODCACHE
-        echo "Final state:"
-        ls -la /var/lib/docker/ | grep go
-        df -h /var/lib/docker
+        
+        # Verify access
+        echo ""
+        echo "Verifying Go cache access..."
+        ls -la $GOCACHE && echo "✅ GOCACHE accessible"
+        ls -la $GOMODCACHE && echo "✅ GOMODCACHE accessible"
+        
+        # Write test
+        touch $GOCACHE/test-write && rm $GOCACHE/test-write && echo "✅ Write test PASSED"
 
     - name: Set up Go
       uses: actions/setup-go@v5
