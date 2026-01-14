@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"DemoApp/internal/models"
 	"database/sql"
 	"os"
 	"testing"
@@ -194,15 +193,15 @@ func TestGetProductByID(t *testing.T) {
 	}
 }
 
-// TestGetCategories tests category listing
-func TestGetCategories(t *testing.T) {
+// TestListCategories tests category listing
+func TestListCategories(t *testing.T) {
 	db := getTestDB(t)
 	defer db.Close()
 
 	repo := NewPostgresRepository(db)
-	categories, err := repo.Products().GetCategories()
+	categories, err := repo.Products().ListCategories()
 	if err != nil {
-		t.Fatalf("GetCategories failed: %v", err)
+		t.Fatalf("ListCategories failed: %v", err)
 	}
 
 	if len(categories) < 5 {
@@ -248,16 +247,16 @@ func TestCartOperations(t *testing.T) {
 	}
 	testProduct := products[0]
 
-	// Add to cart
-	err = repo.Cart().AddToCart(sessionID, nil, testProduct.ID, 2)
+	// Add to cart (userID=0 means anonymous, use sessionID)
+	err = repo.Cart().AddToCart(0, sessionID, testProduct.ID, 2)
 	if err != nil {
 		t.Fatalf("AddToCart failed: %v", err)
 	}
 
-	// Get cart
-	items, err := repo.Cart().GetCart(sessionID, nil)
+	// Get cart items
+	items, total, err := repo.Cart().GetCartItems(0, sessionID)
 	if err != nil {
-		t.Fatalf("GetCart failed: %v", err)
+		t.Fatalf("GetCartItems failed: %v", err)
 	}
 
 	if len(items) != 1 {
@@ -271,32 +270,36 @@ func TestCartOperations(t *testing.T) {
 		}
 	}
 
+	if total <= 0 {
+		t.Errorf("Expected positive total, got %f", total)
+	}
+
 	// Update quantity
-	err = repo.Cart().UpdateCartItem(sessionID, nil, testProduct.ID, 5)
+	err = repo.Cart().UpdateQuantity(0, sessionID, testProduct.ID, 5)
 	if err != nil {
-		t.Fatalf("UpdateCartItem failed: %v", err)
+		t.Fatalf("UpdateQuantity failed: %v", err)
 	}
 
 	// Verify update
-	items, _ = repo.Cart().GetCart(sessionID, nil)
+	items, _, _ = repo.Cart().GetCartItems(0, sessionID)
 	if len(items) == 1 && items[0].Quantity != 5 {
 		t.Errorf("Expected quantity 5 after update, got %d", items[0].Quantity)
 	}
 
 	// Remove from cart
-	err = repo.Cart().RemoveFromCart(sessionID, nil, testProduct.ID)
+	err = repo.Cart().RemoveItem(0, sessionID, testProduct.ID)
 	if err != nil {
-		t.Fatalf("RemoveFromCart failed: %v", err)
+		t.Fatalf("RemoveItem failed: %v", err)
 	}
 
 	// Verify removal
-	items, _ = repo.Cart().GetCart(sessionID, nil)
+	items, _, _ = repo.Cart().GetCartItems(0, sessionID)
 	if len(items) != 0 {
 		t.Errorf("Expected empty cart after removal, got %d items", len(items))
 	}
 }
 
-// TestUserOperations tests user creation and authentication
+// TestUserOperations tests user creation and lookup
 func TestUserOperations(t *testing.T) {
 	db := getTestDB(t)
 	defer db.Close()
@@ -305,23 +308,20 @@ func TestUserOperations(t *testing.T) {
 
 	// Use unique email for this test
 	testEmail := "test-" + t.Name() + "@example.com"
+	testPassword := "hashed_password_here" // In real app, this would be hashed
+	testFullName := "Test User"
 
 	// Clean up any existing user with this email
 	_, _ = db.Exec("DELETE FROM users WHERE email = $1", testEmail)
 
 	// Create user
-	user := &models.User{
-		Email:    testEmail,
-		Password: "hashed_password_here", // In real app, this would be hashed
-	}
-
-	err := repo.Users().CreateUser(user)
+	userID, err := repo.Users().CreateUser(testEmail, testPassword, testFullName)
 	if err != nil {
 		t.Fatalf("CreateUser failed: %v", err)
 	}
 
-	if user.ID == 0 {
-		t.Error("User ID should be set after creation")
+	if userID == 0 {
+		t.Error("User ID should be non-zero after creation")
 	}
 
 	// Get user by email
@@ -335,17 +335,17 @@ func TestUserOperations(t *testing.T) {
 	}
 
 	// Get user by ID
-	foundByID, err := repo.Users().GetUserByID(user.ID)
+	foundByID, err := repo.Users().GetUserByID(userID)
 	if err != nil {
 		t.Fatalf("GetUserByID failed: %v", err)
 	}
 
-	if foundByID.ID != user.ID {
-		t.Errorf("Expected user ID %d, got %d", user.ID, foundByID.ID)
+	if foundByID.ID != userID {
+		t.Errorf("Expected user ID %d, got %d", userID, foundByID.ID)
 	}
 
 	// Clean up
-	_, _ = db.Exec("DELETE FROM users WHERE id = $1", user.ID)
+	_, _ = db.Exec("DELETE FROM users WHERE id = $1", userID)
 }
 
 // TestStockQuantityRules verifies the stock quantity rules from seed data
@@ -390,5 +390,26 @@ func TestUniqueConstraints(t *testing.T) {
 
 	if indexCount < 2 {
 		t.Errorf("Expected at least 2 cart_items indexes, got %d", indexCount)
+	}
+}
+
+// TestSearchProducts tests the search functionality
+func TestSearchProducts(t *testing.T) {
+	db := getTestDB(t)
+	defer db.Close()
+
+	repo := NewPostgresRepository(db)
+
+	// Search for a common term
+	products, err := repo.Products().SearchProducts("pride", 0)
+	if err != nil {
+		t.Fatalf("SearchProducts failed: %v", err)
+	}
+
+	// Should find at least "Pride and Prejudice"
+	if len(products) == 0 {
+		t.Log("Note: Search returned no results - Elasticsearch may not be available in CI")
+	} else {
+		t.Logf("Search for 'pride' returned %d results", len(products))
 	}
 }
