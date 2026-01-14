@@ -70,17 +70,55 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Debug - Diagnose permissions and user context
+      run: |
+        echo "========== HYPOTHESIS 1: Who is the runner user? =========="
+        echo "whoami: $(whoami)"
+        echo "id: $(id)"
+        echo "HOME: $HOME"
+        echo "USER env: $USER"
+        
+        echo ""
+        echo "========== HYPOTHESIS 2 & 4: Parent directory permissions =========="
+        echo "ls -la /var/lib/docker (parent dir):"
+        ls -la /var/lib/ | grep docker || echo "Cannot see docker dir"
+        echo ""
+        echo "ls -la /var/lib/docker/ (contents):"
+        sudo ls -la /var/lib/docker/ | head -20 || echo "Cannot list docker contents"
+        
+        echo ""
+        echo "========== HYPOTHESIS 3: Previous Go cache locations =========="
+        echo "Default GOCACHE would be: $(go env GOCACHE 2>/dev/null || echo 'go not installed yet')"
+        echo "Default GOMODCACHE would be: $(go env GOMODCACHE 2>/dev/null || echo 'go not installed yet')"
+        echo "~/.cache contents:"
+        ls -la ~/.cache/ 2>/dev/null || echo "No ~/.cache directory"
+        echo "~/go contents:"
+        ls -la ~/go/ 2>/dev/null || echo "No ~/go directory"
+        
+        echo ""
+        echo "========== HYPOTHESIS 5: Can we create and own dirs? =========="
+        echo "Attempting to create $GOCACHE..."
+        sudo mkdir -p $GOCACHE && echo "mkdir succeeded" || echo "mkdir FAILED"
+        echo "Attempting chown to $(whoami)..."
+        sudo chown -R $(whoami):$(whoami) $GOCACHE && echo "chown succeeded" || echo "chown FAILED"
+        echo ""
+        echo "Result - ls -la /var/lib/docker/go-cache:"
+        ls -la /var/lib/docker/go-cache 2>/dev/null || echo "Cannot access go-cache"
+        echo ""
+        echo "Result - ls -la /var/lib/docker/ | grep go:"
+        sudo ls -la /var/lib/docker/ | grep go || echo "No go dirs visible"
+        
+        echo ""
+        echo "========== Can current user write to the directory? =========="
+        touch $GOCACHE/test-write && echo "Write test PASSED" && rm $GOCACHE/test-write || echo "Write test FAILED"
+
     - name: Ensure Go cache directories exist
       run: |
         # Create cache directories on PVC if they don't exist
-        # Runner runs as 'devops' user, so set ownership accordingly
         sudo mkdir -p $GOCACHE $GOMODCACHE
-        sudo chown -R devops:devops $GOCACHE $GOMODCACHE
-        echo "Go cache directories:"
-        echo "  GOCACHE: $GOCACHE"
-        echo "  GOMODCACHE: $GOMODCACHE"
-        echo "Current user: $(whoami) (should be devops)"
-        ls -la /var/lib/docker/ | grep go || echo "No go directories yet"
+        sudo chown -R $(whoami):$(whoami) $GOCACHE $GOMODCACHE
+        echo "Final state:"
+        ls -la /var/lib/docker/ | grep go
         df -h /var/lib/docker
 
     - name: Set up Go
