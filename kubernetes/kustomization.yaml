@@ -7,7 +7,10 @@ namespace: bookstore
 # Resources to include (order matters for dependencies)
 resources:
   - namespace.yaml
-  - secret.yaml
+  # Note: secret.yaml is gitignored - secrets are managed separately via:
+  #   kubectl create secret generic app-secrets --from-literal=...
+  #   kubectl create secret docker-registry harbor-registry-secret --docker-server=...
+  # See kubernetes/README.md for secret creation commands
   - configmap.yaml
   - postgres.yaml
   - redis.yaml
