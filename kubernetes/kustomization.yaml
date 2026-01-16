@@ -23,7 +23,7 @@ resources:
 # Image overrides - CI/CD updates the app tag only
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
-    newTag: latest
+    newTag: 35ef55cb25b7c911b98355f33736e1938ba9f5af
   - name: harbor.corp.vmbeans.com/library/postgres
     newTag: 14-alpine
   - name: harbor.corp.vmbeans.com/library/redis
