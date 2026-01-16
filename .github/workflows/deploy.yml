@@ -27,19 +27,27 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Fetch latest to get CI's kustomization.yaml update
+        ref: main
 
-    - name: Generate version tag
+    - name: Get version tag from kustomization.yaml
       id: version
       run: |
         if [ -n "${{ github.event.inputs.version }}" ]; then
-          # Manual trigger with version
+          # Manual trigger with explicit version
           VERSION="${{ github.event.inputs.version }}"
+          echo "Using manual version: ${VERSION}"
         else
-          # Auto-generate version from date and short SHA
-          VERSION="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+          # Read tag from kustomization.yaml (set by CI workflow)
+          VERSION=$(grep -A1 'harbor.corp.vmbeans.com/bookstore/app' kubernetes/kustomization.yaml | grep newTag | awk '{print $2}')
+          if [ -z "$VERSION" ]; then
+            echo "❌ Could not read version from kustomization.yaml"
+            exit 1
+          fi
+          echo "Read version from kustomization.yaml: ${VERSION}"
         fi
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "Generated version: ${VERSION}"
 
     - name: Check for existing image
       id: check_image

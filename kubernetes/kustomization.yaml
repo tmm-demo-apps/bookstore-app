@@ -24,9 +24,10 @@ resources:
   # Note: ingress-nginx.yaml deploys to ingress-nginx namespace, apply separately
 
 # Image overrides - CI/CD updates the app tag only
+# Tag format: vYYYYMMDD-shortsha (e.g., v20260116-bfb6ee9)
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
-    newTag: 35ef55cb25b7c911b98355f33736e1938ba9f5af
+    newTag: v20260116-bfb6ee9
   - name: harbor.corp.vmbeans.com/library/postgres
     newTag: 14-alpine
   - name: harbor.corp.vmbeans.com/library/redis

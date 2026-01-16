@@ -147,7 +147,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        # Build with a consistent tag that deploy can reference
+        # Build with consistent tags that deploy can reference
         docker build -t bookstore-app:${{ github.sha }} .
         docker tag bookstore-app:${{ github.sha }} bookstore-app:latest
         echo "✅ Docker image built: bookstore-app:${{ github.sha }}"
@@ -157,6 +157,16 @@ jobs:
         docker compose config --quiet
         echo "✅ Docker Compose configuration is valid"
 
+    # Generate consistent image tag for ArgoCD and Harbor
+    - name: Generate image tag
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id: image_tag
+      run: |
+        # Format: vYYYYMMDD-shortsha (e.g., v20260116-bfb6ee9)
+        TAG="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "Generated image tag: ${TAG}"
+
     # Update kustomization.yaml for ArgoCD GitOps (only on main branch)
     - name: Update image tag for ArgoCD
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -165,7 +175,7 @@ jobs:
         
         # Update ONLY the app image tag (first occurrence after "bookstore/app")
         # Infrastructure images (postgres, redis, etc.) keep their pinned versions
-        sed -i '/harbor.corp.vmbeans.com\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ github.sha }}/}' kustomization.yaml
+        sed -i '/harbor.corp.vmbeans.com\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ steps.image_tag.outputs.tag }}/}' kustomization.yaml
         
         echo "Updated kustomization.yaml:"
         cat kustomization.yaml
@@ -183,7 +193,7 @@ jobs:
         fi
         
         git add kubernetes/kustomization.yaml
-        git commit -m "chore: update app image to ${{ github.sha }} [skip ci]"
+        git commit -m "chore: update app image to ${{ steps.image_tag.outputs.tag }} [skip ci]"
         
         # Remove the extraheader that checkout@v4 sets (it uses GITHUB_TOKEN which lacks push permission)
         git config --unset-all http.https://github.com/.extraheader || true
