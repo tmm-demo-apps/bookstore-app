@@ -175,6 +175,8 @@ jobs:
         
     - name: Commit and push kustomization update
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        GITHUB_TOKEN_FOR_PUSH: ${{ secrets.GIT_PUSH_TOKEN }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -188,7 +190,12 @@ jobs:
         git add kubernetes/kustomization.yaml
         git commit -m "chore: update app image to ${{ github.sha }} [skip ci]"
         
+        # Debug: Check if token is set (shows length, not value)
+        echo "Token length: ${#GITHUB_TOKEN_FOR_PUSH}"
+        echo "Token prefix: ${GITHUB_TOKEN_FOR_PUSH:0:4}..."
+        
         # Push using PAT for authentication
-        git push https://x-access-token:${{ secrets.GIT_PUSH_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN_FOR_PUSH}@github.com/${{ github.repository }}.git"
+        git push origin HEAD:main
         
         echo "✅ Pushed kustomization.yaml update - ArgoCD will sync automatically"
