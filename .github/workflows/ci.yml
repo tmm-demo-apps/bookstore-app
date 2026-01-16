@@ -147,7 +147,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        # Build with consistent tags that deploy can reference
+        # Build with consistent tags
         docker build -t bookstore-app:${{ github.sha }} .
         docker tag bookstore-app:${{ github.sha }} bookstore-app:latest
         echo "✅ Docker image built: bookstore-app:${{ github.sha }}"
@@ -166,6 +166,28 @@ jobs:
         TAG="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
         echo "tag=${TAG}" >> $GITHUB_OUTPUT
         echo "Generated image tag: ${TAG}"
+
+    # Push to Harbor (on main branch only)
+    - name: Login to Harbor
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ secrets.HARBOR_URL }} -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+
+    - name: Push to Harbor
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        # Tag for Harbor with the version tag
+        docker tag bookstore-app:${{ github.sha }} ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.image_tag.outputs.tag }}
+        docker tag bookstore-app:${{ github.sha }} ${{ secrets.HARBOR_URL }}/bookstore/app:latest
+        
+        # Push to Harbor
+        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.image_tag.outputs.tag }}..."
+        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.image_tag.outputs.tag }}
+        
+        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:latest..."
+        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:latest
+        
+        echo "✅ Pushed to Harbor: ${{ steps.image_tag.outputs.tag }}"
 
     # Update kustomization.yaml for ArgoCD GitOps (only on main branch)
     - name: Update image tag for ArgoCD
@@ -203,3 +225,16 @@ jobs:
         git push origin HEAD:main
         
         echo "✅ Pushed kustomization.yaml update - ArgoCD will sync automatically"
+
+    - name: Deployment Summary
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        echo "## 🚀 Build & Deploy Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Image pushed to Harbor:**" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.image_tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**GitOps:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Updated \`kubernetes/kustomization.yaml\` with tag \`${{ steps.image_tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- ArgoCD will automatically sync the new image" >> $GITHUB_STEP_SUMMARY

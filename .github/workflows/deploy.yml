@@ -1,72 +1,42 @@
-name: Deploy
+name: Deploy (Manual)
+
+# This workflow is for MANUAL deployments only.
+# Normal deployments happen automatically via CI workflow:
+#   CI builds → pushes to Harbor → updates kustomization.yaml → ArgoCD syncs
+#
+# Use this workflow to:
+#   - Re-push an existing image with a different tag
+#   - Deploy a specific version manually
 
 on:
-  # Trigger after CI completes successfully on main
-  workflow_run:
-    workflows: ["CI"]
-    types:
-      - completed
-    branches: [main]
-  
-  # Allow manual trigger with version input
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v1.2.0). Leave empty for auto-generated tag.'
-        required: false
+        description: 'Version tag to deploy (e.g., v20260116-bfb6ee9). Required.'
+        required: true
         type: string
 
 jobs:
   deploy:
-    name: Tag and Push to Harbor
-    # Use same self-hosted runner (image already built by CI)
+    name: Manual Deploy to Harbor
     runs-on: [self-hosted, linux, harbor]
-    # Only run if CI succeeded (or manual trigger)
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        # Fetch latest to get CI's kustomization.yaml update
-        ref: main
 
-    - name: Get version tag from kustomization.yaml
-      id: version
+    - name: Validate version input
       run: |
-        if [ -n "${{ github.event.inputs.version }}" ]; then
-          # Manual trigger with explicit version
-          VERSION="${{ github.event.inputs.version }}"
-          echo "Using manual version: ${VERSION}"
-        else
-          # Read tag from kustomization.yaml (set by CI workflow)
-          VERSION=$(grep -A1 'harbor.corp.vmbeans.com/bookstore/app' kubernetes/kustomization.yaml | grep newTag | awk '{print $2}')
-          if [ -z "$VERSION" ]; then
-            echo "❌ Could not read version from kustomization.yaml"
-            exit 1
-          fi
-          echo "Read version from kustomization.yaml: ${VERSION}"
+        if [ -z "${{ github.event.inputs.version }}" ]; then
+          echo "❌ Version is required for manual deployment"
+          exit 1
         fi
-        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Deploying version: ${{ github.event.inputs.version }}"
 
-    - name: Check for existing image
-      id: check_image
+    - name: Build Docker image
       run: |
-        # Check if CI already built the image
-        if docker image inspect bookstore-app:${{ github.sha }} > /dev/null 2>&1; then
-          echo "found=true" >> $GITHUB_OUTPUT
-          echo "✅ Found existing image: bookstore-app:${{ github.sha }}"
-        else
-          echo "found=false" >> $GITHUB_OUTPUT
-          echo "⚠️ Image not found, will build fresh"
-        fi
-
-    - name: Build Docker image (if not cached)
-      if: steps.check_image.outputs.found != 'true'
-      run: |
-        echo "Building fresh Docker image..."
-        docker build -t bookstore-app:${{ github.sha }} .
-        docker tag bookstore-app:${{ github.sha }} bookstore-app:latest
+        echo "Building Docker image..."
+        docker build -t bookstore-app:${{ github.event.inputs.version }} .
 
     - name: Login to Harbor
       run: |
@@ -75,33 +45,49 @@ jobs:
     - name: Tag and Push to Harbor
       run: |
         # Tag for Harbor
-        docker tag bookstore-app:${{ github.sha }} ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}
-        docker tag bookstore-app:${{ github.sha }} ${{ secrets.HARBOR_URL }}/bookstore/app:latest
+        docker tag bookstore-app:${{ github.event.inputs.version }} ${{ secrets.HARBOR_URL }}/bookstore/app:${{ github.event.inputs.version }}
         
         # Push to Harbor
-        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}..."
-        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}
+        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:${{ github.event.inputs.version }}..."
+        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:${{ github.event.inputs.version }}
+
+    - name: Update kustomization.yaml
+      run: |
+        cd kubernetes
+        sed -i '/harbor.corp.vmbeans.com\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ github.event.inputs.version }}/}' kustomization.yaml
+        echo "Updated kustomization.yaml:"
+        cat kustomization.yaml
+
+    - name: Commit and push kustomization update
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
         
-        echo "Pushing ${{ secrets.HARBOR_URL }}/bookstore/app:latest..."
-        docker push ${{ secrets.HARBOR_URL }}/bookstore/app:latest
+        if git diff --quiet kubernetes/kustomization.yaml; then
+          echo "No changes to kustomization.yaml"
+          exit 0
+        fi
+        
+        git add kubernetes/kustomization.yaml
+        git commit -m "chore: manual deploy ${{ github.event.inputs.version }} [skip ci]"
+        
+        git config --unset-all http.https://github.com/.extraheader || true
+        git remote set-url origin "https://x-access-token:${{ secrets.GIT_PUSH_TOKEN }}@github.com/${{ github.repository }}.git"
+        git push origin HEAD:main
+        
+        echo "✅ Pushed kustomization.yaml update - ArgoCD will sync automatically"
 
     - name: Summary
       run: |
-        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## 🚀 Manual Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Image pushed to Harbor:**" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:latest\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:${{ github.event.inputs.version }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Build Info:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Git SHA: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Image reused from CI: ${{ steps.check_image.outputs.found }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Argo CD will automatically sync the new image, OR" >> $GITHUB_STEP_SUMMARY
-        echo "- Manually update: \`kubectl set image deployment/app-deployment bookstore-app=${{ secrets.HARBOR_URL }}/bookstore/app:${{ steps.version.outputs.version }} -n bookstore\`" >> $GITHUB_STEP_SUMMARY
+        echo "**GitOps:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Updated \`kubernetes/kustomization.yaml\`" >> $GITHUB_STEP_SUMMARY
+        echo "- ArgoCD will automatically sync the new image" >> $GITHUB_STEP_SUMMARY
 
-    - name: Cleanup old images
+    - name: Cleanup
       run: |
-        # Keep only recent images to save disk space
         docker image prune -f --filter "until=24h" || true
