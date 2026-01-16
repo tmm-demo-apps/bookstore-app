@@ -156,3 +156,37 @@ jobs:
       run: |
         docker compose config --quiet
         echo "✅ Docker Compose configuration is valid"
+
+    # Update kustomization.yaml for ArgoCD GitOps (only on main branch)
+    - name: Update image tag for ArgoCD
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        cd kubernetes
+        
+        # Update the app image tag in kustomization.yaml
+        # Using sed since kustomize may not be installed on runner
+        sed -i 's/newTag: .*/newTag: ${{ github.sha }}/' kustomization.yaml
+        
+        # Only update the first occurrence (app image)
+        # The infrastructure images should stay at their pinned versions
+        
+        echo "Updated kustomization.yaml:"
+        cat kustomization.yaml
+        
+    - name: Commit and push kustomization update
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Check if there are changes to commit
+        if git diff --quiet kubernetes/kustomization.yaml; then
+          echo "No changes to kustomization.yaml"
+          exit 0
+        fi
+        
+        git add kubernetes/kustomization.yaml
+        git commit -m "chore: update app image to ${{ github.sha }} [skip ci]"
+        git push
+        
+        echo "✅ Pushed kustomization.yaml update - ArgoCD will sync automatically"

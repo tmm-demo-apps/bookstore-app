@@ -56,9 +56,17 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
 fi
 
 echo "╔════════════════════════════════════════════════════════════════════════════╗"
-echo "║          Complete Kubernetes Deployment                                    ║"
+echo "║          Complete Kubernetes Deployment (Kustomize)                        ║"
 echo "╚════════════════════════════════════════════════════════════════════════════╝"
 echo ""
+
+# Check for kustomize
+if ! command -v kustomize &> /dev/null; then
+    echo "⚠️  kustomize not found. Attempting to use 'kubectl kustomize' instead..."
+    KUSTOMIZE_CMD="kubectl kustomize"
+else
+    KUSTOMIZE_CMD="kustomize"
+fi
 
 # Check for --no-prompt flag
 NO_PROMPT=false
@@ -132,9 +140,6 @@ MINIO_IMAGE="${HARBOR_URL}/library/minio/minio:${MINIO_TAG}"
 NGINX_INGRESS_IMAGE="${HARBOR_URL}/library/ingress-nginx/controller:${NGINX_INGRESS_TAG}"
 NGINX_WEBHOOK_IMAGE="${HARBOR_URL}/library/ingress-nginx/kube-webhook-certgen:${NGINX_WEBHOOK_TAG}"
 
-# Build ingress hostname from namespace and domain
-INGRESS_HOST="${K8S_NAMESPACE}.${INGRESS_DOMAIN}"
-
 # Function to get available tags from Harbor
 get_harbor_tags() {
     # Try to get tags from Harbor (requires curl and jq, falls back gracefully)
@@ -146,24 +151,74 @@ get_harbor_tags() {
     echo "$tags"
 }
 
-# Function to apply a kubernetes manifest with image and namespace substitution
-apply_with_images() {
-    local file="$1"
+# Function to configure kustomize for deployment
+configure_kustomize() {
     local app_image="${HARBOR_URL}/${HARBOR_PROJECT}/app:${VERSION}"
     
-    echo "  Applying: $file"
+    echo "  Configuring Kustomize..."
+    pushd kubernetes > /dev/null
     
-    # Substitute all placeholders and apply
-    sed -e "s|{{APP_IMAGE}}|${app_image}|g" \
-        -e "s|{{POSTGRES_IMAGE}}|${POSTGRES_IMAGE}|g" \
-        -e "s|{{REDIS_IMAGE}}|${REDIS_IMAGE}|g" \
-        -e "s|{{ELASTICSEARCH_IMAGE}}|${ELASTICSEARCH_IMAGE}|g" \
-        -e "s|{{MINIO_IMAGE}}|${MINIO_IMAGE}|g" \
-        -e "s|{{NGINX_INGRESS_IMAGE}}|${NGINX_INGRESS_IMAGE}|g" \
-        -e "s|{{NGINX_WEBHOOK_IMAGE}}|${NGINX_WEBHOOK_IMAGE}|g" \
-        -e "s|{{NAMESPACE}}|${K8S_NAMESPACE}|g" \
-        -e "s|{{INGRESS_HOST}}|${INGRESS_HOST}|g" \
-        "$file" | kubectl apply -f -
+    # Backup original kustomization.yaml
+    cp kustomization.yaml kustomization.yaml.bak
+    
+    # Set namespace
+    if command -v kustomize &> /dev/null; then
+        kustomize edit set namespace "${K8S_NAMESPACE}"
+    else
+        # Fallback: use sed to update namespace
+        sed -i.tmp "s/^namespace: .*/namespace: ${K8S_NAMESPACE}/" kustomization.yaml
+        rm -f kustomization.yaml.tmp
+    fi
+    
+    # Set all images using kustomize edit or sed fallback
+    if command -v kustomize &> /dev/null; then
+        kustomize edit set image \
+            "harbor.corp.vmbeans.com/bookstore/app=${app_image}" \
+            "harbor.corp.vmbeans.com/library/postgres=${POSTGRES_IMAGE}" \
+            "harbor.corp.vmbeans.com/library/redis=${REDIS_IMAGE}" \
+            "harbor.corp.vmbeans.com/library/elasticsearch=${ELASTICSEARCH_IMAGE}" \
+            "harbor.corp.vmbeans.com/library/minio/minio=${MINIO_IMAGE}"
+    else
+        echo "  ⚠️  kustomize not available, images will use defaults from manifests"
+    fi
+    
+    popd > /dev/null
+}
+
+# Function to restore kustomization.yaml after deployment
+restore_kustomization() {
+    if [ -f kubernetes/kustomization.yaml.bak ]; then
+        mv kubernetes/kustomization.yaml.bak kubernetes/kustomization.yaml
+        echo "  Restored kustomization.yaml to original state"
+    fi
+}
+
+# Trap to restore kustomization.yaml on exit
+trap restore_kustomization EXIT
+
+# Function to deploy using kustomize
+deploy_with_kustomize() {
+    echo "  Applying manifests with Kustomize..."
+    
+    if command -v kustomize &> /dev/null; then
+        kustomize build kubernetes | kubectl apply -f -
+    else
+        kubectl apply -k kubernetes
+    fi
+}
+
+# Function to update ingress host in manifest
+update_ingress_host() {
+    echo "  Updating ingress host to: ${INGRESS_HOST}"
+    sed -i.tmp "s/host: .*/host: ${INGRESS_HOST}/" kubernetes/ingress.yaml
+    rm -f kubernetes/ingress.yaml.tmp
+}
+
+# Function to restore ingress host after deployment
+restore_ingress_host() {
+    # Restore to default
+    sed -i.tmp "s/host: .*/host: bookstore.corp.vmbeans.com/" kubernetes/ingress.yaml
+    rm -f kubernetes/ingress.yaml.tmp
 }
 
 # Function to check if NGINX Ingress Controller is installed
@@ -185,8 +240,8 @@ install_ingress_controller() {
     echo "   - Webhook: ${NGINX_WEBHOOK_IMAGE}"
     echo ""
     
-    # Apply the ingress-nginx manifest with image substitution
-    apply_with_images kubernetes/ingress-nginx.yaml
+    # Apply the ingress-nginx manifest directly (it has its own namespace)
+    kubectl apply -f kubernetes/ingress-nginx.yaml
     
     echo ""
     echo "⏳ Waiting for NGINX Ingress Controller to be ready..."
@@ -366,22 +421,34 @@ else
     fi
 fi
 
-# Step 2: Deploy infrastructure
+# Step 2: Configure and deploy with Kustomize
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 2: Deploying Infrastructure"
+echo "Step 2: Deploying Infrastructure and Application with Kustomize"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Using images:"
-echo "  - Postgres: ${POSTGRES_IMAGE}"
-echo "  - Redis: ${REDIS_IMAGE}"
+echo "  - App:           ${HARBOR_URL}/${HARBOR_PROJECT}/app:${VERSION}"
+echo "  - Postgres:      ${POSTGRES_IMAGE}"
+echo "  - Redis:         ${REDIS_IMAGE}"
 echo "  - Elasticsearch: ${ELASTICSEARCH_IMAGE}"
-echo "  - MinIO: ${MINIO_IMAGE}"
+echo "  - MinIO:         ${MINIO_IMAGE}"
 echo ""
 
-apply_with_images kubernetes/postgres.yaml
-apply_with_images kubernetes/redis.yaml
-apply_with_images kubernetes/elasticsearch.yaml
-apply_with_images kubernetes/minio.yaml
+# Configure kustomize with our settings
+configure_kustomize
+
+# Update ingress host if namespace is not default
+if [ "${K8S_NAMESPACE}" != "bookstore" ]; then
+    update_ingress_host
+fi
+
+# Deploy everything with kustomize
+deploy_with_kustomize
+
+# Restore ingress host if we changed it
+if [ "${K8S_NAMESPACE}" != "bookstore" ]; then
+    restore_ingress_host
+fi
 
 echo ""
 echo "⏳ Waiting for infrastructure to be ready..."
@@ -392,37 +459,47 @@ kubectl wait --for=condition=Ready pod -l app=minio -n ${K8S_NAMESPACE} --timeou
 
 echo "✅ Infrastructure ready!"
 
-# Step 3: Deploy application
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 3: Deploying Application"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Using app image: ${HARBOR_URL}/${HARBOR_PROJECT}/app:${VERSION}"
-echo ""
-
-apply_with_images kubernetes/configmap.yaml
-apply_with_images kubernetes/app.yaml
-
 echo ""
 echo "⏳ Waiting for application to be ready..."
 kubectl rollout status deployment/app-deployment -n ${K8S_NAMESPACE}
 
 echo "✅ Application deployed!"
 
-# Step 4: Run Database Init Job (migrations + image seeding)
+# Step 3: Run Database Init Job (migrations + image seeding)
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 4: Database Initialization"
+echo "Step 3: Database Initialization"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Delete previous job if exists (jobs are immutable)
 kubectl delete job init-database -n ${K8S_NAMESPACE} --ignore-not-found=true
 
-# Apply migrations ConfigMap first
-apply_with_images kubernetes/migrations-configmap.yaml
+# Apply init job with kustomize (it will use the namespace we configured)
+# We need to apply it separately since it's not in the main kustomization
+echo "  Applying init-db-job.yaml..."
 
-# Run init job (migrations + seed images from Gutenberg)
-apply_with_images kubernetes/init-db-job.yaml
+# Create a temporary kustomization for the init job
+mkdir -p kubernetes/.tmp-init
+cat > kubernetes/.tmp-init/kustomization.yaml << EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ${K8S_NAMESPACE}
+resources:
+  - ../init-db-job.yaml
+images:
+  - name: harbor.corp.vmbeans.com/bookstore/app
+    newTag: ${VERSION}
+  - name: harbor.corp.vmbeans.com/library/postgres
+    newTag: ${POSTGRES_TAG}
+EOF
+
+if command -v kustomize &> /dev/null; then
+    kustomize build kubernetes/.tmp-init | kubectl apply -f -
+else
+    kubectl apply -k kubernetes/.tmp-init
+fi
+
+rm -rf kubernetes/.tmp-init
 
 echo ""
 echo "⏳ Waiting for database initialization to complete..."
@@ -431,10 +508,10 @@ kubectl wait --for=condition=complete job/init-database -n ${K8S_NAMESPACE} --ti
 
 echo "✅ Database initialized!"
 
-# Step 5: Ensure NGINX Ingress Controller is installed
+# Step 4: Ensure NGINX Ingress Controller is installed
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 5: Checking NGINX Ingress Controller"
+echo "Step 4: Checking NGINX Ingress Controller"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if check_ingress_controller; then
@@ -456,15 +533,6 @@ else
         fi
     fi
 fi
-
-# Step 6: Deploy application ingress
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 6: Deploying Application Ingress"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Hostname: ${INGRESS_HOST}"
-echo ""
-apply_with_images kubernetes/ingress.yaml
 
 # Get ingress info
 INGRESS_LB_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
@@ -493,4 +561,3 @@ echo "  kubectl get svc -n ${K8S_NAMESPACE}"
 echo "  kubectl get ingress -n ${K8S_NAMESPACE}"
 echo "  kubectl get svc -n ingress-nginx"
 echo ""
-

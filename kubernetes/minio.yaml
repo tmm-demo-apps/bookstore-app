@@ -2,7 +2,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio-service
-  namespace: {{NAMESPACE}}
 spec:
   selector:
     app: minio
@@ -18,7 +17,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: {{NAMESPACE}}
 spec:
   replicas: 1
   selector:
@@ -39,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: minio
-          image: {{MINIO_IMAGE}}
+          image: harbor.corp.vmbeans.com/library/minio/minio:latest
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -84,7 +82,6 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: minio-pvc
-  namespace: {{NAMESPACE}}
 spec:
   accessModes:
     - ReadWriteOnce
@@ -92,4 +89,3 @@ spec:
   resources:
     requests:
       storage: 20Gi
-

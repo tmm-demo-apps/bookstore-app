@@ -1725,4 +1725,3 @@ kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: migrations-configmap
-  namespace: {{NAMESPACE}}

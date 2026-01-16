@@ -304,7 +304,7 @@ spec:
         - name: controller
           # Using Harbor mirror - update tag as needed
           # Original: registry.k8s.io/ingress-nginx/controller:v1.14.1
-          image: {{NGINX_INGRESS_IMAGE}}
+          image: harbor.corp.vmbeans.com/library/ingress-nginx/controller:v1.14.1
           imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
@@ -409,7 +409,7 @@ spec:
         - name: create
           # Using Harbor mirror - update tag as needed
           # Original: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.5
-          image: {{NGINX_WEBHOOK_IMAGE}}
+          image: harbor.corp.vmbeans.com/library/ingress-nginx/kube-webhook-certgen:v1.6.5
           imagePullPolicy: IfNotPresent
           args:
             - create
@@ -454,7 +454,7 @@ spec:
         - name: patch
           # Using Harbor mirror - update tag as needed
           # Original: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.6.5
-          image: {{NGINX_WEBHOOK_IMAGE}}
+          image: harbor.corp.vmbeans.com/library/ingress-nginx/kube-webhook-certgen:v1.6.5
           imagePullPolicy: IfNotPresent
           args:
             - patch
@@ -516,4 +516,3 @@ webhooks:
         namespace: ingress-nginx
         name: ingress-nginx-controller-admission
         path: /networking/v1/ingresses
-

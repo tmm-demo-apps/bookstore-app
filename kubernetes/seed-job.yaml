@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: db-seed-books
-  namespace: {{NAMESPACE}}
 spec:
   ttlSecondsAfterFinished: 300  # Auto-cleanup after 5 minutes
   template:
@@ -15,7 +14,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: seed-books
-          image: {{APP_IMAGE}}
+          image: harbor.corp.vmbeans.com/bookstore/app:latest
           command:
             - /bin/sh
             - -c
@@ -57,7 +56,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: db-seed-images
-  namespace: {{NAMESPACE}}
 spec:
   ttlSecondsAfterFinished: 300  # Auto-cleanup after 5 minutes
   template:
@@ -70,7 +68,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: seed-images
-          image: {{APP_IMAGE}}
+          image: harbor.corp.vmbeans.com/bookstore/app:latest
           command:
             - /bin/sh
             - -c
@@ -122,4 +120,3 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-

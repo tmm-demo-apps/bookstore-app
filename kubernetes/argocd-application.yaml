@@ -1,0 +1,70 @@
+# ArgoCD Application for Bookstore
+# 
+# This manifest defines the ArgoCD Application that watches the kubernetes/
+# directory and automatically syncs changes to the cluster.
+#
+# Prerequisites:
+#   1. ArgoCD installed and running
+#   2. Cluster registered with ArgoCD (argocd cluster add)
+#   3. GitHub repository accessible from ArgoCD
+#
+# Apply with:
+#   kubectl apply -f kubernetes/argocd-application.yaml -n dev-wrcc9
+#
+# Or via ArgoCD CLI:
+#   argocd app create bookstore \
+#     --repo https://github.com/johnnyr0x/bookstore-app.git \
+#     --path kubernetes \
+#     --dest-server https://32.32.0.14:6443 \
+#     --dest-namespace bookstore \
+#     --sync-policy automated \
+#     --auto-prune \
+#     --self-heal
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bookstore
+  # ArgoCD applications are created in the ArgoCD namespace (dev-wrcc9 on Supervisor)
+  namespace: dev-wrcc9
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    # GitHub repository containing the manifests
+    repoURL: https://github.com/johnnyr0x/bookstore-app.git
+    targetRevision: HEAD
+    path: kubernetes
+    
+  destination:
+    # Target cluster - vks-04 (production)
+    # Note: Supervisor is 32.32.0.6, vks-04 is 32.32.0.14
+    server: https://32.32.0.14:6443
+    # Target namespace for the application
+    namespace: bookstore
+    
+  syncPolicy:
+    automated:
+      # Automatically sync when git changes are detected
+      prune: true      # Delete resources removed from git
+      selfHeal: true   # Revert manual changes made to the cluster
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true  # Create namespace if it doesn't exist
+      - PruneLast=true        # Prune after other resources are synced
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+        
+  # Health checks
+  ignoreDifferences:
+    # Ignore differences in these fields (often modified by controllers)
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # HPA may change replicas
