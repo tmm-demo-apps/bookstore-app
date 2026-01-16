@@ -163,12 +163,9 @@ jobs:
       run: |
         cd kubernetes
         
-        # Update the app image tag in kustomization.yaml
-        # Using sed since kustomize may not be installed on runner
-        sed -i 's/newTag: .*/newTag: ${{ github.sha }}/' kustomization.yaml
-        
-        # Only update the first occurrence (app image)
-        # The infrastructure images should stay at their pinned versions
+        # Update ONLY the app image tag (first occurrence after "bookstore/app")
+        # Infrastructure images (postgres, redis, etc.) keep their pinned versions
+        sed -i '/harbor.corp.vmbeans.com\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ github.sha }}/}' kustomization.yaml
         
         echo "Updated kustomization.yaml:"
         cat kustomization.yaml
@@ -188,20 +185,11 @@ jobs:
         git add kubernetes/kustomization.yaml
         git commit -m "chore: update app image to ${{ github.sha }} [skip ci]"
         
-        # Debug: Show ALL git config
-        echo "=== All git config ==="
-        git config --list
-        
-        # Remove the extraheader that checkout@v4 sets (this overrides credentials)
+        # Remove the extraheader that checkout@v4 sets (it uses GITHUB_TOKEN which lacks push permission)
         git config --unset-all http.https://github.com/.extraheader || true
         
-        # Set remote with token embedded
+        # Set remote with PAT for push access
         git remote set-url origin "https://x-access-token:${{ secrets.GIT_PUSH_TOKEN }}@github.com/${{ github.repository }}.git"
-        
-        echo "=== Updated remote ==="
-        git remote -v
-        
-        # Push to origin
         git push origin HEAD:main
         
         echo "✅ Pushed kustomization.yaml update - ArgoCD will sync automatically"

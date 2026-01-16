@@ -20,15 +20,15 @@ resources:
   # Note: init-db-job.yaml is a one-time job, apply separately after infrastructure is ready
   # Note: ingress-nginx.yaml deploys to ingress-nginx namespace, apply separately
 
-# Image overrides - CI/CD updates these tags
+# Image overrides - CI/CD updates the app tag only
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
-    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
+    newTag: latest
   - name: harbor.corp.vmbeans.com/library/postgres
-    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
+    newTag: 14-alpine
   - name: harbor.corp.vmbeans.com/library/redis
-    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
+    newTag: 7-alpine
   - name: harbor.corp.vmbeans.com/library/elasticsearch
-    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
+    newTag: 8.11.0
   - name: harbor.corp.vmbeans.com/library/minio/minio
-    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
+    newTag: latest
