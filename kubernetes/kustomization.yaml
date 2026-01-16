@@ -23,12 +23,12 @@ resources:
 # Image overrides - CI/CD updates these tags
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
-    newTag: latest
+    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
   - name: harbor.corp.vmbeans.com/library/postgres
-    newTag: 14-alpine
+    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
   - name: harbor.corp.vmbeans.com/library/redis
-    newTag: 7-alpine
+    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
   - name: harbor.corp.vmbeans.com/library/elasticsearch
-    newTag: 8.11.0
+    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
   - name: harbor.corp.vmbeans.com/library/minio/minio
-    newTag: latest
+    newTag: e9e13d5a186ebcb091ff1846831b205507f9692c
