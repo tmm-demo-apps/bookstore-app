@@ -569,7 +569,7 @@ func (r *postgresOrderRepo) GetUserPurchases(userID int) ([]models.PurchasedBook
 
 		// Extract Gutenberg ID from SKU (format: BOOK-{GutenbergID})
 		if len(pb.SKU) > 5 && pb.SKU[:5] == "BOOK-" {
-			fmt.Sscanf(pb.SKU[5:], "%d", &pb.GutenbergID)
+			_, _ = fmt.Sscanf(pb.SKU[5:], "%d", &pb.GutenbergID)
 		}
 
 		if imageURL.Valid {
