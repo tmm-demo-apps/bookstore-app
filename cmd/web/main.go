@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -226,6 +227,23 @@ func main() {
 		mux.HandleFunc("/images/", imageHandlers.ServeImage)
 		mux.HandleFunc("/admin/upload-image", imageHandlers.UploadImage)
 	}
+
+	// API routes for service-to-service communication (Reader app, Chatbot app)
+	mux.HandleFunc("/api/purchases/", func(w http.ResponseWriter, r *http.Request) {
+		// Route to appropriate handler based on path segments
+		// /api/purchases/{user_id} -> GetUserPurchases
+		// /api/purchases/{user_id}/{sku} -> VerifyPurchase
+		path := r.URL.Path[len("/api/purchases/"):]
+		parts := strings.Split(path, "/")
+		if len(parts) >= 2 && parts[1] != "" {
+			h.VerifyPurchase(w, r)
+		} else {
+			h.GetUserPurchases(w, r)
+		}
+	})
+	mux.HandleFunc("/api/products", h.APIProducts)
+	mux.HandleFunc("/api/products/", h.APIProducts)
+	mux.HandleFunc("/api/categories", h.APICategories)
 
 	log.Println("Starting server on :8080")
 	err = http.ListenAndServe(":8080", mux)

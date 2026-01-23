@@ -19,6 +19,9 @@ type OrderRepository interface {
 	CreateOrder(sessionID string, userID int, items []models.CartItem) (int, error)
 	GetOrderByID(id int) (*models.Order, error)
 	GetOrdersByUserID(userID int) ([]models.Order, error)
+	// Purchase verification for Reader app integration
+	GetUserPurchases(userID int) ([]models.PurchasedBook, error)
+	VerifyPurchase(userID int, sku string) (bool, error)
 }
 
 type CartRepository interface {

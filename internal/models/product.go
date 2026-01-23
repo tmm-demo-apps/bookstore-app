@@ -33,3 +33,13 @@ type ProductsResult struct {
 	Products   []Product
 	Pagination Pagination
 }
+
+// PurchasedBook represents a book that a user has purchased (for Reader app integration)
+type PurchasedBook struct {
+	SKU         string `json:"sku"`
+	GutenbergID int    `json:"gutenberg_id"`
+	Title       string `json:"title"`
+	Author      string `json:"author"`
+	CoverURL    string `json:"cover_url"`
+	PurchasedAt string `json:"purchased_at"` // ISO 8601 format
+}

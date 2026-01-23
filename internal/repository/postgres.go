@@ -537,6 +537,74 @@ func (r *postgresOrderRepo) GetOrdersByUserID(userID int) ([]models.Order, error
 	return orders, nil
 }
 
+// GetUserPurchases returns all unique books a user has purchased (for Reader app integration)
+func (r *postgresOrderRepo) GetUserPurchases(userID int) ([]models.PurchasedBook, error) {
+	// Get distinct products purchased by user, with earliest purchase date
+	query := `
+		SELECT DISTINCT ON (p.sku) 
+			p.sku, p.name, COALESCE(p.author, ''), p.image_url, 
+			MIN(o.created_at) as purchased_at
+		FROM orders o
+		JOIN order_items oi ON o.id = oi.order_id
+		JOIN products p ON oi.product_id = p.id
+		WHERE o.user_id = $1 AND p.sku IS NOT NULL
+		GROUP BY p.sku, p.name, p.author, p.image_url
+		ORDER BY p.sku, purchased_at ASC`
+
+	rows, err := r.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var purchases []models.PurchasedBook
+	for rows.Next() {
+		var pb models.PurchasedBook
+		var imageURL sql.NullString
+		var purchasedAt sql.NullTime
+
+		if err := rows.Scan(&pb.SKU, &pb.Title, &pb.Author, &imageURL, &purchasedAt); err != nil {
+			return nil, err
+		}
+
+		// Extract Gutenberg ID from SKU (format: BOOK-{GutenbergID})
+		if len(pb.SKU) > 5 && pb.SKU[:5] == "BOOK-" {
+			fmt.Sscanf(pb.SKU[5:], "%d", &pb.GutenbergID)
+		}
+
+		if imageURL.Valid {
+			pb.CoverURL = imageURL.String
+		}
+
+		if purchasedAt.Valid {
+			pb.PurchasedAt = purchasedAt.Time.Format("2006-01-02T15:04:05Z07:00")
+		}
+
+		purchases = append(purchases, pb)
+	}
+
+	return purchases, nil
+}
+
+// VerifyPurchase checks if a user has purchased a specific book by SKU
+func (r *postgresOrderRepo) VerifyPurchase(userID int, sku string) (bool, error) {
+	var exists bool
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM orders o
+			JOIN order_items oi ON o.id = oi.order_id
+			JOIN products p ON oi.product_id = p.id
+			WHERE o.user_id = $1 AND p.sku = $2
+		)`
+
+	err := r.DB.QueryRow(query, userID, sku).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 // --- Cart Implementation ---
 
 type postgresCartRepo struct {
