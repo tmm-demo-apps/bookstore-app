@@ -437,5 +437,297 @@
             });
         }
     </script>
+
+    <!-- Chat Widget -->
+    <style>
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .chat-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--pico-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .chat-toggle:hover {
+            transform: scale(1.1);
+            background: var(--pico-primary-hover);
+        }
+        .chat-window {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 380px;
+            max-width: calc(100vw - 40px);
+            height: 500px;
+            max-height: calc(100vh - 120px);
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* Dark mode support for chat window */
+        [data-theme="dark"] .chat-window,
+        :root:has(input[name="theme"][value="dark"]:checked) .chat-window {
+            background: #1e1e1e;
+            border-color: #444;
+        }
+        .chat-window.open {
+            display: flex;
+        }
+        .chat-header {
+            padding: 16px;
+            background: var(--pico-primary);
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header button {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+            width: auto;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            line-height: 1.4;
+            font-size: 14px;
+        }
+        .chat-message.user {
+            align-self: flex-end;
+            background: var(--pico-primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.bot {
+            align-self: flex-start;
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+        /* Dark mode support for bot messages */
+        [data-theme="dark"] .chat-message.bot,
+        :root:has(input[name="theme"][value="dark"]:checked) .chat-message.bot {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+        /* Product links in chat */
+        .chat-message.bot a {
+            color: var(--pico-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .chat-message.bot a:hover {
+            text-decoration: underline;
+        }
+        .chat-message.typing {
+            opacity: 0.7;
+        }
+        .chat-input-area {
+            padding: 12px;
+            border-top: 1px solid var(--pico-muted-border-color);
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input-area input {
+            flex: 1;
+            margin: 0;
+        }
+        .chat-input-area button {
+            width: auto;
+            margin: 0;
+            padding: 8px 16px;
+        }
+        .chat-status {
+            font-size: 11px;
+            color: var(--pico-muted-color);
+            padding: 4px 16px;
+            text-align: center;
+        }
+    </style>
+    
+    <div class="chat-widget">
+        <button class="chat-toggle" onclick="toggleChat()" title="Chat with us">
+            💬
+        </button>
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <span>🤖 Bookstore Assistant</span>
+                <button onclick="toggleChat()">✕</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message bot">
+                    Hi! I'm your bookstore assistant. How can I help you today?
+                </div>
+            </div>
+            <div class="chat-status" id="chat-status">Powered by Ollama LLM</div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Ask me anything..." 
+                       onkeypress="if(event.key==='Enter')sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const CHATBOT_URL = 'http://localhost:5000';
+        let chatSessionId = null;
+        
+        function toggleChat() {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.classList.toggle('open');
+            if (chatWindow.classList.contains('open')) {
+                document.getElementById('chat-input').focus();
+            }
+            saveChatState();  // Persist open/closed state
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const messages = document.getElementById('chat-messages');
+            const status = document.getElementById('chat-status');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            messages.innerHTML += `<div class="chat-message user">${escapeHtml(message)}</div>`;
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+            
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            messages.innerHTML += `<div class="chat-message bot typing" id="${typingId}">🤔 Thinking... (may take up to 2 min on CPU)</div>`;
+            messages.scrollTop = messages.scrollHeight;
+            status.textContent = 'AI is thinking (CPU mode - please wait)...';
+            
+            try {
+                const response = await fetch(`${CHATBOT_URL}/chat`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: chatSessionId
+                    })
+                });
+                
+                const data = await response.json();
+                chatSessionId = data.session_id;
+                
+                // Remove typing indicator and add response
+                document.getElementById(typingId).remove();
+                const formattedResponse = formatBotResponse(data.response);
+                messages.innerHTML += `<div class="chat-message bot">${formattedResponse}</div>`;
+                status.textContent = 'Powered by Ollama LLM';
+                saveChatState();  // Persist after receiving response
+            } catch (error) {
+                document.getElementById(typingId).remove();
+                messages.innerHTML += `<div class="chat-message bot">Sorry, I'm having trouble connecting. Please try again later.</div>`;
+                status.textContent = 'Connection error';
+                console.error('Chat error:', error);
+                saveChatState();  // Persist error state too
+            }
+            
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatBotResponse(text) {
+            // First escape HTML to prevent XSS
+            let formatted = escapeHtml(text);
+            
+            // Convert newlines to <br> for proper line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            // Find product entries with ID markers and convert to links
+            // Pattern: • [ID:123] "Book Title" by Author - $price
+            formatted = formatted.replace(
+                /• \[ID:(\d+)\] "([^"]+)" by ([^-<]+) - \$([0-9.]+)/g,
+                function(match, id, title, author, price) {
+                    const productUrl = '/products/' + id;
+                    return `• <a href="${productUrl}">"${title}"</a> by ${author.trim()} - $${price}`;
+                }
+            );
+            
+            // Handle products without author
+            formatted = formatted.replace(
+                /• \[ID:(\d+)\] "([^"]+)" - \$([0-9.]+)/g,
+                function(match, id, title, price) {
+                    const productUrl = '/products/' + id;
+                    return `• <a href="${productUrl}">"${title}"</a> - $${price}`;
+                }
+            );
+            
+            return formatted;
+        }
+        
+        // Persist chat state across page navigation
+        function saveChatState() {
+            const messages = document.getElementById('chat-messages').innerHTML;
+            const isOpen = document.getElementById('chat-window').classList.contains('open');
+            localStorage.setItem('chatMessages', messages);
+            localStorage.setItem('chatSessionId', chatSessionId || '');
+            localStorage.setItem('chatIsOpen', isOpen ? 'true' : 'false');
+        }
+        
+        function restoreChatState() {
+            const savedMessages = localStorage.getItem('chatMessages');
+            const savedSessionId = localStorage.getItem('chatSessionId');
+            const wasOpen = localStorage.getItem('chatIsOpen') === 'true';
+            
+            if (savedMessages) {
+                document.getElementById('chat-messages').innerHTML = savedMessages;
+            }
+            if (savedSessionId) {
+                chatSessionId = savedSessionId;
+            }
+            if (wasOpen) {
+                document.getElementById('chat-window').classList.add('open');
+            }
+            
+            // Scroll to bottom of chat after restore
+            const messages = document.getElementById('chat-messages');
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Save state before page unload
+        window.addEventListener('beforeunload', saveChatState);
+        
+        // Restore state on page load
+        document.addEventListener('DOMContentLoaded', restoreChatState);
+    </script>
 </body>
 </html>

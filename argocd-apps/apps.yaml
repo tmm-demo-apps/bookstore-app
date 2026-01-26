@@ -1,0 +1,30 @@
+# App-of-Apps: Parent application that manages all demo apps
+# This creates a hierarchical structure where one ArgoCD app manages multiple child apps
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-apps
+  namespace: dev-wrcc9
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/johnnyr0x/bookstore-app
+    targetRevision: main
+    path: argocd-apps
+    # Only include the child application manifests, not this file
+    directory:
+      include: '{bookstore.yaml,reader.yaml,chatbot.yaml}'
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-wrcc9
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

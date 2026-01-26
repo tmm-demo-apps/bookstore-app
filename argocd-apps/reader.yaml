@@ -1,0 +1,45 @@
+# Reader Application - EPUB library reader
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: reader
+  namespace: dev-wrcc9
+  labels:
+    app.kubernetes.io/part-of: demo-suite
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: demo-alerts
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: demo-alerts
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/johnnyr0x/reader-app
+    targetRevision: main
+    path: kubernetes
+  
+  destination:
+    # VKS-04 cluster (production)
+    server: https://32.32.0.14:6443
+    namespace: reader
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

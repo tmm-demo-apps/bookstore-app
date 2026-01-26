@@ -4,7 +4,168 @@
 
 This document describes the architecture and user flow for the DemoApp e-commerce platform, designed to showcase VMware Cloud Foundation (VCF) 9.0 capabilities.
 
-## Architecture Diagram
+## Bookstore Application Architecture
+
+The Bookstore is a Go web application following clean architecture principles with the Repository Pattern.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              BOOKSTORE APPLICATION                                  │
+│                                  (Go 1.25)                                          │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐   │
+│  │                              HTTP Layer                                      │   │
+│  │  ┌─────────────────────────────────────────────────────────────────────────┐ │   │
+│  │  │                      Go Standard http.ServeMux                          │ │   │
+│  │  │    /products  /cart  /checkout  /orders  /profile  /auth  /api/*        │ │   │
+│  │  └─────────────────────────────────────────────────────────────────────────┘ │   │
+│  │                                     │                                        │   │
+│  │  ┌─────────────────────────────────────────────────────────────────────────┐ │   │
+│  │  │                         Session Middleware                              │ │   │
+│  │  │                   (Redis-backed via redisstore/v9)                      │ │   │
+│  │  └─────────────────────────────────────────────────────────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────────────────────────┘   │
+│                                        │                                            │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐   │
+│  │                           Handlers Layer                                     │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │   │
+│  │  │ Products │ │   Cart   │ │ Checkout │ │  Orders  │ │ Profile  │            │   │
+│  │  │ Handler  │ │ Handler  │ │ Handler  │ │ Handler  │ │ Handler  │            │   │
+│  │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘            │   │
+│  │       │            │            │            │            │                  │   │
+│  │  ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐            │   │
+│  │  │  Auth    │ │  Images  │ │ Reviews  │ │ Partials │ │  Base    │            │   │
+│  │  │ Handler  │ │ Handler  │ │ Handler  │ │ Handler  │ │ Handler  │            │   │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘            │   │
+│  └──────────────────────────────────────────────────────────────────────────────┘   │
+│                                        │                                            │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         Repository Layer                                     │   │
+│  │  ┌─────────────────────────────────────────────────────────────────────────┐ │   │
+│  │  │                    ProductRepository Interface                          │ │   │
+│  │  │    GetByID() | List() | Search() | GetCategories() | GetByCategory()    │ │   │
+│  │  └─────────────────────────────────────────────────────────────────────────┘ │   │
+│  │                          │                    │                              │   │
+│  │           ┌──────────────┴──────┐    ┌───────┴────────┐                      │   │
+│  │           ▼                     ▼    ▼                                       │   │
+│  │  ┌─────────────────┐    ┌─────────────────┐                                  │   │
+│  │  │   PostgresRepo  │    │ CachedProdRepo  │◄── Decorator Pattern             │   │
+│  │  │   (Primary DB)  │    │ (Redis Cache)   │    (wraps PostgresRepo)          │   │
+│  │  └────────┬────────┘    └────────┬────────┘                                  │   │
+│  │           │                      │                                           │   │
+│  │  ┌────────┴──────────────────────┴────────┐                                  │   │
+│  │  │           ElasticsearchRepo             │◄── Full-text Search             │   │
+│  │  │   Search() | Autocomplete() | Index()  │    (5-tier strategy)             │   │
+│  │  └────────────────────────────────────────┘                                  │   │
+│  └──────────────────────────────────────────────────────────────────────────────┘   │
+│                                        │                                            │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐   │
+│  │                           Models Layer                                       │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐            │   │
+│  │  │ Product  │ │   User   │ │   Cart   │ │  Order   │ │  Review  │            │   │
+│  │  │  Model   │ │  Model   │ │  Model   │ │  Model   │ │  Model   │            │   │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘            │   │
+│  └──────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              EXTERNAL SERVICES                                      │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────┐   │
+│  │   PostgreSQL    │  │     Redis       │  │  Elasticsearch  │  │     MinIO     │   │
+│  │                 │  │                 │  │                 │  │   (S3-compat) │   │
+│  ├─────────────────┤  ├─────────────────┤  ├─────────────────┤  ├───────────────┤   │
+│  │ • Users         │  │ • Sessions      │  │ • Product Index │  │ • Book Covers │   │
+│  │ • Products      │  │ • Product Cache │  │ • Autocomplete  │  │ • 1-year TTL  │   │
+│  │ • Orders        │  │ • Cart Data     │  │ • 5-tier Search │  │ • ETags       │   │
+│  │ • Reviews       │  │ • Rate Limits   │  │ • Author Search │  │ • Immutable   │   │
+│  │ • Cart Items    │  │                 │  │                 │  │               │   │
+│  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └───────┬───────┘   │
+│           │                    │                    │                   │           │
+│           │                Port 5432          Port 9200           Port 9000         │
+│           │                    │                    │                   │           │
+└───────────┼────────────────────┼────────────────────┼───────────────────┼───────────┘
+            │                    │                    │                   │
+            └────────────────────┴────────────────────┴───────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                FRONTEND LAYER                                       │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │                          HTML Templates (Go html/template)                  │    │
+│  │  base.html → layout with header, nav, footer                                │    │
+│  │  ├── products.html, product.html (catalog views)                            │    │
+│  │  ├── cart.html, checkout.html (shopping flow)                               │    │
+│  │  ├── orders.html, order.html (order history)                                │    │
+│  │  ├── profile.html, login.html, register.html (auth)                         │    │
+│  │  └── partials/*.html (HTMX fragments)                                       │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                         │                                           │
+│  ┌──────────────────────────────────────┴──────────────────────────────────────┐    │
+│  │                              Client-Side Tech                               │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │    │
+│  │  │  Pico.css   │  │    HTMX     │  │ Dark Mode   │  │  Lazy Loading       │ │    │
+│  │  │ (minimal)   │  │ (dynamic)   │  │ (toggle)    │  │  (images)           │ │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Component Summary
+
+| Layer | Components | Responsibilities |
+|-------|------------|------------------|
+| **HTTP** | http.ServeMux, redisstore Sessions | Routing, request handling, session management |
+| **Handlers** | Products, Cart, Checkout, Orders, Profile, Auth, Images, Reviews | Business logic, request/response mapping |
+| **Repository** | PostgresRepo, CachedProductRepo, ElasticsearchRepo | Data access, caching, search |
+| **Models** | Product, User, Cart, Order, Review | Domain entities |
+| **Storage** | MinIO Client | Object storage for images |
+| **Frontend** | Go Templates, Pico.css, HTMX | Server-side rendering, progressive enhancement |
+
+### Data Flow Example: Product Search
+
+```
+User types "Pride"
+       │
+       ▼
+┌──────────────┐    HTMX hx-get="/search/autocomplete?q=Pride"
+│   Browser    │───────────────────────────────────────────────►
+└──────────────┘
+       │
+       ▼
+┌──────────────┐    Route to ProductsHandler.Autocomplete()
+│ http.ServeMux│───────────────────────────────────────────────►
+└──────────────┘
+       │
+       ▼
+┌──────────────┐    Call SearchProducts("Pride")
+│   Handler    │───────────────────────────────────────────────►
+└──────────────┘
+       │
+       ▼
+┌──────────────┐    5-tier search: exact → prefix → fuzzy
+│Elasticsearch │    Returns top 5 matches with relevance scores
+└──────────────┘
+       │
+       ▼
+┌──────────────┐    Render partials/autocomplete.html
+│   Template   │    Return HTML fragment
+└──────────────┘
+       │
+       ▼
+┌──────────────┐    HTMX swaps in results dropdown
+│   Browser    │    User sees "Pride and Prejudice" suggestion
+└──────────────┘
+```
+
+## CI/CD Pipeline Architecture
 
 The user flow diagram (see `user-flow-diagram.png` in this directory) illustrates the complete CI/CD pipeline and infrastructure components:
 
@@ -121,27 +282,28 @@ The user flow diagram (see `user-flow-diagram.png` in this directory) illustrate
 
 ## Technology Stack Mapping
 
-### Current Implementation
-- **Application**: Go 1.24 web server
-- **Database**: PostgreSQL (standalone)
-- **Frontend**: Pico.css + htmx
-- **CI/CD**: GitHub Actions
-- **Container Registry**: Docker Hub (moving to Harbor)
-- **Orchestration**: Docker Compose (local), Kubernetes (production)
+### Current Implementation (Phase 2 Complete)
+- **Application**: Go 1.25 web server with Repository Pattern
+- **Database**: PostgreSQL with consolidated migrations
+- **Search**: Elasticsearch (5-tier search with author support)
+- **Caching**: Redis (sessions + product cache via CachedProductRepository)
+- **Storage**: MinIO (S3-compatible, 1-year cache headers, ETags)
+- **Frontend**: Pico.css + HTMX (server-side rendering)
+- **CI/CD**: GitHub Actions with self-hosted runner
+- **Container Registry**: Harbor with vulnerability scanning
+- **Orchestration**: Docker Compose (local), Kubernetes/VKS (production)
+- **GitOps**: ArgoCD with Kustomize
 
-### Phase 2 Additions (In Progress)
-- **Search**: Elasticsearch
-- **Caching**: Redis
-- **Storage**: MinIO (S3-compatible)
-- **Microservices**: Python/FastAPI chatbot
-- **Registry**: Harbor with vulnerability scanning
+### Phase 3 Additions (In Progress)
+- **Multi-App Architecture**: Reader (Go) + Chatbot (Python/FastAPI)
+- **AI Integration**: Ollama LLM (local) → VCF Private AI (production)
+- **App-of-Apps**: ArgoCD managing multiple microservices
 
-### Phase 3 Additions (Planned)
-- **GitOps**: Argo CD
-- **Service Mesh**: Istio
-- **Monitoring**: Prometheus + Grafana
-- **DNS**: ExternalDNS
-- **Certificates**: Cert-Manager
+### Future Considerations
+- **Service Mesh**: Istio for traffic management
+- **Monitoring**: Prometheus + Grafana dashboards
+- **DNS**: ExternalDNS automation
+- **Certificates**: Cert-Manager for TLS
 - **Log Aggregation**: Fluentbit + Observability stack
 
 ## VCF 9.0 Integration Points
@@ -196,19 +358,19 @@ As shown in the diagram, the VKS cluster includes:
 
 ## Next Steps
 
-### Phase 2 Implementation
-1. Deploy Elasticsearch for full-text search
-2. Add Redis for caching and sessions
-3. Integrate MinIO for image storage
-4. Build Python chatbot microservice
-5. Implement Harbor registry
+### Phase 3 Implementation (Current)
+1. Create GitHub repos for reader-app and chatbot-app
+2. Test all three apps locally together
+3. Add Bookstore API endpoints for Reader/Chatbot integration
+4. Deploy Reader + Chatbot via ArgoCD App-of-Apps
+5. Integration testing across all apps
 
-### Phase 3 Implementation
-1. Set up Argo CD for GitOps
-2. Deploy Istio service mesh
-3. Configure ExternalDNS
-4. Install Cert-Manager
-5. Set up observability stack (Prometheus, Grafana, Fluentbit)
+### Future Infrastructure
+1. Deploy Istio service mesh for traffic management
+2. Configure ExternalDNS for automatic DNS records
+3. Install Cert-Manager for automated TLS certificates
+4. Set up observability stack (Prometheus, Grafana, Fluentbit)
+5. VCF Private AI integration for production chatbot
 
 ## References
 
@@ -219,6 +381,6 @@ As shown in the diagram, the VKS cluster includes:
 
 ---
 
-**Last Updated**: December 11, 2025  
-**Diagram Source**: User flow diagram showing CI/CD pipeline, VKS cluster, and infrastructure components
+**Last Updated**: January 23, 2026  
+**Diagram Source**: Application architecture diagram (ASCII), user flow diagram showing CI/CD pipeline, VKS cluster, and infrastructure components
 
