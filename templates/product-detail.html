@@ -130,8 +130,8 @@
     
     .add-to-cart-section {
         display: flex;
-        gap: 1rem;
-        align-items: center;
+        gap: 0.5rem;
+        align-items: stretch;
         padding: 2rem 0;
         border-top: 1px solid var(--muted-border-color);
         border-bottom: 1px solid var(--muted-border-color);
@@ -144,41 +144,64 @@
         border-radius: var(--border-radius);
         overflow: hidden;
         background: var(--card-background-color);
+        flex: 0 0 auto;
+        /* Match product card proportions */
+        max-width: 35%;
     }
     
     .qty-btn-large {
         border: none;
         background: transparent;
-        padding: 0.75rem 1rem;
+        padding: 0 0.5rem;
         cursor: pointer;
         color: var(--muted-color);
-        font-size: 1.2rem;
-        transition: color 0.2s, background 0.2s;
+        font-size: 1.1rem;
+        transition: color 0.2s;
         font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
     }
     
     .qty-btn-large:hover {
         color: var(--color);
-        background: var(--card-sectionning-background-color);
+    }
+    
+    .qty-btn-large:focus {
+        outline: none;
+        box-shadow: none;
     }
     
     .qty-input-large {
-        width: 80px;
+        width: 2.5rem;
         text-align: center;
         border: none;
         border-left: 1px solid var(--muted-border-color);
         border-right: 1px solid var(--muted-border-color);
-        padding: 0.75rem;
+        padding: 0;
         background: transparent;
-        font-size: 1.2rem;
+        font-size: 1rem;
         font-weight: bold;
+        margin-bottom: 0;
+        height: auto;
+    }
+    
+    .qty-input-large:focus {
+        outline: none;
+        box-shadow: none;
+        border-left: 1px solid var(--muted-border-color);
+        border-right: 1px solid var(--muted-border-color);
     }
     
     .add-to-cart-btn {
         flex: 1;
-        padding: 0.75rem 2rem;
-        font-size: 1.1rem;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
         font-weight: 600;
+        margin-bottom: 0;
+        height: 100%;
+        width: 100%;
     }
     
     .back-link {
@@ -533,7 +556,7 @@
                 <button type="button" onclick="adjustQuantity(1)" class="qty-btn-large">+</button>
             </div>
             
-            <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" onsubmit="setQuantity(event)">
+            <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1; display: flex;" onsubmit="setQuantity(event)">
                 <input type="hidden" name="product_id" value="{{.Product.ID}}">
                 <input type="hidden" name="quantity" id="form-quantity" value="1">
                 <button type="submit" class="add-to-cart-btn">Add to Cart</button>

@@ -233,6 +233,7 @@
                         <details role="list" dir="rtl">
                             <summary aria-haspopup="listbox" role="link" class="secondary">Account</summary>
                             <ul role="listbox">
+                                <li><a href="http://localhost:8081/library">📚 My Library</a></li>
                                 <li><a href="/profile">My Profile</a></li>
                                 <li><a href="/orders">My Orders</a></li>
                                 <li><a href="/logout">Logout</a></li>
@@ -251,6 +252,7 @@
                         <ul role="listbox">
                              <li><a href="/">Home</a></li>
                              {{if .IsAuthenticated}}
+                                <li><a href="http://localhost:8081/library">📚 My Library</a></li>
                                 <li><a href="/profile">My Profile</a></li>
                                 <li><a href="/orders">My Orders</a></li>
                                 <li><a href="/logout">Logout</a></li>
@@ -581,7 +583,10 @@
         <div class="chat-window" id="chat-window">
             <div class="chat-header">
                 <span>🤖 Bookstore Assistant</span>
-                <button onclick="toggleChat()">✕</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="clearChat()" title="Clear chat" style="font-size: 16px;">🗑️</button>
+                    <button onclick="toggleChat()" title="Close">✕</button>
+                </div>
             </div>
             <div class="chat-messages" id="chat-messages">
                 <div class="chat-message bot">
@@ -600,6 +605,15 @@
     <script>
         const CHATBOT_URL = 'http://localhost:5000';
         let chatSessionId = null;
+        
+        function clearChat() {
+            if (confirm('Clear chat history?')) {
+                document.getElementById('chat-messages').innerHTML = 
+                    '<div class="chat-message bot">Hi! I\'m your bookstore assistant. How can I help you today?</div>';
+                chatSessionId = null;
+                saveChatState();
+            }
+        }
         
         function toggleChat() {
             const chatWindow = document.getElementById('chat-window');
@@ -629,6 +643,8 @@
             messages.scrollTop = messages.scrollHeight;
             status.textContent = 'AI is thinking (CPU mode - please wait)...';
             
+            const startTime = Date.now();
+            
             try {
                 const response = await fetch(`${CHATBOT_URL}/chat`, {
                     method: 'POST',
@@ -640,6 +656,13 @@
                 });
                 
                 const data = await response.json();
+                
+                // Artificial delay to feel more natural (min 1 second)
+                const elapsed = Date.now() - startTime;
+                if (elapsed < 1000) {
+                    await new Promise(r => setTimeout(r, 1000 - elapsed));
+                }
+
                 chatSessionId = data.session_id;
                 
                 // Remove typing indicator and add response
