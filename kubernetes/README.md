@@ -14,7 +14,7 @@ kubectl apply -f kubernetes/argocd-application.yaml -n dev-wrcc9
 
 # Or via ArgoCD CLI
 argocd app create bookstore \
-  --repo https://github.com/johnnyr0x/bookstore-app.git \
+  --repo https://github.com/tmm-demo-apps/bookstore-app.git \
   --path kubernetes \
   --dest-server https://32.32.0.6:443 \
   --dest-namespace bookstore \

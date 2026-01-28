@@ -15,7 +15,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/johnnyr0x/chatbot-app
+    repoURL: https://github.com/tmm-demo-apps/chatbot-app
     targetRevision: main
     path: kubernetes
   

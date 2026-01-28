@@ -190,7 +190,7 @@ git push origin feature/your-feature-name
 ssh devops@cli-vm
 
 # Clone or pull latest
-git clone https://github.com/johnnyr0x/bookstore-app.git
+git clone https://github.com/tmm-demo-apps/bookstore-app.git
 # OR
 cd bookstore-app && git pull
 

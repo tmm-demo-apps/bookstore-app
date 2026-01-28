@@ -145,7 +145,7 @@ docker login harbor.corp.vmbeans.com
 
 ### 2.1 Get Registration Token from GitHub
 
-1. Go to your GitHub repository: `https://github.com/johnnyr0x/bookstore-app`
+1. Go to your GitHub repository: `https://github.com/tmm-demo-apps/bookstore-app`
 2. Navigate to: **Settings → Actions → Runners**
 3. Click **"New self-hosted runner"**
 4. Select **Linux** and **x64**
@@ -166,7 +166,7 @@ curl -o actions-runner-linux-x64-2.321.0.tar.gz -L \
 tar xzf ./actions-runner-linux-x64-2.321.0.tar.gz
 
 # Configure the runner
-./config.sh --url https://github.com/johnnyr0x/bookstore-app \
+./config.sh --url https://github.com/tmm-demo-apps/bookstore-app \
     --token YOUR_REGISTRATION_TOKEN_HERE
 ```
 
@@ -189,7 +189,7 @@ sudo ./svc.sh start
 sudo ./svc.sh status
 
 # View logs
-journalctl -u actions.runner.johnnyr0x-bookstore-app.harbor-builder.service -f
+journalctl -u actions.runner.tmm-demo-apps.harbor-builder.service -f
 ```
 
 ### 2.4 Verify Runner is Online
@@ -253,7 +253,7 @@ jobs:
 On the runner VM:
 ```bash
 # Watch runner logs
-journalctl -u actions.runner.johnnyr0x-bookstore-app.harbor-builder.service -f
+journalctl -u actions.runner.tmm-demo-apps.harbor-builder.service -f
 
 # Watch Docker activity
 docker stats
@@ -303,7 +303,7 @@ df -h
 
 ```bash
 # Runner service logs
-journalctl -u actions.runner.johnnyr0x-bookstore-app.harbor-builder.service -f
+journalctl -u actions.runner.tmm-demo-apps.harbor-builder.service -f
 
 # Docker logs
 docker logs <container-id>

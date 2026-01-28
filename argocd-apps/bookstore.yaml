@@ -16,7 +16,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/johnnyr0x/bookstore-app
+    repoURL: https://github.com/tmm-demo-apps/bookstore-app
     targetRevision: main
     path: kubernetes
   

@@ -13,7 +13,7 @@
 #
 # Or via ArgoCD CLI:
 #   argocd app create bookstore \
-#     --repo https://github.com/johnnyr0x/bookstore-app.git \
+#     --repo https://github.com/tmm-demo-apps/bookstore-app.git \
 #     --path kubernetes \
 #     --dest-server https://32.32.0.14:6443 \
 #     --dest-namespace bookstore \
@@ -34,7 +34,7 @@ spec:
   
   source:
     # GitHub repository containing the manifests
-    repoURL: https://github.com/johnnyr0x/bookstore-app.git
+    repoURL: https://github.com/tmm-demo-apps/bookstore-app.git
     targetRevision: HEAD
     path: kubernetes
     

@@ -11,7 +11,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/johnnyr0x/bookstore-app
+    repoURL: https://github.com/tmm-demo-apps/bookstore-app
     targetRevision: main
     path: argocd-apps
     # Only include the child application manifests, not this file

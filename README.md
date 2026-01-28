@@ -1,6 +1,6 @@
 # DemoApp - E-commerce Platform for VCF 9.0/9.1 Demonstrations
 
-[![CI](https://github.com/johnnyr0x/bookstore-app/workflows/CI/badge.svg)](https://github.com/johnnyr0x/bookstore-app/actions)
+[![CI](https://github.com/tmm-demo-apps/bookstore-app/workflows/CI/badge.svg)](https://github.com/tmm-demo-apps/bookstore-app/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis)](https://redis.io/)
