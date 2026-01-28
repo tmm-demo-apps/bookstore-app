@@ -26,5 +26,4 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+    # Note: dev-wrcc9 namespace already exists (ArgoCD's namespace), so no CreateNamespace needed
