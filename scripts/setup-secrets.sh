@@ -22,9 +22,19 @@ echo "Generating secure random values..."
 READER_PG_PASS=$(openssl rand -hex 16)
 READER_SESSION=$(openssl rand -hex 32)
 
-# MinIO credentials - shared with bookstore
-MINIO_ACCESS="minioadmin"
-MINIO_SECRET="minioadmin"
+# MinIO credentials - fetch from bookstore namespace (shared MinIO)
+echo "Fetching MinIO credentials from bookstore namespace..."
+MINIO_ACCESS=$(kubectl get secret app-secrets -n bookstore -o jsonpath='{.data.MINIO_ACCESS_KEY}' 2>/dev/null | base64 -d)
+MINIO_SECRET=$(kubectl get secret app-secrets -n bookstore -o jsonpath='{.data.MINIO_SECRET_KEY}' 2>/dev/null | base64 -d)
+
+if [ -z "$MINIO_ACCESS" ] || [ -z "$MINIO_SECRET" ]; then
+  echo "Warning: Could not fetch MinIO credentials from bookstore namespace."
+  echo "Using default credentials (may not work with existing MinIO)."
+  MINIO_ACCESS="minioadmin"
+  MINIO_SECRET="minioadmin"
+else
+  echo "  Found MinIO credentials from bookstore."
+fi
 
 echo ""
 echo "Creating Kubernetes secrets..."
