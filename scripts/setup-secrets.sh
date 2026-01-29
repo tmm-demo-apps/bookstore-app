@@ -31,8 +31,10 @@ echo "Creating Kubernetes secrets..."
 
 # Reader namespace secrets
 echo "  [1/4] Creating reader-secrets in reader namespace..."
+READER_DB_URL="postgres://reader:${READER_PG_PASS}@reader-postgres:5432/reader?sslmode=disable"
 kubectl create secret generic reader-secrets \
   --namespace=reader \
+  --from-literal=database-url="$READER_DB_URL" \
   --from-literal=postgres-password="$READER_PG_PASS" \
   --from-literal=minio-access-key="$MINIO_ACCESS" \
   --from-literal=minio-secret-key="$MINIO_SECRET" \
@@ -89,6 +91,8 @@ metadata:
 spec:
   name: reader-secrets
   data:
+  - key: database-url
+    value: "$READER_DB_URL"
   - key: postgres-password
     value: "$READER_PG_PASS"
   - key: minio-access-key
