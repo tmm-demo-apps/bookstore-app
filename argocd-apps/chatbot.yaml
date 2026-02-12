@@ -17,7 +17,7 @@ spec:
   source:
     repoURL: https://github.com/tmm-demo-apps/chatbot-app
     targetRevision: main
-    path: kubernetes
+    path: kubernetes/overlays/prod
   
   destination:
     # VKS-04 cluster (production)

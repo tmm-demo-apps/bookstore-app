@@ -8,8 +8,26 @@ import (
 )
 
 type Handlers struct {
-	Repo  repository.Repository
-	Store sessions.Store
+	Repo              repository.Repository
+	Store             sessions.Store
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+}
+
+// BaseViewData contains common data passed to all templates
+type BaseViewData struct {
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+}
+
+// GetBaseViewData returns common view data for templates
+func (h *Handlers) GetBaseViewData(r *http.Request) BaseViewData {
+	return BaseViewData{
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+	}
 }
 
 func (h *Handlers) IsAuthenticated(r *http.Request) bool {

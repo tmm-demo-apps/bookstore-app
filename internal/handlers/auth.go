@@ -11,23 +11,29 @@ import (
 )
 
 type LoginPageData struct {
-	IsAuthenticated bool
-	Error           string
-	Next            string
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	Error             string
+	Next              string
 }
 
 type SignupPageData struct {
-	IsAuthenticated bool
-	PasswordHelp    string
-	Error           string
-	Next            string
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	PasswordHelp      string
+	Error             string
+	Next              string
 }
 
 func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 	data := SignupPageData{
-		IsAuthenticated: h.IsAuthenticated(r),
-		PasswordHelp:    "Password must be at least 8 characters long and contain at least one letter and one number.",
-		Next:            r.URL.Query().Get("next"),
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		PasswordHelp:      "Password must be at least 8 characters long and contain at least one letter and one number.",
+		Next:              r.URL.Query().Get("next"),
 	}
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/signup.html")
 	if err != nil {
@@ -121,9 +127,11 @@ func validatePassword(password string) error {
 
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request, errorMsg string) {
 	data := LoginPageData{
-		IsAuthenticated: h.IsAuthenticated(r),
-		Error:           errorMsg,
-		Next:            r.URL.Query().Get("next"),
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		Error:             errorMsg,
+		Next:              r.URL.Query().Get("next"),
 	}
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/login.html")
 	if err != nil {

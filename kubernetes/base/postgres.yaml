@@ -56,7 +56,10 @@ spec:
                   name: app-secrets
                   key: DB_PASSWORD
             - name: POSTGRES_DB
-              value: "bookstore"
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DB_NAME
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:

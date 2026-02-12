@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # Production URLs for cross-app browser links
+  READER_BROWSER_URL: "http://reader.corp.vmbeans.com"
+  CHATBOT_BROWSER_URL: "http://chatbot.corp.vmbeans.com"

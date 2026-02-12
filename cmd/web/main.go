@@ -30,6 +30,8 @@ func main() {
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
 	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
 	minioUseSSL := os.Getenv("MINIO_USE_SSL") == "true"
+	readerBrowserURL := getEnvDefault("READER_BROWSER_URL", "http://localhost:8081")
+	chatbotBrowserURL := getEnvDefault("CHATBOT_BROWSER_URL", "http://localhost:5000")
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
 		dbUser, dbPassword, dbHost, dbName)
@@ -167,8 +169,10 @@ func main() {
 	}
 
 	h := &handlers.Handlers{
-		Repo:  repo,
-		Store: store,
+		Repo:              repo,
+		Store:             store,
+		ReaderBrowserURL:  readerBrowserURL,
+		ChatbotBrowserURL: chatbotBrowserURL,
 	}
 
 	mux := http.NewServeMux()
@@ -229,6 +233,7 @@ func main() {
 	}
 
 	// API routes for service-to-service communication (Reader app, Chatbot app)
+	mux.HandleFunc("/api/auth", h.APIAuth)
 	mux.HandleFunc("/api/purchases/", func(w http.ResponseWriter, r *http.Request) {
 		// Route to appropriate handler based on path segments
 		// /api/purchases/{user_id} -> GetUserPurchases
@@ -276,4 +281,12 @@ func retryWithBackoff(operation string, maxRetries int, initialDelay time.Durati
 	}
 
 	return fmt.Errorf("%s: failed after %d attempts: %w", operation, maxRetries, err)
+}
+
+// getEnvDefault returns the environment variable value or a default if not set
+func getEnvDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

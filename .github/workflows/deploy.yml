@@ -53,7 +53,7 @@ jobs:
 
     - name: Update kustomization.yaml
       run: |
-        cd kubernetes
+        cd kubernetes/base
         sed -i '/harbor.corp.vmbeans.com\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ github.event.inputs.version }}/}' kustomization.yaml
         echo "Updated kustomization.yaml:"
         cat kustomization.yaml
@@ -63,12 +63,12 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
-        if git diff --quiet kubernetes/kustomization.yaml; then
+        if git diff --quiet kubernetes/base/kustomization.yaml; then
           echo "No changes to kustomization.yaml"
           exit 0
         fi
         
-        git add kubernetes/kustomization.yaml
+        git add kubernetes/base/kustomization.yaml
         git commit -m "chore: manual deploy ${{ github.event.inputs.version }} [skip ci]"
         
         git config --unset-all http.https://github.com/.extraheader || true
@@ -85,7 +85,7 @@ jobs:
         echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:${{ github.event.inputs.version }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**GitOps:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Updated \`kubernetes/kustomization.yaml\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Updated \`kubernetes/base/kustomization.yaml\`" >> $GITHUB_STEP_SUMMARY
         echo "- ArgoCD will automatically sync the new image" >> $GITHUB_STEP_SUMMARY
 
     - name: Cleanup

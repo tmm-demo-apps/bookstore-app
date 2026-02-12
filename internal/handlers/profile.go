@@ -9,11 +9,13 @@ import (
 )
 
 type ProfileViewData struct {
-	IsAuthenticated bool
-	User            *models.User
-	OrderCount      int
-	Error           string
-	Success         string
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	User              *models.User
+	OrderCount        int
+	Error             string
+	Success           string
 }
 
 // ProfilePage displays the user's profile
@@ -39,10 +41,12 @@ func (h *Handlers) ProfilePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ProfileViewData{
-		IsAuthenticated: true,
-		User:            user,
-		OrderCount:      orderCount,
-		Success:         r.URL.Query().Get("success"),
+		IsAuthenticated:   true,
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		User:              user,
+		OrderCount:        orderCount,
+		Success:           r.URL.Query().Get("success"),
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/profile.html")
@@ -73,9 +77,11 @@ func (h *Handlers) ProfileEditPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ProfileViewData{
-		IsAuthenticated: true,
-		User:            user,
-		Error:           r.URL.Query().Get("error"),
+		IsAuthenticated:   true,
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		User:              user,
+		Error:             r.URL.Query().Get("error"),
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/profile-edit.html")
@@ -140,9 +146,11 @@ func (h *Handlers) ProfilePasswordPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ProfileViewData{
-		IsAuthenticated: true,
-		User:            user,
-		Error:           r.URL.Query().Get("error"),
+		IsAuthenticated:   true,
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		User:              user,
+		Error:             r.URL.Query().Get("error"),
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/profile-password.html")

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # Database configuration
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "bookstore"
+  
+  # Service endpoints
+  REDIS_URL: "redis-service:6379"
+  ES_URL: "http://elasticsearch-service:9200"
+  MINIO_ENDPOINT: "minio-service:9000"
+  MINIO_USE_SSL: "false"
+  
+  # Cross-app browser URLs (for links shown to users)
+  # These are patched by overlays for each environment
+  READER_BROWSER_URL: "http://localhost:8081"
+  CHATBOT_BROWSER_URL: "http://localhost:5000"

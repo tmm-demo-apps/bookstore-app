@@ -68,3 +68,11 @@
 - Migrations are included in the Docker image at `/app/migrations/`
 - Seed images binary fetches covers from Gutenberg at runtime
 - Use `./scripts/deploy-complete.sh` for full deployment
+
+## Docker Volume Safety - CRITICAL
+- **NEVER** run `docker compose down -v` or `docker-compose down -v`
+- **NEVER** run `docker volume rm` or `docker volume prune`
+- **NEVER** use the `-v` flag with docker compose down
+- These commands destroy user data (databases, MinIO storage, etc.)
+- If you need to restart containers, use `docker compose down` (without -v) then `docker compose up`
+- Only the USER can explicitly request volume deletion

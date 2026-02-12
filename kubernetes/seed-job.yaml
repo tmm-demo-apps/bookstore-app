@@ -20,7 +20,7 @@ spec:
             - -c
             - |
               echo "Waiting for PostgreSQL to be ready..."
-              until nc -z postgres-service 5432; do
+              until nc -z $DB_HOST $DB_PORT; do
                 sleep 2
               done
               
@@ -28,9 +28,10 @@ spec:
               go run /app/scripts/seed-gutenberg-books.go
               
               echo "Books seeded successfully!"
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
-            - name: DB_HOST
-              value: "postgres-service:5432"
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -41,8 +42,6 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: DB_PASSWORD
-            - name: DB_NAME
-              value: "bookstore"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -74,10 +73,13 @@ spec:
             - -c
             - |
               echo "Waiting for services to be ready..."
-              until nc -z postgres-service 5432; do
+              until nc -z $DB_HOST $DB_PORT; do
                 sleep 2
               done
-              until nc -z minio-service 9000; do
+              # Parse MINIO_ENDPOINT (host:port format)
+              MINIO_HOST=$(echo $MINIO_ENDPOINT | cut -d: -f1)
+              MINIO_PORT=$(echo $MINIO_ENDPOINT | cut -d: -f2)
+              until nc -z $MINIO_HOST $MINIO_PORT; do
                 sleep 2
               done
               
@@ -85,9 +87,10 @@ spec:
               go run /app/scripts/seed-images.go
               
               echo "Images seeded successfully!"
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
-            - name: DB_HOST
-              value: "postgres-service:5432"
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
@@ -98,10 +101,6 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: DB_PASSWORD
-            - name: DB_NAME
-              value: "bookstore"
-            - name: MINIO_ENDPOINT
-              value: "minio-service:9000"
             - name: MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:

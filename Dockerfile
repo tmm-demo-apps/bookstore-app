@@ -17,6 +17,17 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/seed-images ./scripts/seed-images.
 FROM alpine:latest
 WORKDIR /app
 
+# Install CA certificates for HTTPS requests (needed for downloading Gutenberg covers)
+# Use HTTP for apk repos to bootstrap ca-certificates, then restore HTTPS
+RUN sed -i 's/https/http/' /etc/apk/repositories && \
+    apk update && \
+    apk add --no-cache ca-certificates && \
+    update-ca-certificates && \
+    sed -i 's/http/https/' /etc/apk/repositories
+
+# Set SSL cert path for Go binaries (statically compiled binaries need this)
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
 # Copy main application
 COPY --from=builder /app/main .
 COPY templates ./templates

@@ -18,7 +18,7 @@ spec:
   source:
     repoURL: https://github.com/tmm-demo-apps/bookstore-app
     targetRevision: main
-    path: kubernetes
+    path: kubernetes/overlays/prod
   
   destination:
     # VKS-04 cluster (production)

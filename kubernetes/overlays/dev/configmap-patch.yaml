@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # Development URLs - update these for your environment
+  READER_BROWSER_URL: "http://localhost:8081"
+  CHATBOT_BROWSER_URL: "http://localhost:5000"

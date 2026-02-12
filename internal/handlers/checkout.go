@@ -10,9 +10,11 @@ import (
 )
 
 type CheckoutViewData struct {
-	IsAuthenticated bool
-	Items           []models.CartItem
-	Total           float64
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	Items             []models.CartItem
+	Total             float64
 }
 
 func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +54,11 @@ func (h *Handlers) CheckoutPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := CheckoutViewData{
-		IsAuthenticated: h.IsAuthenticated(r),
-		Items:           items,
-		Total:           total,
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		Items:             items,
+		Total:             total,
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/checkout.html")
@@ -110,12 +114,16 @@ func (h *Handlers) ProcessOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 type ConfirmationViewData struct {
-	IsAuthenticated bool
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
 }
 
 func (h *Handlers) ConfirmationPage(w http.ResponseWriter, r *http.Request) {
 	data := ConfirmationViewData{
-		IsAuthenticated: h.IsAuthenticated(r),
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
 	}
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/confirmation.html")
 	if err != nil {

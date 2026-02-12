@@ -150,8 +150,8 @@ function run_tests() {
         sleep 1
     done
     
-    # Run tests
-    ./tests/smoke.sh
+    # Run tests (script is in scripts/, tests are in tests/ relative to repo root)
+    "${SCRIPT_DIR}/../tests/smoke.sh"
 }
 
 function clean_all() {

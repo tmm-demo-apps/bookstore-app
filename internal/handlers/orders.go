@@ -8,8 +8,10 @@ import (
 )
 
 type MyOrdersViewData struct {
-	IsAuthenticated bool
-	Orders          []models.Order
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	Orders            []models.Order
 }
 
 func (h *Handlers) MyOrders(w http.ResponseWriter, r *http.Request) {
@@ -35,8 +37,10 @@ func (h *Handlers) MyOrders(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Found %d orders for user %d", len(orders), userID)
 
 	data := MyOrdersViewData{
-		IsAuthenticated: h.IsAuthenticated(r),
-		Orders:          orders,
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		Orders:            orders,
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/orders.html")

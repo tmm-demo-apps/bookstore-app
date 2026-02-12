@@ -11,6 +11,62 @@ import (
 // APIHandlers handles JSON API endpoints for service-to-service communication
 // These endpoints are used by Reader app and Chatbot app
 
+// AuthRequest is the JSON request for API authentication
+type AuthRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// AuthResponse is the JSON response for successful API authentication
+type AuthResponse struct {
+	UserID int    `json:"user_id"`
+	Email  string `json:"email"`
+}
+
+// APIAuth validates user credentials and returns user info
+// POST /api/auth
+// Used by Reader app to authenticate users against the Bookstore
+func (h *Handlers) APIAuth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req AuthRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" || req.Password == "" {
+		http.Error(w, "Email and password required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate credentials
+	user, err := h.Repo.Users().GetUserByEmail(req.Email)
+	if err != nil || user == nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	if !user.CheckPassword(req.Password) {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	// Return user info
+	response := AuthResponse{
+		UserID: user.ID,
+		Email:  user.Email,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding auth response: %v", err)
+	}
+}
+
 // PurchasesResponse is the JSON response for user purchases
 type PurchasesResponse struct {
 	Purchases []PurchaseItem `json:"purchases"`

@@ -11,9 +11,11 @@ import (
 )
 
 type CartViewData struct {
-	IsAuthenticated bool
-	Items           []models.CartItem
-	Total           float64
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	Items             []models.CartItem
+	Total             float64
 }
 
 func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
@@ -207,9 +209,11 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	if userID == 0 && sessionID == "" {
 		// Empty
 		data := CartViewData{
-			IsAuthenticated: h.IsAuthenticated(r),
-			Items:           nil,
-			Total:           0,
+			IsAuthenticated:   h.IsAuthenticated(r),
+			ReaderBrowserURL:  h.ReaderBrowserURL,
+			ChatbotBrowserURL: h.ChatbotBrowserURL,
+			Items:             nil,
+			Total:             0,
 		}
 		ts, err := template.ParseFiles("./templates/base.html", "./templates/cart.html")
 		if err != nil {
@@ -231,9 +235,11 @@ func (h *Handlers) ViewCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := CartViewData{
-		IsAuthenticated: h.IsAuthenticated(r),
-		Items:           items,
-		Total:           total,
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		Items:             items,
+		Total:             total,
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/cart.html")

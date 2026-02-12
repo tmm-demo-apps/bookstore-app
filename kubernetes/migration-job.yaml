@@ -15,18 +15,26 @@ spec:
             - -c
             - |
               echo "Waiting for PostgreSQL to be ready..."
-              until pg_isready -h postgres-service -U bookstore_user; do
+              until pg_isready -h $DB_HOST -U $DB_USER; do
                 sleep 2
               done
               
               echo "Running migrations..."
               for file in /migrations/*.sql; do
                 echo "Applying $(basename $file)..."
-                PGPASSWORD=$DB_PASSWORD psql -h postgres-service -U bookstore_user -d bookstore -f "$file"
+                PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f "$file"
               done
               
               echo "Migrations complete!"
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_USER
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

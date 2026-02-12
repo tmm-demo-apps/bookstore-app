@@ -193,7 +193,7 @@ jobs:
     - name: Update image tag for ArgoCD
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        cd kubernetes
+        cd kubernetes/base
         
         # Update ONLY the app image tag (first occurrence after "bookstore/app")
         # Infrastructure images (postgres, redis, etc.) keep their pinned versions
@@ -209,12 +209,12 @@ jobs:
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
         # Check if there are changes to commit
-        if git diff --quiet kubernetes/kustomization.yaml; then
+        if git diff --quiet kubernetes/base/kustomization.yaml; then
           echo "No changes to kustomization.yaml"
           exit 0
         fi
         
-        git add kubernetes/kustomization.yaml
+        git add kubernetes/base/kustomization.yaml
         git commit -m "chore: update app image to ${{ steps.image_tag.outputs.tag }} [skip ci]"
         
         # Remove the extraheader that checkout@v4 sets (it uses GITHUB_TOKEN which lacks push permission)
@@ -236,5 +236,5 @@ jobs:
         echo "- \`${{ secrets.HARBOR_URL }}/bookstore/app:latest\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**GitOps:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Updated \`kubernetes/kustomization.yaml\` with tag \`${{ steps.image_tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Updated \`kubernetes/base/kustomization.yaml\` with tag \`${{ steps.image_tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- ArgoCD will automatically sync the new image" >> $GITHUB_STEP_SUMMARY

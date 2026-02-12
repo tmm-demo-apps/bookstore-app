@@ -9,17 +9,19 @@ import (
 )
 
 type ProductListViewData struct {
-	IsAuthenticated  bool
-	Products         []models.Product
-	Categories       []models.Category
-	SearchQuery      string
-	SelectedCategory int
-	ResultCount      int
-	Pagination       *models.Pagination
-	PageSize         int
-	PageSizeOptions  []int
-	SortBy           string
-	SortOptions      []SortOption
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	Products          []models.Product
+	Categories        []models.Category
+	SearchQuery       string
+	SelectedCategory  int
+	ResultCount       int
+	Pagination        *models.Pagination
+	PageSize          int
+	PageSizeOptions   []int
+	SortBy            string
+	SortOptions       []SortOption
 }
 
 type SortOption struct {
@@ -28,13 +30,15 @@ type SortOption struct {
 }
 
 type ProductDetailViewData struct {
-	IsAuthenticated bool
-	UserID          int
-	Product         models.Product
-	Reviews         []models.ReviewWithUser
-	Rating          *models.ProductRating
-	RatingBars      []models.RatingBar
-	UserReview      *models.Review
+	IsAuthenticated   bool
+	ReaderBrowserURL  string
+	ChatbotBrowserURL string
+	UserID            int
+	Product           models.Product
+	Reviews           []models.ReviewWithUser
+	Rating            *models.ProductRating
+	RatingBars        []models.RatingBar
+	UserReview        *models.Review
 }
 
 func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
@@ -115,17 +119,19 @@ func (h *Handlers) ListProducts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ProductListViewData{
-		IsAuthenticated:  h.IsAuthenticated(r),
-		Products:         products,
-		Categories:       categories,
-		SearchQuery:      query,
-		SelectedCategory: categoryID,
-		ResultCount:      pagination.TotalItems,
-		Pagination:       pagination,
-		PageSize:         pageSize,
-		PageSizeOptions:  []int{10, 20, 30, 50, 100},
-		SortBy:           sortBy,
-		SortOptions:      sortOptions,
+		IsAuthenticated:   h.IsAuthenticated(r),
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		Products:          products,
+		Categories:        categories,
+		SearchQuery:       query,
+		SelectedCategory:  categoryID,
+		ResultCount:       pagination.TotalItems,
+		Pagination:        pagination,
+		PageSize:          pageSize,
+		PageSizeOptions:   []int{10, 20, 30, 50, 100},
+		SortBy:            sortBy,
+		SortOptions:       sortOptions,
 	}
 
 	// Create template with helper functions
@@ -264,13 +270,15 @@ func (h *Handlers) ProductDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := ProductDetailViewData{
-		IsAuthenticated: authenticated,
-		UserID:          userID,
-		Product:         *product,
-		Reviews:         reviews,
-		Rating:          rating,
-		RatingBars:      ratingBars,
-		UserReview:      userReview,
+		IsAuthenticated:   authenticated,
+		ReaderBrowserURL:  h.ReaderBrowserURL,
+		ChatbotBrowserURL: h.ChatbotBrowserURL,
+		UserID:            userID,
+		Product:           *product,
+		Reviews:           reviews,
+		Rating:            rating,
+		RatingBars:        ratingBars,
+		UserReview:        userReview,
 	}
 
 	ts, err := template.ParseFiles("./templates/base.html", "./templates/product-detail.html")

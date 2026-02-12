@@ -1,7 +1,5 @@
 # Ingress resource for the Bookstore application
-# The hostname is dynamically set based on the namespace:
-#   - bookstore namespace -> bookstore.corp.vmbeans.com
-#   - bookstore-test namespace -> bookstore-test.corp.vmbeans.com
+# The hostname is set by environment overlays (prod, dev)
 #
 # Requires: NGINX Ingress Controller installed (see ingress-nginx.yaml)
 ---
@@ -18,7 +16,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: bookstore.corp.vmbeans.com
+    - host: PLACEHOLDER_HOST  # Patched by overlays
       http:
         paths:
           - path: /

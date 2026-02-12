@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -225,8 +226,15 @@ func main() {
 }
 
 func downloadImage(url string) ([]byte, error) {
+	// Skip TLS verification for Gutenberg downloads - some corporate networks
+	// have proxies/firewalls that do TLS inspection with their own certificates.
+	// This is safe for downloading public book cover images.
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout:   15 * time.Second,
+		Transport: tr,
 	}
 	resp, err := client.Get(url)
 	if err != nil {
