@@ -8,7 +8,9 @@
 (function() {
     var savedView = localStorage.getItem('productView');
     if (savedView === 'table') {
-        document.write('<style>#product-grid{display:none !important;}.product-table{display:table !important;}</style>');
+        // Hide grid, show table, AND set correct button states to prevent flicker
+        // Use high specificity selectors to override the HTML's default .active on grid-btn
+        document.write('<style id="early-view-styles">#product-grid{display:none !important;}.product-table{display:table !important;}button#grid-btn.toggle-btn.active{background:transparent !important;color:inherit !important;border-color:transparent !important;}button#table-btn.toggle-btn{background:var(--primary) !important;color:var(--primary-inverse) !important;border-color:var(--primary) !important;}</style>');
     }
 })();
 </script>
@@ -775,10 +777,10 @@
                 
                 <!-- View Toggle -->
                 <div class="toggle-buttons">
-                    <button class="toggle-btn active" onclick="setView('grid')" id="grid-btn" title="Tile View">
+                    <button class="toggle-btn active" onclick="setView('grid', true)" id="grid-btn" title="Tile View">
                         🔲
                     </button>
-                    <button class="toggle-btn" onclick="setView('table')" id="table-btn" title="Table View">
+                    <button class="toggle-btn" onclick="setView('table', true)" id="table-btn" title="Table View">
                         ☰
                     </button>
                 </div>
@@ -1041,21 +1043,32 @@
             
         }
         
-        // View toggle
-        function setView(view) {
+        // View toggle - userTriggered=true when called from button click
+        function setView(view, userTriggered) {
             const grid = document.getElementById('product-grid');
             const table = document.getElementById('product-table');
             const gridBtn = document.getElementById('grid-btn');
             const tableBtn = document.getElementById('table-btn');
             
+            // Only remove the early-load styles when user explicitly clicks a toggle button
+            // This prevents flicker on page navigation
+            if (userTriggered) {
+                const earlyStyles = document.getElementById('early-view-styles');
+                if (earlyStyles) {
+                    earlyStyles.remove();
+                }
+            }
+            
             if (view === 'grid') {
                 grid.style.display = 'grid';
+                table.style.display = 'none';
                 table.classList.remove('active');
                 gridBtn.classList.add('active');
                 tableBtn.classList.remove('active');
                 localStorage.setItem('productView', 'grid');
             } else {
                 grid.style.display = 'none';
+                table.style.display = 'table';
                 table.classList.add('active');
                 gridBtn.classList.remove('active');
                 tableBtn.classList.add('active');
