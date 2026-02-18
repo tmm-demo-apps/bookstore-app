@@ -1,0 +1,46 @@
+image:
+  repository: ghcr.io/tmm-demo-apps/bookstore-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+ingress:
+  host: ""
+  annotations: {}
+
+postgres:
+  image: ghcr.io/tmm-demo-apps/postgres:14-alpine
+  storage: 10Gi
+
+redis:
+  image: ghcr.io/tmm-demo-apps/redis:7-alpine
+  storage: 5Gi
+
+elasticsearch:
+  image: ghcr.io/tmm-demo-apps/elasticsearch:8.11.0
+  storage: 10Gi
+
+minio:
+  image: ghcr.io/tmm-demo-apps/minio:latest
+  storage: 20Gi
+
+secrets:
+  create: true
+  dbUser: bookstore
+  dbPassword: bookstore-secret-pw
+  minioAccessKey: minioadmin
+  minioSecretKey: minioadmin-secret
+
+initJob:
+  enabled: true
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  cpuUtilization: 70
+  memoryUtilization: 80
+
+readerBrowserURL: ""
+chatbotBrowserURL: ""

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: demo-suite
+description: Complete Demo Bookstore Suite - bookstore, reader, and chatbot applications
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: bookstore
+    version: 0.1.0
+    repository: "file://charts/bookstore"
+  - name: reader
+    version: 0.1.0
+    repository: "file://charts/reader"
+    condition: reader.enabled
+  - name: chatbot
+    version: 0.1.0
+    repository: "file://charts/chatbot"
+    condition: chatbot.enabled

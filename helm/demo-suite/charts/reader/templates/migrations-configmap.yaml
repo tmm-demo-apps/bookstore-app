@@ -1,0 +1,57 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reader-migrations
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+data:
+  001_schema.sql: |
+    -- Reader App Database Schema
+
+    -- Reading progress tracking
+    CREATE TABLE IF NOT EXISTS reading_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        book_sku VARCHAR(50) NOT NULL,
+        gutenberg_id INTEGER NOT NULL,
+        chapter_index INTEGER DEFAULT 0,
+        chapter_href VARCHAR(255) DEFAULT '',
+        position_percent DECIMAL(5,2) DEFAULT 0.00,
+        scroll_position INTEGER DEFAULT 0,
+        last_read_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, book_sku)
+    );
+
+    -- User library (synced from Bookstore purchases)
+    CREATE TABLE IF NOT EXISTS user_library (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        book_sku VARCHAR(50) NOT NULL,
+        gutenberg_id INTEGER NOT NULL,
+        title VARCHAR(500) NOT NULL,
+        author VARCHAR(255) NOT NULL,
+        cover_url VARCHAR(500),
+        acquired_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, book_sku)
+    );
+
+    -- EPUB cache metadata (tracks what's in MinIO)
+    CREATE TABLE IF NOT EXISTS epub_cache (
+        id SERIAL PRIMARY KEY,
+        gutenberg_id INTEGER NOT NULL UNIQUE,
+        book_sku VARCHAR(50) NOT NULL,
+        minio_path VARCHAR(255) NOT NULL,
+        file_size_bytes BIGINT,
+        cached_at TIMESTAMP DEFAULT NOW(),
+        last_accessed_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Indexes for common queries
+    CREATE INDEX IF NOT EXISTS idx_reading_progress_user ON reading_progress(user_id);
+    CREATE INDEX IF NOT EXISTS idx_reading_progress_book ON reading_progress(book_sku);
+    CREATE INDEX IF NOT EXISTS idx_user_library_user ON user_library(user_id);
+    CREATE INDEX IF NOT EXISTS idx_epub_cache_gutenberg ON epub_cache(gutenberg_id);
+{{- end }}

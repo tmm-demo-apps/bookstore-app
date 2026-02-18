@@ -1,0 +1,28 @@
+enabled: true
+
+image:
+  repository: ghcr.io/tmm-demo-apps/chatbot-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+ingress:
+  host: ""
+  annotations: {}
+
+ollama:
+  enabled: true
+  image: ghcr.io/tmm-demo-apps/ollama:latest
+  replicas: 0
+  storage: 5Gi
+  model: "smollm2:360m"
+
+llm:
+  backend: "openai_compatible"
+  apiURL: "http://ollama:11434"
+  model: "smollm2:360m"
+
+secrets:
+  create: true
+  llmApiKey: ""

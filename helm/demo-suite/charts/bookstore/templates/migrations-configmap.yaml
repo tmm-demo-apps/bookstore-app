@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migrations-configmap
+  namespace: bookstore
+  labels:
+    {{- include "bookstore.labels" . | nindent 4 }}
+data:
+  001_schema.sql: |
+    {{- .Files.Get "files/001_schema.sql" | nindent 4 }}
+  002_seed_books.sql: |
+    {{- .Files.Get "files/002_seed_books.sql" | nindent 4 }}

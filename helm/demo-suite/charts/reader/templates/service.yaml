@@ -1,0 +1,17 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: reader-service
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "reader.selectorLabels" . | nindent 4 }}
+  ports:
+  - protocol: TCP
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+{{- end }}

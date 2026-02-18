@@ -1,0 +1,97 @@
+# Default values for the Demo Bookstore Suite
+# All images pull from GHCR (public, no rate limits, no auth required)
+#
+# Usage:
+#   helm install demo ./helm/demo-suite
+#   helm install demo ./helm/demo-suite --set global.domain=myapps.example.com
+#   helm install demo ./helm/demo-suite -f ./helm/demo-suite/values-harbor.yaml
+
+global:
+  # Storage class for all PVCs (empty = cluster default)
+  storageClassName: ""
+  # Base domain for ingress hostnames
+  # Generates: bookstore.<domain>, reader.<domain>, chatbot.<domain>
+  domain: "example.local"
+  # Image pull secrets (empty = public images, no auth needed)
+  imagePullSecrets: []
+
+# --- Bookstore (main application) ---
+bookstore:
+  image:
+    repository: ghcr.io/tmm-demo-apps/bookstore-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 3
+  ingress:
+    host: ""
+  postgres:
+    image: ghcr.io/tmm-demo-apps/postgres:14-alpine
+    storage: 10Gi
+  redis:
+    image: ghcr.io/tmm-demo-apps/redis:7-alpine
+    storage: 5Gi
+  elasticsearch:
+    image: ghcr.io/tmm-demo-apps/elasticsearch:8.11.0
+    storage: 10Gi
+  minio:
+    image: ghcr.io/tmm-demo-apps/minio:latest
+    storage: 20Gi
+  secrets:
+    create: true
+    dbUser: bookstore
+    dbPassword: bookstore-secret-pw
+    minioAccessKey: minioadmin
+    minioSecretKey: minioadmin-secret
+  initJob:
+    enabled: true
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    cpuUtilization: 70
+    memoryUtilization: 80
+
+# --- Reader (e-book reader) ---
+reader:
+  enabled: true
+  image:
+    repository: ghcr.io/tmm-demo-apps/reader-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  ingress:
+    host: ""
+  postgres:
+    image: ghcr.io/tmm-demo-apps/postgres:14-alpine
+    storage: 5Gi
+  secrets:
+    create: true
+    postgresPassword: reader-secret-pw
+    databaseUrl: "postgres://reader:reader-secret-pw@reader-postgres:5432/reader?sslmode=disable"
+    minioAccessKey: minioadmin
+    minioSecretKey: minioadmin-secret
+    sessionSecret: reader-session-secret-change-me
+
+# --- Chatbot (AI assistant) ---
+chatbot:
+  enabled: true
+  image:
+    repository: ghcr.io/tmm-demo-apps/chatbot-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  ingress:
+    host: ""
+  ollama:
+    enabled: true
+    image: ghcr.io/tmm-demo-apps/ollama:latest
+    replicas: 0
+    storage: 5Gi
+    model: "smollm2:360m"
+  llm:
+    backend: "openai_compatible"
+    apiURL: "http://ollama:11434"
+    model: "smollm2:360m"
+  secrets:
+    create: true
+    llmApiKey: ""
