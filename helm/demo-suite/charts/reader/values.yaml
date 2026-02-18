@@ -1,0 +1,26 @@
+enabled: true
+
+image:
+  repository: ghcr.io/tmm-demo-apps/reader-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+ingress:
+  host: ""
+  annotations: {}
+
+postgres:
+  image: ghcr.io/tmm-demo-apps/postgres:14-alpine
+  storage: 5Gi
+
+secrets:
+  create: true
+  postgresPassword: reader-secret-pw
+  databaseUrl: "postgres://reader:reader-secret-pw@reader-postgres:5432/reader?sslmode=disable"
+  minioAccessKey: minioadmin
+  minioSecretKey: minioadmin-secret
+  sessionSecret: reader-session-secret-change-me
+
+bookstoreBrowserURL: ""

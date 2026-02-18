@@ -1,0 +1,14 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chatbot-config
+  namespace: chatbot
+  labels:
+    {{- include "chatbot.labels" . | nindent 4 }}
+data:
+  LLM_BACKEND: {{ .Values.llm.backend | quote }}
+  LLM_API_URL: {{ .Values.llm.apiURL | quote }}
+  LLM_MODEL: {{ .Values.llm.model | quote }}
+  BOOKSTORE_API_URL: "http://app-service.bookstore:80"
+{{- end }}

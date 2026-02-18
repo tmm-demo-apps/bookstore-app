@@ -1,0 +1,113 @@
+{{- if and .Values.enabled .Values.ollama.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-pvc
+  namespace: chatbot
+  labels:
+    {{- include "chatbot.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- include "chatbot.storageClassName" . | nindent 2 }}
+  resources:
+    requests:
+      storage: {{ .Values.ollama.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: chatbot
+  labels:
+    {{- include "chatbot.labels" . | nindent 4 }}
+    app: ollama
+spec:
+  replicas: {{ .Values.ollama.replicas }}
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "chatbot.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: ollama
+        image: {{ .Values.ollama.image }}
+        ports:
+        - containerPort: 11434
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        env:
+        - name: OLLAMA_NUM_PARALLEL
+          value: "1"
+        - name: OLLAMA_MAX_LOADED_MODELS
+          value: "1"
+        - name: OLLAMA_KEEP_ALIVE
+          value: "24h"
+        - name: HOME
+          value: "/tmp"
+        - name: OLLAMA_MODELS
+          value: "/data/models"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: ollama-data
+          mountPath: /data
+        - name: tmp
+          mountPath: /tmp
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "ollama pull {{ .Values.ollama.model }} || true"]
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 120
+          periodSeconds: 30
+      volumes:
+      - name: ollama-data
+        persistentVolumeClaim:
+          claimName: ollama-pvc
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: chatbot
+  labels:
+    {{- include "chatbot.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: ollama
+  ports:
+  - port: 11434
+    targetPort: 11434
+  type: ClusterIP
+{{- end }}

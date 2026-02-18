@@ -1,0 +1,12 @@
+dependencies:
+- name: bookstore
+  repository: file://charts/bookstore
+  version: 0.1.0
+- name: reader
+  repository: file://charts/reader
+  version: 0.1.0
+- name: chatbot
+  repository: file://charts/chatbot
+  version: 0.1.0
+digest: sha256:3802a975e9e770c78656c95934c82efdf19bbbfaf69f3b769c7a5c7103ec1f52
+generated: "2026-02-18T13:16:02.608686-05:00"

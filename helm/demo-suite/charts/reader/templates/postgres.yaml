@@ -1,0 +1,99 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: reader-postgres-pvc
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- include "reader.storageClassName" . | nindent 2 }}
+  resources:
+    requests:
+      storage: {{ .Values.postgres.storage }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: reader-postgres
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+spec:
+  serviceName: reader-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reader-postgres
+  template:
+    metadata:
+      labels:
+        app: reader-postgres
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "reader.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: postgres
+        image: {{ .Values.postgres.image }}
+        ports:
+        - containerPort: 5432
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        env:
+        - name: POSTGRES_USER
+          value: reader
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: postgres-password
+        - name: POSTGRES_DB
+          value: reader
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: reader-postgres-pvc
+      - name: init-scripts
+        configMap:
+          name: reader-migrations
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reader-postgres
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: reader-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None
+{{- end }}

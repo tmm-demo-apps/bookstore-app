@@ -1,0 +1,8 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+{{- end }}

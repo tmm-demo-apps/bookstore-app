@@ -1,0 +1,6 @@
+apiVersion: v2
+name: reader
+description: Reader application for the Demo Bookstore suite
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,82 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reader-deployment
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+    {{- include "reader.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "reader.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "reader.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      {{- include "reader.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: reader
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 8081
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
+        envFrom:
+        - configMapRef:
+            name: reader-config
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: database-url
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: minio-access-key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: minio-secret-key
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: session-secret
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+{{- end }}

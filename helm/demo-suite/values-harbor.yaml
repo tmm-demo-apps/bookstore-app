@@ -1,0 +1,43 @@
+# Harbor environment override values
+# Usage: helm install demo ./helm/demo-suite -f ./helm/demo-suite/values-harbor.yaml
+#
+# Prerequisites:
+#   kubectl create secret docker-registry harbor-registry-secret \
+#     --docker-server=harbor.corp.vmbeans.com \
+#     --docker-username=YOUR_USER \
+#     --docker-password=YOUR_PASSWORD \
+#     -n bookstore
+#   (repeat for reader and chatbot namespaces)
+
+global:
+  storageClassName: "vsan-default-storage-policy"
+  domain: "corp.vmbeans.com"
+  imagePullSecrets:
+    - name: harbor-registry-secret
+
+bookstore:
+  image:
+    repository: harbor.corp.vmbeans.com/bookstore/app
+    tag: latest
+  postgres:
+    image: harbor.corp.vmbeans.com/library/postgres:14-alpine
+  redis:
+    image: harbor.corp.vmbeans.com/library/redis:7-alpine
+  elasticsearch:
+    image: harbor.corp.vmbeans.com/library/elasticsearch:8.11.0
+  minio:
+    image: harbor.corp.vmbeans.com/library/minio/minio:latest
+
+reader:
+  image:
+    repository: harbor.corp.vmbeans.com/bookstore/reader
+    tag: latest
+  postgres:
+    image: harbor.corp.vmbeans.com/library/postgres:14-alpine
+
+chatbot:
+  image:
+    repository: harbor.corp.vmbeans.com/bookstore/chatbot
+    tag: latest
+  ollama:
+    image: ollama/ollama:latest
