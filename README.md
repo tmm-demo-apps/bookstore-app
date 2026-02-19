@@ -31,7 +31,7 @@ Deploy the entire demo suite on **any Kubernetes cluster** with a single Helm co
 
 1. **Kubernetes cluster** with `kubectl` access from a jumpbox/workstation
 2. **Helm 3** installed on the jumpbox (`brew install helm` on macOS, or [install guide](https://helm.sh/docs/intro/install/))
-3. **NGINX Ingress Controller** installed in the cluster
+3. **Ingress controller** -- the chart can install one for you (see below), or use your cluster's existing one
 4. **DNS or /etc/hosts** pointing your chosen domain to the ingress IP:
    - `bookstore.<your-domain>` -> ingress IP
    - `reader.<your-domain>` -> ingress IP (if deploying reader)
@@ -68,7 +68,14 @@ helm install demo ./helm/demo-suite \
 helm install demo ./helm/demo-suite \
   --set global.domain=<your-domain> \
   --set global.storageClassName=my-storage-policy
+
+# No ingress controller in your cluster? Include one automatically:
+helm install demo ./helm/demo-suite \
+  --set global.domain=<your-domain> \
+  --set ingress-nginx.enabled=true
 ```
+
+> **Ingress Controller**: Most managed K8s clusters and VCF/TKG environments already have an ingress controller. Only add `--set ingress-nginx.enabled=true` if `kubectl get ingressclass` returns nothing. The chart will deploy the official NGINX ingress controller alongside the applications.
 
 ### What happens
 

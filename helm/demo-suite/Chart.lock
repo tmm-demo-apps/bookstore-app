@@ -8,5 +8,8 @@ dependencies:
 - name: chatbot
   repository: file://charts/chatbot
   version: 0.1.0
-digest: sha256:3802a975e9e770c78656c95934c82efdf19bbbfaf69f3b769c7a5c7103ec1f52
-generated: "2026-02-18T13:16:02.608686-05:00"
+- name: ingress-nginx
+  repository: https://kubernetes.github.io/ingress-nginx
+  version: 4.12.1
+digest: sha256:c501625fc524ba1596eab86b2166271957ec7ca2dbebf430cb7d9c6ede6d18df
+generated: "2026-02-19T13:57:31.203268-05:00"
