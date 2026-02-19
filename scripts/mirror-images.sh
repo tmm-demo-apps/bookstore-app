@@ -14,20 +14,29 @@ set -euo pipefail
 
 GHCR_ORG="ghcr.io/tmm-demo-apps"
 
-declare -A IMAGES=(
-  ["postgres:14-alpine"]="postgres:14-alpine"
-  ["redis:7-alpine"]="redis:7-alpine"
-  ["docker.elastic.co/elasticsearch/elasticsearch:8.11.0"]="elasticsearch:8.11.0"
-  ["minio/minio:latest"]="minio:latest"
-  ["ollama/ollama:latest"]="ollama:latest"
+SOURCES=(
+  "postgres:14-alpine"
+  "redis:7-alpine"
+  "elasticsearch:8.11.0"
+  "minio/minio:latest"
+  "ollama/ollama:latest"
+)
+
+TARGETS=(
+  "postgres:14-alpine"
+  "redis:7-alpine"
+  "elasticsearch:8.11.0"
+  "minio:latest"
+  "ollama:latest"
 )
 
 echo "=== Mirroring infrastructure images to GHCR ==="
 echo "Target: ${GHCR_ORG}"
 echo ""
 
-for SOURCE in "${!IMAGES[@]}"; do
-  TARGET="${GHCR_ORG}/${IMAGES[$SOURCE]}"
+for i in "${!SOURCES[@]}"; do
+  SOURCE="${SOURCES[$i]}"
+  TARGET="${GHCR_ORG}/${TARGETS[$i]}"
   echo "--- ${SOURCE} -> ${TARGET} ---"
 
   echo "  Pulling ${SOURCE}..."
@@ -49,7 +58,6 @@ echo "IMPORTANT: Set each package to 'public' in your GitHub org settings:"
 echo "  https://github.com/orgs/tmm-demo-apps/packages"
 echo ""
 echo "Packages to make public:"
-for SOURCE in "${!IMAGES[@]}"; do
-  NAME="${IMAGES[$SOURCE]%%:*}"
-  echo "  - ${NAME}"
+for TARGET in "${TARGETS[@]}"; do
+  echo "  - ${TARGET%%:*}"
 done
