@@ -1,6 +1,8 @@
 #!/bin/bash
 # Mirror infrastructure images to GHCR for the Demo Bookstore Suite
 #
+# Pulls linux/amd64 images regardless of host architecture (safe on Apple Silicon).
+#
 # Prerequisites:
 #   1. docker login ghcr.io -u YOUR_GITHUB_USERNAME -p YOUR_GITHUB_PAT
 #   2. Ensure GHCR packages are set to "public" in org settings after first push
@@ -13,6 +15,7 @@
 set -euo pipefail
 
 GHCR_ORG="ghcr.io/tmm-demo-apps"
+PLATFORM="linux/amd64"
 
 SOURCES=(
   "postgres:14-alpine"
@@ -32,6 +35,7 @@ TARGETS=(
 
 echo "=== Mirroring infrastructure images to GHCR ==="
 echo "Target: ${GHCR_ORG}"
+echo "Platform: ${PLATFORM}"
 echo ""
 
 for i in "${!SOURCES[@]}"; do
@@ -39,8 +43,8 @@ for i in "${!SOURCES[@]}"; do
   TARGET="${GHCR_ORG}/${TARGETS[$i]}"
   echo "--- ${SOURCE} -> ${TARGET} ---"
 
-  echo "  Pulling ${SOURCE}..."
-  docker pull "${SOURCE}"
+  echo "  Pulling ${SOURCE} (${PLATFORM})..."
+  docker pull --platform "${PLATFORM}" "${SOURCE}"
 
   echo "  Tagging as ${TARGET}..."
   docker tag "${SOURCE}" "${TARGET}"
