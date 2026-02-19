@@ -17,11 +17,115 @@ This Bookstore is part of a 3-app demo suite:
 
 | App | Description | Endpoint | Repo |
 |-----|-------------|----------|------|
-| **Bookstore** | E-commerce platform (this repo) | http://bookstore.corp.vmbeans.com | [bookstore-app](https://github.com/tmm-demo-apps/bookstore-app) |
-| **Reader** | EPUB library reader | http://reader.corp.vmbeans.com | [reader-app](https://github.com/tmm-demo-apps/reader-app) |
-| **Chatbot** | AI customer support | http://chatbot.corp.vmbeans.com | [chatbot-app](https://github.com/tmm-demo-apps/chatbot-app) |
+| **Bookstore** | E-commerce platform (this repo) | `bookstore.<your-domain>` | [bookstore-app](https://github.com/tmm-demo-apps/bookstore-app) |
+| **Reader** | EPUB library reader | `reader.<your-domain>` | [reader-app](https://github.com/tmm-demo-apps/reader-app) |
+| **Chatbot** | AI customer support | `chatbot.<your-domain>` | [chatbot-app](https://github.com/tmm-demo-apps/chatbot-app) |
 
 All apps are deployed via **ArgoCD** using an App-of-Apps pattern and share services (MinIO, Redis) where appropriate.
+
+## 🚀 Deploy on a New Kubernetes Cluster
+
+Deploy the entire demo suite on **any Kubernetes cluster** with a single Helm command. All images are public on GHCR -- no registry credentials, no rate limits, no Docker Hub dependency.
+
+### Prerequisites
+
+1. **Kubernetes cluster** with `kubectl` access from a jumpbox/workstation
+2. **Helm 3** installed on the jumpbox (`brew install helm` on macOS, or [install guide](https://helm.sh/docs/intro/install/))
+3. **NGINX Ingress Controller** installed in the cluster
+4. **DNS or /etc/hosts** pointing your chosen domain to the ingress IP:
+   - `bookstore.<your-domain>` -> ingress IP
+   - `reader.<your-domain>` -> ingress IP (if deploying reader)
+   - `chatbot.<your-domain>` -> ingress IP (if deploying chatbot)
+
+### Step-by-Step
+
+```bash
+# 1. Clone the repo to your jumpbox
+git clone https://github.com/tmm-demo-apps/bookstore-app.git
+cd bookstore-app
+
+# 2. Build Helm dependencies
+helm dependency update ./helm/demo-suite
+
+# 3. Deploy (pick one)
+
+# Full suite (bookstore + reader + chatbot):
+helm install demo ./helm/demo-suite \
+  --set global.domain=<your-domain>
+
+# Bookstore + Reader only (no chatbot):
+helm install demo ./helm/demo-suite \
+  --set global.domain=<your-domain> \
+  --set chatbot.enabled=false
+
+# Bookstore only:
+helm install demo ./helm/demo-suite \
+  --set global.domain=<your-domain> \
+  --set reader.enabled=false \
+  --set chatbot.enabled=false
+
+# With a specific storage class (if your cluster doesn't have a default):
+helm install demo ./helm/demo-suite \
+  --set global.domain=<your-domain> \
+  --set global.storageClassName=my-storage-policy
+```
+
+### What happens
+
+Helm creates three namespaces (`bookstore`, `reader`, `chatbot`) and deploys:
+
+| Component | What it creates |
+|-----------|----------------|
+| **bookstore** | App (3 replicas), PostgreSQL, Redis, Elasticsearch, MinIO, Ingress, HPA, init-job (migrations + seed data) |
+| **reader** | App (2 replicas), PostgreSQL, Ingress |
+| **chatbot** | App (1 replica), Ollama (disabled by default), Ingress |
+
+The `global.domain` value automatically configures:
+- Ingress hostnames: `bookstore.<your-domain>`, `reader.<your-domain>`, `chatbot.<your-domain>`
+- Cross-app browser URLs (e.g. "Back to shop" link in reader points to `bookstore.<your-domain>`)
+- Internal service-to-service API calls use Kubernetes DNS (automatic, no config needed)
+
+### Verify
+
+```bash
+# Check all pods are running
+kubectl get pods -n bookstore
+kubectl get pods -n reader
+kubectl get pods -n chatbot
+
+# Check ingress
+kubectl get ingress -A
+
+# Open in browser
+# http://bookstore.<your-domain>
+```
+
+### Upgrade or Uninstall
+
+```bash
+# Upgrade (e.g. after pulling new chart version)
+helm upgrade demo ./helm/demo-suite --set global.domain=<your-domain>
+
+# Uninstall (removes all resources)
+helm uninstall demo
+```
+
+### For Harbor Environments (VMware VCF)
+
+If you have a Harbor registry and want to use private images instead of GHCR:
+
+```bash
+helm install demo ./helm/demo-suite -f ./helm/demo-suite/values-harbor.yaml
+```
+
+See `helm/demo-suite/values-harbor.yaml` for the full Harbor override configuration.
+
+### Image Registry Summary
+
+| Registry | Images | Auth Required | Rate Limits |
+|----------|--------|--------------|-------------|
+| **GHCR** (default) | All app + infra images | No | None |
+| **Harbor** (override) | All images via `values-harbor.yaml` | Yes | None |
 
 ## ✨ Features
 
@@ -59,9 +163,10 @@ All apps are deployed via **ArgoCD** using an App-of-Apps pattern and share serv
 | **Storage** | MinIO | S3-compatible object storage for images |
 | **Container** | Docker & Docker Compose | Local development and testing |
 | **Orchestration** | Kubernetes (VKS) | Production deployment on VCF |
-| **Registry** | Harbor | Enterprise container registry |
+| **Registry** | GHCR + Harbor | Public images (GHCR) + enterprise registry (Harbor) |
 | **GitOps** | ArgoCD | Automated deployments from git |
-| **CI/CD** | GitHub Actions | Build, test, and push to Harbor |
+| **CI/CD** | GitHub Actions | Build, test, push to GHCR + Harbor |
+| **Packaging** | Helm | Portable deployment on any K8s cluster |
 
 ## 🚀 Quick Start
 
@@ -87,7 +192,20 @@ All apps are deployed via **ArgoCD** using an App-of-Apps pattern and share serv
 - **Elasticsearch**: http://localhost:9200
 - **PostgreSQL**: localhost:5432 (user/password)
 
-### Production Deployment (Kubernetes)
+### Production Deployment (Helm - Any Cluster)
+
+```bash
+# Deploy on any K8s cluster with public GHCR images
+helm install demo ./helm/demo-suite --set global.domain=apps.your-env.com
+
+# Deploy on Harbor environment (VCF)
+helm install demo ./helm/demo-suite -f ./helm/demo-suite/values-harbor.yaml
+
+# Upgrade an existing deployment
+helm upgrade demo ./helm/demo-suite --set global.domain=apps.your-env.com
+```
+
+### Production Deployment (Kustomize + ArgoCD)
 
 ```bash
 # SSH to remote VM
@@ -147,8 +265,8 @@ argocd app get bookstore
 The CI workflow automatically:
 1. Runs linting and tests
 2. Builds Docker image
-3. Pushes to Harbor registry
-4. Updates `kubernetes/kustomization.yaml` with new image tag
+3. Pushes to **GHCR** (public, for Helm deployments) and **Harbor** (enterprise)
+4. Updates `kubernetes/base/kustomization.yaml` with new image tag
 5. ArgoCD detects the change and syncs to VKS-04
 
 ## 📊 Project Structure
@@ -177,18 +295,20 @@ bookstore-app/
 ├── scripts/              # Deployment and utility scripts
 │   ├── deploy-complete.sh        # One-command K8s deployment
 │   ├── local-dev.sh              # Local development helper
+│   ├── mirror-images.sh          # Mirror infra images to GHCR (one-time)
 │   ├── setup-secrets.sh          # Multi-app secret management
 │   ├── seed-gutenberg-books.go   # Book data source
 │   └── seed-images.go            # Image seeding from Gutenberg
-├── kubernetes/           # Kubernetes manifests + Kustomize
-│   ├── kustomization.yaml        # Kustomize config (image tags updated by CI)
+├── helm/                 # Helm chart for portable deployment
+│   └── demo-suite/               # Umbrella chart (bookstore + reader + chatbot)
+│       ├── Chart.yaml            # Chart metadata and dependencies
+│       ├── values.yaml           # Defaults: all GHCR images, zero config
+│       ├── values-harbor.yaml    # Override: Harbor images + vSAN storage
+│       └── charts/               # Subcharts (bookstore, reader, chatbot)
+├── kubernetes/           # Kustomize manifests (ArgoCD/GitOps)
+│   ├── base/                     # Base manifests with image overrides
+│   ├── overlays/                 # Environment-specific patches (dev, prod)
 │   ├── ingress-nginx.yaml        # NGINX Ingress Controller
-│   ├── ingress.yaml              # Application ingress
-│   ├── app.yaml                  # Application deployment
-│   ├── postgres.yaml             # PostgreSQL StatefulSet
-│   ├── redis.yaml                # Redis deployment
-│   ├── elasticsearch.yaml        # Elasticsearch StatefulSet
-│   ├── minio.yaml                # MinIO deployment
 │   └── init-db-job.yaml          # Automated migrations + seeding
 ├── tests/                # Testing scripts
 │   └── smoke.sh                  # 25 automated smoke tests
@@ -289,10 +409,16 @@ bookstore-app/
 - GitHub Actions CI/CD with self-hosted runner
 - Harbor registry integration
 
-### 🎯 Phase 4: Observability & Enhancements (Next)
+### ✅ Phase 4: Portable Helm Deployment (Complete)
+- Helm umbrella chart for one-command deployment on any K8s cluster
+- All images mirrored to GHCR (public, no rate limits)
+- CI pushes to both GHCR and Harbor
+- Configurable domain, storage class, and registry via `values.yaml`
+- `values-harbor.yaml` override for enterprise Harbor environments
+
+### 🎯 Phase 5: Observability & Enhancements (Next)
 - Prometheus & Grafana for metrics
 - VCF Private AI integration for chatbot
-- Helm/Carvel packaging
 - MinIO as Supervisor Service
 - Elasticsearch alternatives (Meilisearch, Typesense)
 - Admin Console
@@ -323,4 +449,4 @@ MIT License - See LICENSE file for details
 
 **Built with ❤️ to demonstrate VMware Cloud Foundation 9.0/9.1 capabilities**
 
-**Last Updated**: January 30, 2026
+**Last Updated**: February 19, 2026
