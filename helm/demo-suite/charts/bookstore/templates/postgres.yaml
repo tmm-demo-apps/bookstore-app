@@ -72,11 +72,11 @@ spec:
               mountPath: /var/lib/postgresql/data
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: {{ .Values.postgres.resources.requests.memory | quote }}
+              cpu: {{ .Values.postgres.resources.requests.cpu | quote }}
             limits:
-              memory: "1Gi"
-              cpu: "1000m"
+              memory: {{ .Values.postgres.resources.limits.memory | quote }}
+              cpu: {{ .Values.postgres.resources.limits.cpu | quote }}
   volumeClaimTemplates:
     - metadata:
         name: postgres-storage

@@ -1,0 +1,78 @@
+# values-small.yaml -- Lightweight profile for small/single-worker-node clusters
+#
+# Usage:
+#   helm install demo ./helm/demo-suite \
+#     -f ./helm/demo-suite/values-small.yaml \
+#     --set global.domain=<your-domain> \
+#     --set global.storageClassName=<your-storage-class>
+#
+# Total CPU requests: ~550m (vs ~1900m default)
+# Total memory requests: ~768Mi (vs ~2.3Gi default)
+# Elasticsearch disabled (search falls back to SQL)
+
+bookstore:
+  replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  postgres:
+    storage: 5Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  redis:
+    storage: 2Gi
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "250m"
+  elasticsearch:
+    enabled: false
+  minio:
+    storage: 10Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  hpa:
+    enabled: false
+
+reader:
+  replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  postgres:
+    storage: 2Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "250m"
+
+chatbot:
+  replicas: 1
+
+ingress-nginx:
+  controller:
+    replicaCount: 1

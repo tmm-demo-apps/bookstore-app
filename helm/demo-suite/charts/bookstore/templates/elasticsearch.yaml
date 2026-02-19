@@ -1,3 +1,4 @@
+{{- if .Values.elasticsearch.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -61,11 +62,11 @@ spec:
               mountPath: /usr/share/elasticsearch/data
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: {{ .Values.elasticsearch.resources.requests.memory | quote }}
+              cpu: {{ .Values.elasticsearch.resources.requests.cpu | quote }}
             limits:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: {{ .Values.elasticsearch.resources.limits.memory | quote }}
+              cpu: {{ .Values.elasticsearch.resources.limits.cpu | quote }}
   volumeClaimTemplates:
     - metadata:
         name: es-storage
@@ -75,3 +76,4 @@ spec:
         resources:
           requests:
             storage: {{ .Values.elasticsearch.storage }}
+{{- end }}
