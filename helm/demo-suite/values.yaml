@@ -95,3 +95,13 @@ chatbot:
   secrets:
     create: true
     llmApiKey: ""
+
+# --- Ingress Controller (optional) ---
+# Enable if your cluster does not already have an ingress controller installed.
+# Most managed K8s clusters and VCF/TKG environments already have one.
+ingress-nginx:
+  enabled: false
+  controller:
+    replicaCount: 2
+    service:
+      type: LoadBalancer
