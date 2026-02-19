@@ -42,6 +42,7 @@ spec:
       containers:
         - name: elasticsearch
           image: {{ .Values.elasticsearch.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 9200
           securityContext:
