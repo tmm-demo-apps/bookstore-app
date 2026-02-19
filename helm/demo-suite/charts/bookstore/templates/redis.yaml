@@ -53,11 +53,11 @@ spec:
               mountPath: /data
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: {{ .Values.redis.resources.requests.memory | quote }}
+              cpu: {{ .Values.redis.resources.requests.cpu | quote }}
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: {{ .Values.redis.resources.limits.memory | quote }}
+              cpu: {{ .Values.redis.resources.limits.cpu | quote }}
       volumes:
         - name: redis-storage
           persistentVolumeClaim:

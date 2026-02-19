@@ -73,11 +73,11 @@ spec:
               mountPath: /data
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: {{ .Values.minio.resources.requests.memory | quote }}
+              cpu: {{ .Values.minio.resources.requests.cpu | quote }}
             limits:
-              memory: "1Gi"
-              cpu: "1000m"
+              memory: {{ .Values.minio.resources.limits.memory | quote }}
+              cpu: {{ .Values.minio.resources.limits.cpu | quote }}
       volumes:
         - name: minio-storage
           persistentVolumeClaim:

@@ -5,6 +5,14 @@ image:
 
 replicas: 3
 
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
 ingress:
   host: ""
   annotations: {}
@@ -12,18 +20,47 @@ ingress:
 postgres:
   image: ghcr.io/tmm-demo-apps/postgres:14-alpine
   storage: 10Gi
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
 
 redis:
   image: ghcr.io/tmm-demo-apps/redis:7-alpine
   storage: 5Gi
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
 
 elasticsearch:
+  enabled: true
   image: ghcr.io/tmm-demo-apps/elasticsearch:8.11.0
   storage: 10Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
 
 minio:
   image: ghcr.io/tmm-demo-apps/minio:latest
   storage: 20Gi
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
 
 secrets:
   create: true

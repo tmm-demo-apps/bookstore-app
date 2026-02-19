@@ -73,9 +73,18 @@ helm install demo ./helm/demo-suite \
 helm install demo ./helm/demo-suite \
   --set global.domain=<your-domain> \
   --set ingress-nginx.enabled=true
+
+# Small cluster (1-2 worker nodes)? Use the lightweight profile:
+helm install demo ./helm/demo-suite \
+  -f ./helm/demo-suite/values-small.yaml \
+  --set global.domain=<your-domain> \
+  --set global.storageClassName=<your-storage-class> \
+  --set ingress-nginx.enabled=true
 ```
 
 > **Ingress Controller**: Most managed K8s clusters and VCF/TKG environments already have an ingress controller. Only add `--set ingress-nginx.enabled=true` if `kubectl get ingressclass` returns nothing. The chart will deploy the official NGINX ingress controller alongside the applications.
+
+> **Small Clusters**: The `values-small.yaml` profile reduces all replicas to 1, lowers CPU/memory requests (~550m total CPU vs ~1900m default), and disables Elasticsearch (search falls back to SQL). Use this for clusters with 1-2 worker nodes.
 
 ### What happens
 
