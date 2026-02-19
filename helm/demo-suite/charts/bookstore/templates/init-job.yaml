@@ -28,6 +28,7 @@ spec:
       initContainers:
         - name: wait-for-postgres
           image: {{ .Values.postgres.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - sh
             - -c
@@ -58,6 +59,7 @@ spec:
               drop: ["ALL"]
         - name: run-migrations
           image: {{ .Values.postgres.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - sh
             - -c
@@ -91,6 +93,7 @@ spec:
               drop: ["ALL"]
         - name: wait-for-minio
           image: {{ .Values.postgres.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - sh
             - -c
