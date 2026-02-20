@@ -1,4 +1,4 @@
-# Bookstore App - E-commerce Platform for VCF 9.0/9.1 Demonstrations
+# Bookstore App - E-commerce Platform for VCF 9 Demonstrations
 
 [![CI](https://github.com/tmm-demo-apps/bookstore-app/workflows/CI/badge.svg)](https://github.com/tmm-demo-apps/bookstore-app/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev/)
@@ -7,9 +7,9 @@
 [![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.11-005571?logo=elasticsearch)](https://www.elastic.co/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-ready e-commerce platform built to demonstrate **VMware Cloud Foundation (VCF) 9.0/9.1** capabilities. Features enterprise-grade infrastructure including Elasticsearch search, Redis caching, MinIO object storage, and real-world content from Project Gutenberg.
+A production-ready e-commerce platform built to demonstrate **VMware Cloud Foundation (VCF) 9.0** capabilities. Features enterprise-grade infrastructure including Elasticsearch search, Redis caching, MinIO object storage, and real-world content from Project Gutenberg.
 
-**🎯 Purpose**: Showcase VCF 9.0/9.1 Supervisor Services, VKS (vSphere Kubernetes Service), VKS Add-ons, dual-network support, and CNCF graduated projects through a realistic e-commerce application.
+**🎯 Purpose**: Showcase VCF 9.0 Supervisor Services, VKS (vSphere Kubernetes Service), VKS Add-ons, dual-network support, and CNCF graduated projects through a realistic e-commerce application.
 
 ## Multi-App Demo Suite
 
@@ -380,11 +380,6 @@ bookstore-app/
 - **VKS (vSphere Kubernetes Service)**: Native Kubernetes on VCF
 - **Multi-App Architecture**: Microservices with shared services (MinIO, Redis)
 
-### VCF 9.1 Demos (Coming Soon)
-- **Dual-Network Support**: Separate management and workload networks
-- **Supervisor Contour Service**: Centralized ingress management
-- **VCF Private AI**: GPU-accelerated LLM inference for chatbot
-- **See**: [docs/DUAL-NETWORK-VKS-DEMO.md](docs/DUAL-NETWORK-VKS-DEMO.md)
 
 ## 📚 Documentation
 
@@ -457,12 +452,7 @@ MIT License - See LICENSE file for details
 ## 🙏 Acknowledgments
 
 - **Project Gutenberg** - Public domain book content and covers
-- **Pico CSS** - Minimalist CSS framework
-- **HTMX** - Modern dynamic UI without heavy JavaScript
-- **VMware** - VCF 9.0/9.1 platform and documentation
 
 ---
-
-**Built with ❤️ to demonstrate VMware Cloud Foundation 9.0/9.1 capabilities**
 
 **Last Updated**: February 19, 2026
