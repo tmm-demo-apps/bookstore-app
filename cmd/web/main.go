@@ -171,6 +171,7 @@ func main() {
 	h := &handlers.Handlers{
 		Repo:              repo,
 		Store:             store,
+		RedisClient:       redisClient,
 		ReaderBrowserURL:  readerBrowserURL,
 		ChatbotBrowserURL: chatbotBrowserURL,
 	}
@@ -233,6 +234,8 @@ func main() {
 	}
 
 	// API routes for service-to-service communication (Reader app, Chatbot app)
+	mux.HandleFunc("/api/auth/token", h.GenerateAuthToken)
+	mux.HandleFunc("/api/auth/verify-token", h.VerifyAuthToken)
 	mux.HandleFunc("/api/auth", h.APIAuth)
 	mux.HandleFunc("/api/purchases/", func(w http.ResponseWriter, r *http.Request) {
 		// Route to appropriate handler based on path segments

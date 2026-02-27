@@ -179,8 +179,14 @@
         display: none;
     }
     
-    .category-sidebar.collapsed .collapse-btn {
-        transform: rotate(180deg);
+    .category-sidebar.collapsed .collapse-btn .chevron-collapse {
+        display: none;
+    }
+    .category-sidebar.collapsed .collapse-btn .chevron-expand {
+        display: inline-block;
+    }
+    .collapse-btn .chevron-expand {
+        display: none;
     }
     
     .category-list {
@@ -737,7 +743,8 @@
         <div class="category-header">
             <h3>Categories</h3>
             <button class="collapse-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
-                ◀
+                <svg class="icon chevron-collapse" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8.354 1.646a.5.5 0 0 1 0 .708L2.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/><path fill-rule="evenodd" d="M12.354 1.646a.5.5 0 0 1 0 .708L6.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>
+                <svg class="icon chevron-expand" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L9.293 8 3.646 2.354a.5.5 0 0 1 0-.708"/><path fill-rule="evenodd" d="M7.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L13.293 8 7.646 2.354a.5.5 0 0 1 0-.708"/></svg>
             </button>
         </div>
         <div class="category-content">

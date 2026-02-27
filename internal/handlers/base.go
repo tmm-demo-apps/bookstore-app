@@ -5,11 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
+	"github.com/redis/go-redis/v9"
 )
 
 type Handlers struct {
 	Repo              repository.Repository
 	Store             sessions.Store
+	RedisClient       *redis.Client
 	ReaderBrowserURL  string
 	ChatbotBrowserURL string
 }

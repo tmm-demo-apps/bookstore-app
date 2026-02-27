@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // APIHandlers handles JSON API endpoints for service-to-service communication
@@ -240,6 +245,87 @@ func (h *Handlers) APISearchProducts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(products); err != nil {
 		log.Printf("Error encoding search response: %v", err)
+	}
+}
+
+// GenerateAuthToken creates a one-time auth token for cross-app SSO.
+// GET /api/auth/token?redirect=library
+// Requires the user to be logged in. Generates a short-lived token stored in
+// Redis, then redirects to the Reader app with that token so the user doesn't
+// have to log in again.
+func (h *Handlers) GenerateAuthToken(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.GetUserID(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if h.RedisClient == nil {
+		// No Redis -- fall back to opening reader without token
+		http.Redirect(w, r, h.ReaderBrowserURL+"/library", http.StatusSeeOther)
+		return
+	}
+
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		log.Printf("Failed to generate auth token: %v", err)
+		http.Redirect(w, r, h.ReaderBrowserURL+"/library", http.StatusSeeOther)
+		return
+	}
+	token := hex.EncodeToString(tokenBytes)
+
+	ctx := context.Background()
+	key := fmt.Sprintf("auth_token:%s", token)
+	if err := h.RedisClient.Set(ctx, key, userID, 30*time.Second).Err(); err != nil {
+		log.Printf("Failed to store auth token: %v", err)
+		http.Redirect(w, r, h.ReaderBrowserURL+"/library", http.StatusSeeOther)
+		return
+	}
+
+	redirectURL := fmt.Sprintf("%s/login?token=%s", h.ReaderBrowserURL, token)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
+
+// VerifyAuthToken validates a one-time token and returns the user ID.
+// POST /api/auth/verify-token  {"token": "..."}
+// Consumes the token (single use) and returns the associated user ID.
+func (h *Handlers) VerifyAuthToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Token == "" {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if h.RedisClient == nil {
+		http.Error(w, "Token auth not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx := context.Background()
+	key := fmt.Sprintf("auth_token:%s", req.Token)
+
+	userIDStr, err := h.RedisClient.GetDel(ctx, key).Result()
+	if err != nil {
+		http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid token data", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]int{"user_id": userID}); err != nil {
+		log.Printf("Error encoding token verification response: %v", err)
 	}
 }
 
