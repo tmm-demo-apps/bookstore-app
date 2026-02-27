@@ -19,6 +19,19 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <style>
+        /* Cross-platform icon system (replaces Unicode emojis for consistency) */
+        .icon {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            vertical-align: -0.125em;
+            fill: currentColor;
+        }
+        .icon-lg { width: 1.25em; height: 1.25em; }
+        .icon-xl { width: 1.5em; height: 1.5em; }
+        .icon-2x { width: 2em; height: 2em; }
+        .icon-3x { width: 3em; height: 3em; }
+        .icon-8x { width: 8em; height: 8em; }
         /* Sticky Header Styles */
         body {
             padding-top: 80px; /* Reserve space for fixed header */
@@ -206,7 +219,7 @@
                             style="padding: 0.4rem 0.6rem; margin: 0; border-radius: var(--border-radius); cursor: pointer;"
                             aria-label="Toggle dark/light mode"
                             onclick="toggleTheme()">
-                        <span id="theme-icon">🌙</span>
+                        <span id="theme-icon"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg></span>
                     </button>
                 </li>
                 
@@ -233,7 +246,7 @@
                         <details role="list" dir="rtl">
                             <summary aria-haspopup="listbox" role="link" class="secondary">Account</summary>
                             <ul role="listbox">
-                                <li><a href="{{.ReaderBrowserURL}}/library">📚 My Library</a></li>
+                                <li><a href="{{.ReaderBrowserURL}}/library"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="none" stroke="currentColor" stroke-width="2"/></svg> My Library</a></li>
                                 <li><a href="/profile">My Profile</a></li>
                                 <li><a href="/orders">My Orders</a></li>
                                 <li><a href="/logout">Logout</a></li>
@@ -248,11 +261,11 @@
                 <!-- Mobile Menu -->
                 <li class="mobile-only">
                     <details role="list" dir="rtl">
-                        <summary aria-haspopup="listbox" role="link" class="secondary">☰</summary>
+                        <summary aria-haspopup="listbox" role="link" class="secondary"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 12h18M3 6h18M3 18h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></summary>
                         <ul role="listbox">
                              <li><a href="/">Home</a></li>
                              {{if .IsAuthenticated}}
-                                <li><a href="{{.ReaderBrowserURL}}/library">📚 My Library</a></li>
+                                <li><a href="{{.ReaderBrowserURL}}/library"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="none" stroke="currentColor" stroke-width="2"/></svg> My Library</a></li>
                                 <li><a href="/profile">My Profile</a></li>
                                 <li><a href="/orders">My Orders</a></li>
                                 <li><a href="/logout">Logout</a></li>
@@ -287,7 +300,11 @@
         function updateThemeIcon(theme) {
             const icon = document.getElementById('theme-icon');
             if (icon) {
-                icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+                if (theme === 'dark') {
+                    icon.innerHTML = '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
+                } else {
+                    icon.innerHTML = '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+                }
             }
         }
         
@@ -578,13 +595,13 @@
     
     <div class="chat-widget">
         <button class="chat-toggle" onclick="toggleChat()" title="Chat with us">
-            💬
+            <svg class="icon-xl" viewBox="0 0 24 24" fill="white" style="width:28px;height:28px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
         <div class="chat-window" id="chat-window">
             <div class="chat-header">
-                <span>🤖 Bookstore Assistant</span>
+                <span><svg class="icon" viewBox="0 0 24 24" fill="white" style="width:18px;height:18px;vertical-align:-3px;margin-right:4px;"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7v1a2 2 0 0 1-2 2h-1v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-1H5a2 2 0 0 1-2-2v-1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM9 13a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg> Bookstore Assistant</span>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button onclick="clearChat()" title="Clear chat" style="font-size: 16px;">🗑️</button>
+                    <button onclick="clearChat()" title="Clear chat" style="font-size: 16px;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:16px;height:16px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     <button onclick="toggleChat()" title="Close">✕</button>
                 </div>
             </div>
@@ -639,7 +656,7 @@
             
             // Show typing indicator
             const typingId = 'typing-' + Date.now();
-            messages.innerHTML += `<div class="chat-message bot typing" id="${typingId}">🤔 Thinking... (may take up to 2 min on CPU)</div>`;
+            messages.innerHTML += `<div class="chat-message bot typing" id="${typingId}"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;vertical-align:-2px;opacity:0.7;"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 9h.01M15 9h.01M8 14s1.5 2 4 2 4-2 4-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Thinking... (may take up to 2 min on CPU)</div>`;
             messages.scrollTop = messages.scrollHeight;
             status.textContent = 'AI is thinking (CPU mode - please wait)...';
             

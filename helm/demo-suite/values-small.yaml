@@ -6,16 +6,19 @@
 #     --set global.domain=<your-domain> \
 #     --set global.storageClassName=<your-storage-class>
 #
-# Total CPU requests: ~550m (vs ~1900m default)
-# Total memory requests: ~768Mi (vs ~2.3Gi default)
+# Sized for a 2-vCPU / 8GB worker node with ~830m CPU and ~4.2Gi memory
+# available after system pods (VKS agent, antrea, csi, etc.).
+#
+# Total CPU requests:  ~600m  (leaves ~230m + ingress-nginx headroom)
+# Total memory requests: ~1408Mi (leaves ~2.8Gi headroom)
 # Elasticsearch disabled (search falls back to SQL)
 
 bookstore:
   replicas: 1
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "50m"
+      memory: "256Mi"
+      cpu: "100m"
     limits:
       memory: "512Mi"
       cpu: "500m"
@@ -23,16 +26,16 @@ bookstore:
     storage: 5Gi
     resources:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: "256Mi"
+        cpu: "150m"
       limits:
-        memory: "512Mi"
+        memory: "768Mi"
         cpu: "500m"
   redis:
     storage: 2Gi
     resources:
       requests:
-        memory: "64Mi"
+        memory: "128Mi"
         cpu: "50m"
       limits:
         memory: "256Mi"
@@ -43,7 +46,7 @@ bookstore:
     storage: 10Gi
     resources:
       requests:
-        memory: "128Mi"
+        memory: "256Mi"
         cpu: "100m"
       limits:
         memory: "512Mi"
@@ -55,8 +58,8 @@ reader:
   replicas: 1
   resources:
     requests:
-      memory: "128Mi"
-      cpu: "50m"
+      memory: "256Mi"
+      cpu: "100m"
     limits:
       memory: "512Mi"
       cpu: "500m"
@@ -64,11 +67,11 @@ reader:
     storage: 2Gi
     resources:
       requests:
-        memory: "128Mi"
-        cpu: "50m"
-      limits:
         memory: "256Mi"
-        cpu: "250m"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
 
 chatbot:
   replicas: 1

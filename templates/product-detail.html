@@ -498,9 +498,9 @@
         <img src="{{.Product.ImageURL}}" alt="{{.Product.Name}}" class="product-detail-image"
              loading="lazy"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="product-detail-image-placeholder" style="display:none;">📦</div>
+        <div class="product-detail-image-placeholder" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:8rem;height:8rem;opacity:0.3;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
         {{else}}
-        <div class="product-detail-image-placeholder">📦</div>
+        <div class="product-detail-image-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:8rem;height:8rem;opacity:0.3;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
         {{end}}
     </div>
     
