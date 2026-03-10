@@ -6,19 +6,15 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"flag"
 	"fmt"
 	"image"
 	"image/color"
 	"image/png"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/minio/minio-go/v7"
@@ -31,6 +27,7 @@ import (
 
 const (
 	bucketName = "product-images"
+	coversDir  = "/app/covers"
 )
 
 func main() {
@@ -171,25 +168,39 @@ func main() {
 		var imageData []byte
 		contentType := "image/png"
 
-		// Try to download real cover from Project Gutenberg if it's a book
-		if sku.Valid && strings.HasPrefix(sku.String, "BOOK-") {
-			gutenbergID := strings.TrimPrefix(sku.String, "BOOK-")
-			// Pattern: https://www.gutenberg.org/cache/epub/{ID}/pg{ID}.cover.medium.jpg
-			gutenbergURL := fmt.Sprintf("https://www.gutenberg.org/cache/epub/%s/pg%s.cover.medium.jpg", gutenbergID, gutenbergID)
-
-			log.Printf("Attempting to download real cover for %s (ID: %s)...", name, gutenbergID)
-			data, err := downloadImage(gutenbergURL)
-			if err == nil {
-				imageData = data
-				contentType = "image/jpeg"
-				imageName = fmt.Sprintf("product-%d.jpg", id)
-				log.Printf("Successfully downloaded real cover for %s", name)
-			} else {
-				log.Printf("Could not download real cover for %s, falling back to generated image: %v", name, err)
-			}
+		// Try to load bundled cover from /app/covers/ (baked into Docker image)
+		localCover := fmt.Sprintf("%s/product-%d.jpg", coversDir, id)
+		if data, err := os.ReadFile(localCover); err == nil {
+			imageData = data
+			contentType = "image/jpeg"
+			imageName = fmt.Sprintf("product-%d.jpg", id)
+			log.Printf("Loaded bundled cover for %s", name)
 		}
 
-		// Fallback to generated image if needed
+		// GUTENBERG DOWNLOAD (disabled)
+		// Covers are now bundled in the Docker image at /app/covers/ so we don't
+		// need to download from gutenberg.org at runtime. This avoids:
+		//   - IP bans from Gutenberg's automated download detection
+		//   - Failures in firewalled environments
+		//   - Slow/unreliable network dependencies during deployment
+		//
+		// To re-enable for new books beyond the bundled set, uncomment below:
+		//
+		// if imageData == nil && sku.Valid && strings.HasPrefix(sku.String, "BOOK-") {
+		// 	gutenbergID := strings.TrimPrefix(sku.String, "BOOK-")
+		// 	gutenbergURL := fmt.Sprintf("https://www.gutenberg.org/cache/epub/%s/pg%s.cover.medium.jpg", gutenbergID, gutenbergID)
+		// 	log.Printf("Attempting to download cover for %s (ID: %s)...", name, gutenbergID)
+		// 	data, err := downloadImage(gutenbergURL)
+		// 	if err == nil {
+		// 		imageData = data
+		// 		contentType = "image/jpeg"
+		// 		imageName = fmt.Sprintf("product-%d.jpg", id)
+		// 	} else {
+		// 		log.Printf("Could not download cover for %s: %v", name, err)
+		// 	}
+		// }
+
+		// Fallback to generated placeholder if no bundled cover exists
 		if imageData == nil {
 			authorStr := ""
 			if author.Valid {
@@ -225,29 +236,28 @@ func main() {
 	log.Printf("Successfully seeded %d product images (%d skipped, already exist)", count, skipped)
 }
 
-func downloadImage(url string) ([]byte, error) {
-	// Skip TLS verification for Gutenberg downloads - some corporate networks
-	// have proxies/firewalls that do TLS inspection with their own certificates.
-	// This is safe for downloading public book cover images.
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{
-		Timeout:   15 * time.Second,
-		Transport: tr,
-	}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	return io.ReadAll(resp.Body)
-}
+// downloadImage downloads an image from a URL.
+// Currently unused -- covers are bundled in the Docker image.
+// Uncomment the Gutenberg download block in main() to re-enable.
+//
+// func downloadImage(url string) ([]byte, error) {
+// 	tr := &http.Transport{
+// 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+// 	}
+// 	client := &http.Client{
+// 		Timeout:   15 * time.Second,
+// 		Transport: tr,
+// 	}
+// 	resp, err := client.Get(url)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer resp.Body.Close()
+// 	if resp.StatusCode != http.StatusOK {
+// 		return nil, fmt.Errorf("bad status: %s", resp.Status)
+// 	}
+// 	return io.ReadAll(resp.Body)
+// }
 
 // generateProductImage creates a simple colored image with product info
 func generateProductImage(id int, name string, author string) []byte {

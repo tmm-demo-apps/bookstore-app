@@ -65,7 +65,7 @@ services:
       "
     restart: "no"
 
-  # Seed images from Gutenberg (runs after db-init)
+  # Seed product images into MinIO (runs after db-init)
   seed-images:
     build: .
     environment:
