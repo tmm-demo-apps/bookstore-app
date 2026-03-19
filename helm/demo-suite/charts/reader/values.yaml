@@ -29,6 +29,13 @@ postgres:
       memory: "512Mi"
       cpu: "500m"
 
+# Pre-seed EPUBs into MinIO via init container.
+# Enable for restricted networks where the reader can't download from mirrors at runtime.
+# When disabled, the reader downloads EPUBs on-demand from the Gutenberg mirror.
+epubSeed:
+  enabled: false
+  image: ghcr.io/tmm-demo-apps/reader-epubs:v1
+
 secrets:
   create: true
   postgresPassword: reader-secret-pw

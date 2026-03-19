@@ -323,7 +323,7 @@ fi
 
 # Test 23: MinIO images accessible
 log_test "Checking MinIO images..."
-IMAGE_STATUS=$(curl -sI http://localhost:8080/images/product-1.png 2>/dev/null | grep "HTTP" | grep -c "200")
+IMAGE_STATUS=$(curl -sI http://localhost:8080/images/product-1.jpg 2>/dev/null | grep "HTTP" | grep -c "200")
 if [ "$IMAGE_STATUS" -gt 0 ]; then
     log_pass "MinIO images are accessible"
 else
@@ -332,7 +332,7 @@ fi
 
 # Test 24: Image serving with cache headers
 log_test "Checking image serving with cache headers..."
-CACHE_HEADER=$(curl -sI http://localhost:8080/images/product-1.png 2>/dev/null | grep -i "cache-control")
+CACHE_HEADER=$(curl -sI http://localhost:8080/images/product-1.jpg 2>/dev/null | grep -i "cache-control")
 if echo "$CACHE_HEADER" | grep -q "max-age=31536000"; then
     log_pass "Images served with proper cache headers"
 else
@@ -341,9 +341,9 @@ fi
 
 # Test 25: Image 304 Not Modified response
 log_test "Checking image caching (304 response)..."
-ETAG=$(curl -sI http://localhost:8080/images/product-1.png 2>/dev/null | grep -i "etag" | cut -d' ' -f2 | tr -d '\r')
+ETAG=$(curl -sI http://localhost:8080/images/product-1.jpg 2>/dev/null | grep -i "etag" | cut -d' ' -f2 | tr -d '\r')
 if [ ! -z "$ETAG" ]; then
-    STATUS=$(curl -sI -H "If-None-Match: $ETAG" http://localhost:8080/images/product-1.png 2>/dev/null | grep "HTTP" | grep -o "304")
+    STATUS=$(curl -sI -H "If-None-Match: $ETAG" http://localhost:8080/images/product-1.jpg 2>/dev/null | grep "HTTP" | grep -o "304")
     if [ "$STATUS" = "304" ]; then
         log_pass "Image caching working (304 Not Modified)"
     else

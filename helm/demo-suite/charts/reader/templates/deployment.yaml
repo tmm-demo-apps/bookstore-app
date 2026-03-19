@@ -24,6 +24,50 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       {{- include "reader.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.epubSeed.enabled }}
+      initContainers:
+      - name: wait-for-minio
+        image: ghcr.io/tmm-demo-apps/redis:7-alpine
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+          - sh
+          - -c
+          - |
+            echo "Waiting for MinIO..."
+            until wget -q --spider http://${MINIO_ENDPOINT}/minio/health/live 2>/dev/null; do
+              echo "MinIO is unavailable - sleeping"
+              sleep 2
+            done
+            echo "MinIO is up!"
+        envFrom:
+        - configMapRef:
+            name: reader-config
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+      - name: seed-epubs
+        image: {{ .Values.epubSeed.image }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        envFrom:
+        - configMapRef:
+            name: reader-config
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: minio-access-key
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reader-secrets
+              key: minio-secret-key
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+      {{- end }}
       containers:
       - name: reader
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
