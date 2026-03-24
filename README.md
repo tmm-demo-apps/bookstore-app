@@ -80,11 +80,19 @@ helm install demo ./helm/demo-suite \
   --set global.domain=<your-domain> \
   --set global.storageClassName=<your-storage-class> \
   --set ingress-nginx.enabled=true
+
+# Restricted network (pods can't reach external mirrors)?
+# Pre-seed EPUBs into MinIO via init container:
+helm install demo ./helm/demo-suite \
+  --set global.domain=<your-domain> \
+  --set reader.epubSeed.enabled=true
 ```
 
 > **Ingress Controller**: Most managed K8s clusters and VCF/TKG environments already have an ingress controller. Only add `--set ingress-nginx.enabled=true` if `kubectl get ingressclass` returns nothing. The chart will deploy the official NGINX ingress controller alongside the applications.
 
 > **Small Clusters**: The `values-small.yaml` profile reduces all replicas to 1, lowers CPU/memory requests (~550m total CPU vs ~1900m default), and disables Elasticsearch (search falls back to SQL). Use this for clusters with 1-2 worker nodes.
+
+> **EPUB Pre-Seeding**: By default, the Reader app downloads EPUBs on-demand from a Gutenberg mirror. If your cluster's pods cannot reach external hosts (corporate firewall, no egress), enable `reader.epubSeed.enabled=true` to pre-load all 150 EPUBs into MinIO via an init container. The init container image (`ghcr.io/tmm-demo-apps/reader-epubs:v1`) is public on GHCR.
 
 ### What happens
 
@@ -93,7 +101,7 @@ Helm creates three namespaces (`bookstore`, `reader`, `chatbot`) and deploys:
 | Component | What it creates |
 |-----------|----------------|
 | **bookstore** | App (3 replicas), PostgreSQL, Redis, Elasticsearch, MinIO, Ingress, HPA, init-job (migrations + seed data) |
-| **reader** | App (2 replicas), PostgreSQL, Ingress |
+| **reader** | App (2 replicas), PostgreSQL, Ingress, optional EPUB seed init container |
 | **chatbot** | App (1 replica), Ollama (disabled by default), Ingress |
 
 The `global.domain` value automatically configures:
@@ -140,7 +148,7 @@ See `helm/demo-suite/values-harbor.yaml` for the full Harbor override configurat
 
 | Registry | Images | Auth Required | Rate Limits |
 |----------|--------|--------------|-------------|
-| **GHCR** (default) | All app + infra images | No | None |
+| **GHCR** (default) | All app + infra images (including `reader-epubs:v1` for EPUB seeding) | No | None |
 | **Harbor** (override) | All images via `values-harbor.yaml` | Yes | None |
 
 ## ✨ Features
@@ -319,6 +327,7 @@ bookstore-app/
 │   └── demo-suite/               # Umbrella chart (bookstore + reader + chatbot)
 │       ├── Chart.yaml            # Chart metadata and dependencies
 │       ├── values.yaml           # Defaults: all GHCR images, zero config
+│       ├── values-small.yaml     # Small cluster profile (1-2 nodes)
 │       ├── values-harbor.yaml    # Override: Harbor images + vSAN storage
 │       └── charts/               # Subcharts (bookstore, reader, chatbot)
 ├── kubernetes/           # Kustomize manifests (ArgoCD/GitOps)
@@ -455,4 +464,4 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Last Updated**: February 19, 2026
+**Last Updated**: March 20, 2026
