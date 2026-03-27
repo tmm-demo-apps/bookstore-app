@@ -15,7 +15,9 @@ resources:
   - minio.yaml
   - migrations-configmap.yaml
   - app.yaml
-  - ingress.yaml
+  - gateway.yaml
+  - httproute.yaml
+  - tls.yaml
   - hpa.yaml
   # Note: init-db-job.yaml is a one-time job, apply separately after infrastructure is ready
   # Note: ingress-nginx.yaml deploys to ingress-nginx namespace, apply separately

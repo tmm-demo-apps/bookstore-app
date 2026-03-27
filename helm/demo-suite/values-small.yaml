@@ -9,9 +9,10 @@
 # Sized for a 2-vCPU / 8GB worker node with ~830m CPU and ~4.2Gi memory
 # available after system pods (VKS agent, antrea, csi, etc.).
 #
-# Total CPU requests:  ~600m  (leaves ~230m + ingress-nginx headroom)
+# Total CPU requests:  ~600m  (leaves ~230m headroom)
 # Total memory requests: ~1408Mi (leaves ~2.8Gi headroom)
 # Elasticsearch disabled (search falls back to SQL)
+# Gateway API enabled by default (same as values.yaml)
 
 bookstore:
   replicas: 1
@@ -76,6 +77,7 @@ reader:
 chatbot:
   replicas: 1
 
+# Legacy fallback -- only used when global.gatewayAPI.enabled is false
 ingress-nginx:
   controller:
     replicaCount: 1

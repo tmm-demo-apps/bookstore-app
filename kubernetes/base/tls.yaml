@@ -1,0 +1,21 @@
+# TLS resources for the Bookstore application
+# Requires: cert-manager installed on the cluster
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: demo-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-tls
+spec:
+  secretName: demo-tls
+  issuerRef:
+    name: demo-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - PLACEHOLDER_HOST  # Patched by overlays

@@ -8,4 +8,5 @@ resources:
 
 patches:
   - path: configmap-patch.yaml
-  - path: ingress-patch.yaml
+  - path: httproute-patch.yaml
+  - path: tls-patch.yaml

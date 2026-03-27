@@ -15,6 +15,21 @@ global:
   # Image pull secrets (empty = public images, no auth needed)
   imagePullSecrets: []
 
+  # --- Gateway API (default) ---
+  # Requires Istio + Gateway API CRDs installed on the cluster.
+  # See scripts/install-prerequisites.sh or use VKS AddonInstall.
+  # Set to false to fall back to legacy Ingress + ingress-nginx.
+  gatewayAPI:
+    enabled: true
+    className: istio
+
+  # --- TLS via cert-manager ---
+  # Requires cert-manager installed on the cluster.
+  # Creates a self-signed ClusterIssuer and wildcard Certificate.
+  tls:
+    enabled: true
+    issuer: demo-issuer
+
 # --- Bookstore (main application) ---
 bookstore:
   image:
@@ -146,9 +161,9 @@ chatbot:
     create: true
     llmApiKey: ""
 
-# --- Ingress Controller (optional) ---
+# --- Ingress Controller (legacy fallback) ---
+# Only needed when global.gatewayAPI.enabled is false.
 # Enable if your cluster does not already have an ingress controller installed.
-# Most managed K8s clusters and VCF/TKG environments already have one.
 ingress-nginx:
   enabled: false
   controller:

@@ -1,0 +1,34 @@
+{{- if .Values.global.gatewayAPI.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: demo-gateway
+  namespace: bookstore
+  labels:
+    {{- include "bookstore.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.global.tls.enabled }}
+    cert-manager.io/cluster-issuer: {{ .Values.global.tls.issuer }}
+    {{- end }}
+spec:
+  gatewayClassName: {{ .Values.global.gatewayAPI.className }}
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    {{- if .Values.global.tls.enabled }}
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: demo-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    {{- end }}
+{{- end }}

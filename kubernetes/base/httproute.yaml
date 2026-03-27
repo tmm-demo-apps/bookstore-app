@@ -1,0 +1,20 @@
+# HTTPRoute for the Bookstore application
+# The hostname is set by environment overlays (prod, dev)
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: bookstore-route
+spec:
+  parentRefs:
+    - name: demo-gateway
+  hostnames:
+    - PLACEHOLDER_HOST  # Patched by overlays
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: app-service
+          port: 80

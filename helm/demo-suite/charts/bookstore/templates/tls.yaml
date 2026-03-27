@@ -1,0 +1,27 @@
+{{- if and .Values.global.gatewayAPI.enabled .Values.global.tls.enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.global.tls.issuer }}
+  labels:
+    {{- include "bookstore.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: demo-tls
+  namespace: bookstore
+  labels:
+    {{- include "bookstore.labels" . | nindent 4 }}
+spec:
+  secretName: demo-tls
+  issuerRef:
+    name: {{ .Values.global.tls.issuer }}
+    kind: ClusterIssuer
+  dnsNames:
+    - {{ include "bookstore.ingressHost" . | quote }}
+    - {{ printf "reader.%s" .Values.global.domain | quote }}
+    - {{ printf "chatbot.%s" .Values.global.domain | quote }}
+{{- end }}

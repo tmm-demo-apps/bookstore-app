@@ -31,11 +31,14 @@ Deploy the entire demo suite on **any Kubernetes cluster** with a single Helm co
 
 1. **Kubernetes cluster** with `kubectl` access from a jumpbox/workstation
 2. **Helm 3** installed on the jumpbox (`brew install helm` on macOS, or [install guide](https://helm.sh/docs/intro/install/))
-3. **Ingress controller** -- the chart can install one for you (see below), or use your cluster's existing one
-4. **DNS or /etc/hosts** pointing your chosen domain to the ingress IP:
-   - `bookstore.<your-domain>` -> ingress IP
-   - `reader.<your-domain>` -> ingress IP (if deploying reader)
-   - `chatbot.<your-domain>` -> ingress IP (if deploying chatbot)
+3. **Gateway API prerequisites** (Istio + cert-manager + Gateway API CRDs):
+   - **VKS clusters**: Install as VKS standard packages via `AddonInstall` resources on the Supervisor
+   - **Other clusters**: Run `./scripts/install-prerequisites.sh` (installs via Helm)
+   - **Legacy fallback**: Set `global.gatewayAPI.enabled=false` and use ingress-nginx instead
+4. **DNS or /etc/hosts** pointing your chosen domain to the gateway/ingress IP:
+   - `bookstore.<your-domain>` -> gateway IP
+   - `reader.<your-domain>` -> gateway IP (if deploying reader)
+   - `chatbot.<your-domain>` -> gateway IP (if deploying chatbot)
 
 ### Step-by-Step
 
@@ -47,9 +50,12 @@ cd bookstore-app
 # 2. Build Helm dependencies
 helm dependency update ./helm/demo-suite
 
-# 3. Deploy (pick one)
+# 3. Install prerequisites (one-time, non-VKS clusters only)
+./scripts/install-prerequisites.sh
 
-# Full suite (bookstore + reader + chatbot):
+# 4. Deploy (pick one)
+
+# Full suite (bookstore + reader + chatbot) with Gateway API + TLS:
 helm install demo ./helm/demo-suite \
   --set global.domain=<your-domain>
 
@@ -69,17 +75,18 @@ helm install demo ./helm/demo-suite \
   --set global.domain=<your-domain> \
   --set global.storageClassName=my-storage-policy
 
-# No ingress controller in your cluster? Include one automatically:
+# Legacy mode (ingress-nginx instead of Gateway API):
 helm install demo ./helm/demo-suite \
   --set global.domain=<your-domain> \
+  --set global.gatewayAPI.enabled=false \
+  --set global.tls.enabled=false \
   --set ingress-nginx.enabled=true
 
 # Small cluster (1-2 worker nodes)? Use the lightweight profile:
 helm install demo ./helm/demo-suite \
   -f ./helm/demo-suite/values-small.yaml \
   --set global.domain=<your-domain> \
-  --set global.storageClassName=<your-storage-class> \
-  --set ingress-nginx.enabled=true
+  --set global.storageClassName=<your-storage-class>
 
 # Restricted network (pods can't reach external mirrors)?
 # Pre-seed EPUBs into MinIO via init container:
@@ -88,7 +95,7 @@ helm install demo ./helm/demo-suite \
   --set reader.epubSeed.enabled=true
 ```
 
-> **Ingress Controller**: Most managed K8s clusters and VCF/TKG environments already have an ingress controller. Only add `--set ingress-nginx.enabled=true` if `kubectl get ingressclass` returns nothing. The chart will deploy the official NGINX ingress controller alongside the applications.
+> **Gateway API (default)**: The chart uses Kubernetes Gateway API with Istio and cert-manager for TLS. Prerequisites must be installed before deploying -- use VKS AddonInstall for VKS clusters or `scripts/install-prerequisites.sh` for others. Set `global.gatewayAPI.enabled=false` to fall back to legacy Ingress + ingress-nginx.
 
 > **Small Clusters**: The `values-small.yaml` profile reduces all replicas to 1, lowers CPU/memory requests (~550m total CPU vs ~1900m default), and disables Elasticsearch (search falls back to SQL). Use this for clusters with 1-2 worker nodes.
 
@@ -100,12 +107,13 @@ Helm creates three namespaces (`bookstore`, `reader`, `chatbot`) and deploys:
 
 | Component | What it creates |
 |-----------|----------------|
-| **bookstore** | App (3 replicas), PostgreSQL, Redis, Elasticsearch, MinIO, Ingress, HPA, init-job (migrations + seed data) |
-| **reader** | App (2 replicas), PostgreSQL, Ingress, optional EPUB seed init container |
-| **chatbot** | App (1 replica), Ollama (disabled by default), Ingress |
+| **bookstore** | App (3 replicas), PostgreSQL, Redis, Elasticsearch, MinIO, Gateway, HTTPRoute, TLS Certificate, HPA, init-job (migrations + seed data) |
+| **reader** | App (2 replicas), PostgreSQL, HTTPRoute, optional EPUB seed init container |
+| **chatbot** | App (1 replica), Ollama (disabled by default), HTTPRoute |
 
 The `global.domain` value automatically configures:
-- Ingress hostnames: `bookstore.<your-domain>`, `reader.<your-domain>`, `chatbot.<your-domain>`
+- HTTPRoute hostnames: `bookstore.<your-domain>`, `reader.<your-domain>`, `chatbot.<your-domain>`
+- TLS certificate covering all three hostnames (via cert-manager)
 - Cross-app browser URLs (e.g. "Back to shop" link in reader points to `bookstore.<your-domain>`)
 - Internal service-to-service API calls use Kubernetes DNS (automatic, no config needed)
 
@@ -117,11 +125,14 @@ kubectl get pods -n bookstore
 kubectl get pods -n reader
 kubectl get pods -n chatbot
 
-# Check ingress
-kubectl get ingress -A
+# Check gateway and routes
+kubectl get gateway,httproute -A
+
+# Check TLS certificate
+kubectl get certificate -n bookstore
 
 # Open in browser
-# http://bookstore.<your-domain>
+# https://bookstore.<your-domain>
 ```
 
 ### Upgrade or Uninstall
@@ -170,7 +181,7 @@ See `helm/demo-suite/values-harbor.yaml` for the full Harbor override configurat
 - 📊 **Repository Pattern** - Clean architecture with caching decorators
 - 🧪 **25 Automated Tests** - Comprehensive smoke test suite covering all services
 - 🐳 **Docker Compose** - Complete local development environment
-- ☸️ **Kubernetes Ready** - VKS deployment with NGINX Ingress and HPA
+- ☸️ **Kubernetes Ready** - VKS deployment with Gateway API (Istio), cert-manager TLS, and HPA
 - 🔄 **GitOps with ArgoCD** - Automated deployments from git push
 - 🏗️ **CI/CD Pipeline** - GitHub Actions with self-hosted runner for Harbor access
 - 📦 **Harbor Registry** - Enterprise container registry with vulnerability scanning
@@ -245,9 +256,8 @@ cd bookstore-app
 
 The `deploy-complete.sh` script handles:
 - Harbor login, image build, and push
-- NGINX Ingress Controller installation (if missing)
 - Database migrations and seeding (via init-db-job)
-- All Kubernetes manifests
+- All Kubernetes manifests (Gateway API + HTTPRoute)
 - Dynamic hostname based on namespace (`{namespace}.corp.vmbeans.com`)
 
 **Current Deployments**:
@@ -318,6 +328,7 @@ bookstore-app/
 │   └── 002_seed_books.sql        # 150 books from Project Gutenberg
 ├── scripts/              # Deployment and utility scripts
 │   ├── deploy-complete.sh        # One-command K8s deployment
+│   ├── install-prerequisites.sh  # Install Istio + cert-manager (non-VKS)
 │   ├── local-dev.sh              # Local development helper
 │   ├── mirror-images.sh          # Mirror infra images to GHCR (one-time)
 │   ├── setup-secrets.sh          # Multi-app secret management
@@ -381,6 +392,8 @@ bookstore-app/
 ## 📈 VCF Demo Scenarios
 
 ### VCF 9.0 Demos
+- **Gateway API + Istio**: Modern Kubernetes networking with automatic TLS via cert-manager
+- **VKS Standard Packages**: Istio and cert-manager deployed as VKS add-ons via AddonInstall
 - **CNCF Graduated Projects**: Elasticsearch, Redis with StatefulSet/Deployment
 - **Horizontal Pod Autoscaling**: Scale based on CPU/Memory
 - **Persistent Storage**: PostgreSQL, MinIO, Elasticsearch with vSAN PVCs
@@ -436,7 +449,14 @@ bookstore-app/
 - Configurable domain, storage class, and registry via `values.yaml`
 - `values-harbor.yaml` override for enterprise Harbor environments
 
-### 🎯 Phase 5: Observability & Enhancements (Next)
+### ✅ Phase 5: Gateway API Migration (Complete)
+- Gateway API with Istio replacing Ingress NGINX
+- Automatic TLS via cert-manager (self-signed ClusterIssuer)
+- VKS standard package support (AddonInstall for Istio + cert-manager)
+- Legacy ingress-nginx fallback toggle (`global.gatewayAPI.enabled=false`)
+- Prerequisite install script for non-VKS clusters
+
+### 🎯 Phase 6: Observability & Enhancements (Next)
 - Prometheus & Grafana for metrics
 - VCF Private AI integration for chatbot
 - MinIO as Supervisor Service
@@ -464,4 +484,4 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Last Updated**: March 20, 2026
+**Last Updated**: March 24, 2026

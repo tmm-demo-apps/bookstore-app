@@ -1,0 +1,23 @@
+{{- if and .Values.enabled .Values.global.gatewayAPI.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: reader-route
+  namespace: reader
+  labels:
+    {{- include "reader.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: demo-gateway
+      namespace: bookstore
+  hostnames:
+    - {{ include "reader.ingressHost" . | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: reader-service
+          port: 8081
+{{- end }}
