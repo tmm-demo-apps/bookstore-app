@@ -70,7 +70,11 @@ func (h *Handlers) AddToCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("HX-Trigger", "cart-updated")
+	if r.URL.Query().Get("redirect") == "checkout" {
+		w.Header().Set("HX-Redirect", "/checkout")
+	} else {
+		w.Header().Set("HX-Trigger", "cart-updated")
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

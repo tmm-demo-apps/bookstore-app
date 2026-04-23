@@ -485,6 +485,15 @@
             border-bottom: 1px solid var(--muted-border-color);
         }
     }
+    }
+    
+    form[hx-post^="/cart/add"] button.buy-now-btn:active, .add-to-cart-btn.buy-now-btn:active {
+        background-color: var(--pico-secondary-hover) !important;
+        border-color: var(--pico-secondary-hover) !important;
+        color: var(--pico-secondary-inverse) !important;
+        transform: scale(0.98);
+        transition: all 0.1s;
+    }
 </style>
 
 <div class="product-detail-content">
@@ -546,7 +555,8 @@
         </div>
         
         {{if gt .Product.StockQuantity 0}}
-        <div class="add-to-cart-section">
+        <div class="add-to-cart-section" style="gap: 1rem; flex-wrap: wrap;">
+            <!-- Preserved quantity controls for future use
             <div class="qty-controls-large">
                 <button type="button" onclick="adjustQuantity(-1)" class="qty-btn-large">−</button>
                 <input type="text" value="1" id="quantity-input"
@@ -555,6 +565,13 @@
                        inputmode="numeric" pattern="[0-9]*">
                 <button type="button" onclick="adjustQuantity(1)" class="qty-btn-large">+</button>
             </div>
+            -->
+            
+            <form hx-post="/cart/add?redirect=checkout" hx-swap="none" style="margin-bottom: 0; flex: 1; display: flex;">
+                <input type="hidden" name="product_id" value="{{.Product.ID}}">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit" class="add-to-cart-btn secondary outline buy-now-btn">Buy Now</button>
+            </form>
             
             <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1; display: flex;" onsubmit="setQuantity(event)">
                 <input type="hidden" name="product_id" value="{{.Product.ID}}">

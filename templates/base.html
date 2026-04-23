@@ -32,6 +32,16 @@
         .icon-2x { width: 2em; height: 2em; }
         .icon-3x { width: 3em; height: 3em; }
         .icon-8x { width: 8em; height: 8em; }
+        
+        /* Interactive click feedback */
+        form[hx-post^="/cart/add"] button:active, .add-to-cart-btn:active {
+            background-color: var(--pico-primary-hover) !important;
+            border-color: var(--pico-primary-hover) !important;
+            color: var(--pico-primary-inverse) !important;
+            transform: scale(0.98);
+            transition: all 0.1s;
+        }
+
         /* Sticky Header Styles */
         body {
             padding-top: 80px; /* Reserve space for fixed header */
@@ -164,6 +174,21 @@
             }
         }
     </style>
+    <script>
+        // Remove persistent focus states after mouse clicks on buttons/links
+        document.addEventListener('mouseup', function(e) {
+            setTimeout(() => {
+                const ae = document.activeElement;
+                if (ae && ae !== document.body) {
+                    // Don't blur text inputs, textareas, or selects
+                    const tag = ae.tagName.toLowerCase();
+                    if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+                        ae.blur();
+                    }
+                }
+            }, 0);
+        });
+    </script>
 </head>
 <body>
     <!-- Sticky Header -->
@@ -227,7 +252,7 @@
                 <li>
                     <details role="list" dir="rtl" id="cart-dropdown" 
                              hx-on:toggle="if(this.open) { htmx.trigger('#cart-summary-container', 'refresh') }">
-                        <summary aria-haspopup="listbox" role="link" class="secondary">
+                        <summary aria-haspopup="listbox" role="link" class="secondary" onclick="window.location.href='/cart'">
                             Cart <span id="cart-count" hx-get="/partials/cart-count" hx-trigger="load, cart-updated from:body" hx-headers='{"Cache-Control": "no-cache"}'></span>
                         </summary>
                         <ul role="listbox" id="cart-summary-container" 

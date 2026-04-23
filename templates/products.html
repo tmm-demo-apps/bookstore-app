@@ -688,6 +688,14 @@
             padding: 0.5rem;
         }
     }
+    
+    form[hx-post^="/cart/add"] button.buy-now-btn:active {
+        background-color: var(--pico-secondary-hover) !important;
+        border-color: var(--pico-secondary-hover) !important;
+        color: var(--pico-secondary-inverse) !important;
+        transform: scale(0.98);
+        transition: all 0.1s;
+    }
 </style>
 
 <!-- Breadcrumb Navigation -->
@@ -823,7 +831,8 @@
             {{end}}
             
             {{if gt .StockQuantity 0}}
-            <div class="product-actions">
+            <div class="product-actions" style="gap: 0.5rem;">
+                <!-- Preserved quantity controls for future use
                 <div class="qty-controls">
                     <button type="button" class="qty-btn" data-product-id="{{.ID}}" data-change="-1">−</button>
                     <input type="text" value="1" id="product-qty-{{.ID}}"
@@ -833,6 +842,13 @@
                            data-max-stock="{{.StockQuantity}}">
                     <button type="button" class="qty-btn" data-product-id="{{.ID}}" data-change="1">+</button>
                 </div>
+                -->
+                
+                <form hx-post="/cart/add?redirect=checkout" hx-swap="none" style="margin-bottom: 0; flex: 1;">
+                    <input type="hidden" name="product_id" value="{{.ID}}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="btn-small secondary outline buy-now-btn" style="width: 100%;">Buy Now</button>
+                </form>
                 
                 <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0; flex: 1;" data-product-id="{{.ID}}">
                     <input type="hidden" name="product_id" value="{{.ID}}">
@@ -893,6 +909,7 @@
             </td>
             {{if gt .StockQuantity 0}}
             <td>
+                <!-- Preserved quantity controls for future use
                 <div class="table-qty-controls">
                     <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="-1">−</button>
                     <input type="text" value="1" id="product-qty-table-{{.ID}}"
@@ -902,12 +919,18 @@
                            data-max-stock="{{.StockQuantity}}">
                     <button type="button" class="table-qty-btn" data-product-id="{{.ID}}" data-change="1">+</button>
                 </div>
+                -->
+                <form hx-post="/cart/add?redirect=checkout" hx-swap="none" style="margin-bottom: 0;">
+                    <input type="hidden" name="product_id" value="{{.ID}}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="secondary outline buy-now-btn" style="padding: 0.4rem 0.75rem; font-size: 0.9rem; width: 100%;">Buy Now</button>
+                </form>
             </td>
             <td>
                 <form hx-post="/cart/add" hx-swap="none" style="margin-bottom: 0;" data-product-id="{{.ID}}" data-view="table">
                     <input type="hidden" name="product_id" value="{{.ID}}">
                     <input type="hidden" name="quantity" id="form-qty-table-{{.ID}}" value="1">
-                    <button type="submit" class="outline" style="padding: 0.4rem 0.75rem; font-size: 0.9rem;">Add to Cart</button>
+                    <button type="submit" style="padding: 0.4rem 0.75rem; font-size: 0.9rem; width: 100%;">Add to Cart</button>
                 </form>
             </td>
             {{else}}
