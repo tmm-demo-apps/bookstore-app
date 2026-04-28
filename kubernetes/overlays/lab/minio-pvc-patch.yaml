@@ -3,4 +3,4 @@ kind: PersistentVolumeClaim
 metadata:
   name: minio-pvc
 spec:
-  storageClassName: cluster-wld01-01a
+  storageClassName: vsan-default-storage-policy

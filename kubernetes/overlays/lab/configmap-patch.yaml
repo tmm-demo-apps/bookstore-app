@@ -4,5 +4,5 @@ metadata:
   name: app-config
 data:
   # Lab URLs for cross-app browser links
-  READER_BROWSER_URL: "http://reader.vcf.lab"
-  CHATBOT_BROWSER_URL: "http://chatbot.vcf.lab"
+  READER_BROWSER_URL: "http://reader-test.vcf.lab"
+  CHATBOT_BROWSER_URL: "http://chatbot-test.vcf.lab"

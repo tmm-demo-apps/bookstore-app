@@ -7,4 +7,4 @@ spec:
     - metadata:
         name: postgres-storage
       spec:
-        storageClassName: cluster-wld01-01a
+        storageClassName: vsan-default-storage-policy

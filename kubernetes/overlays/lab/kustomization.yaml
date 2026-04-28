@@ -19,7 +19,20 @@ images:
   - name: harbor.corp.vmbeans.com/library/minio/minio
     newName: harbor-01a.vcf.lab/library/minio/minio
 
+secretGenerator:
+  - name: app-secrets
+    literals:
+      - DB_USER=bookstore
+      - DB_PASSWORD=bookstore-secret-pw
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin-secret
+  - name: harbor-registry-secret
+    type: kubernetes.io/dockerconfigjson
+    literals:
+      - .dockerconfigjson={"auths":{"harbor-01a.vcf.lab":{"username":"admin","password":"Harbor123!","auth":"YWRtaW46SGFyYm9yMTIzIQ=="}}}
+
 patches:
+  - path: namespace-patch.yaml
   - path: configmap-patch.yaml
   - path: httproute-patch.yaml
   - path: tls-patch.yaml
