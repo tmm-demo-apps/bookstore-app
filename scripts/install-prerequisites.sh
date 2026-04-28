@@ -68,10 +68,14 @@ echo "==> Installing Istio ${ISTIO_VERSION}"
 if kubectl get ns istio-system &>/dev/null 2>&1; then
   echo "    Already installed, skipping"
 else
+  # Create namespace and label for Pod Security Admission (required for VKS/restricted clusters)
+  kubectl create namespace istio-system --dry-run=client -o yaml | kubectl apply -f -
+  kubectl label namespace istio-system pod-security.kubernetes.io/enforce=privileged --overwrite
+
   helm repo add istio https://istio-release.storage.googleapis.com/charts --force-update
   helm repo update istio
   helm upgrade --install istio-base istio/base \
-    -n istio-system --create-namespace --version "${ISTIO_VERSION}"
+    -n istio-system --version "${ISTIO_VERSION}"
   helm upgrade --install istiod istio/istiod \
     -n istio-system --version "${ISTIO_VERSION}" --wait
 fi

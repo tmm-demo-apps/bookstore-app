@@ -4,4 +4,4 @@ metadata:
   name: demo-tls
 spec:
   dnsNames:
-    - bookstore.vcf.lab
+    - bookstore-test.vcf.lab

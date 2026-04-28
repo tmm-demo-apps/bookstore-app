@@ -4,4 +4,4 @@ metadata:
   name: bookstore-route
 spec:
   hostnames:
-    - bookstore.vcf.lab
+    - bookstore-test.vcf.lab

@@ -5,20 +5,20 @@
 #
 # Prerequisites:
 #   kubectl create secret docker-registry harbor-registry-secret \
-#     --docker-server=harbor.vcf.lab \
+#     --docker-server=harbor-01a.vcf.lab \
 #     --docker-username=YOUR_USER \
 #     --docker-password=YOUR_PASSWORD \
 #     -n bookstore
 
 global:
-  storageClassName: "cluster-wld01-01a"
+  storageClassName: "vsan-default-storage-policy"
   domain: "vcf.lab"
   imagePullSecrets:
     - name: harbor-registry-secret
 
 bookstore:
   image:
-    repository: harbor.vcf.lab/bookstore/app
+    repository: harbor-01a.vcf.lab/bookstore/app
     tag: latest
   replicas: 1
   resources:
@@ -29,7 +29,7 @@ bookstore:
       memory: "512Mi"
       cpu: "500m"
   postgres:
-    image: harbor.vcf.lab/library/postgres:14-alpine
+    image: harbor-01a.vcf.lab/library/postgres:14-alpine
     storage: 5Gi
     resources:
       requests:
@@ -39,7 +39,7 @@ bookstore:
         memory: "768Mi"
         cpu: "500m"
   redis:
-    image: harbor.vcf.lab/library/redis:7-alpine
+    image: harbor-01a.vcf.lab/library/redis:7-alpine
     storage: 2Gi
     resources:
       requests:
@@ -51,7 +51,7 @@ bookstore:
   elasticsearch:
     enabled: false
   minio:
-    image: harbor.vcf.lab/library/minio/minio:latest
+    image: harbor-01a.vcf.lab/library/minio/minio:latest
     storage: 10Gi
     resources:
       requests:

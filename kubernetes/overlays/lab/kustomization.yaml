@@ -8,15 +8,15 @@ resources:
 
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
-    newName: harbor.vcf.lab/bookstore/app
+    newName: harbor-01a.vcf.lab/bookstore/app
   - name: harbor.corp.vmbeans.com/library/postgres
-    newName: harbor.vcf.lab/library/postgres
+    newName: harbor-01a.vcf.lab/library/postgres
   - name: harbor.corp.vmbeans.com/library/redis
-    newName: harbor.vcf.lab/library/redis
+    newName: harbor-01a.vcf.lab/library/redis
   - name: harbor.corp.vmbeans.com/library/elasticsearch
-    newName: harbor.vcf.lab/library/elasticsearch
+    newName: harbor-01a.vcf.lab/library/elasticsearch
   - name: harbor.corp.vmbeans.com/library/minio/minio
-    newName: harbor.vcf.lab/library/minio/minio
+    newName: harbor-01a.vcf.lab/library/minio/minio
 
 patches:
   - path: configmap-patch.yaml
