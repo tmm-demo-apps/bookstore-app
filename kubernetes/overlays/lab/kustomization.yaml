@@ -5,7 +5,9 @@ namespace: bookstore
 
 resources:
   - ../../base
-  - ../../init-db-job.yaml
+
+components:
+  - ../../components/init-db
 
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
