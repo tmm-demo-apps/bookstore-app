@@ -9,6 +9,7 @@ resources:
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
     newName: harbor-01a.vcf.lab/bookstore/app
+    newTag: latest
   - name: harbor.corp.vmbeans.com/library/postgres
     newName: harbor-01a.vcf.lab/library/postgres
   - name: harbor.corp.vmbeans.com/library/redis
