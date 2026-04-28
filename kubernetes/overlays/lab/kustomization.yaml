@@ -5,6 +5,7 @@ namespace: bookstore
 
 resources:
   - ../../base
+  - ../../init-db-job.yaml
 
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
@@ -39,6 +40,7 @@ patches:
   - path: postgres-patch.yaml
   - path: redis-pvc-patch.yaml
   - path: minio-pvc-patch.yaml
+  - path: init-db-job-patch.yaml
   - patch: |-
       $patch: delete
       apiVersion: apps/v1

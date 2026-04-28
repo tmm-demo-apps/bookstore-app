@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-database
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: harbor-01a.vcf.lab/library/postgres:14-alpine
+        - name: run-migrations
+          image: harbor-01a.vcf.lab/library/postgres:14-alpine
+        - name: wait-for-minio
+          image: harbor-01a.vcf.lab/library/postgres:14-alpine
+      containers:
+        - name: seed-images
+          image: harbor-01a.vcf.lab/bookstore/app:latest
