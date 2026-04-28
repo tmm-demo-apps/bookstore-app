@@ -26,7 +26,7 @@ resources:
 # Tag format: vYYYYMMDD-shortsha (e.g., v20260116-bfb6ee9)
 images:
   - name: harbor.corp.vmbeans.com/bookstore/app
-    newTag: v20260428-e47b289
+    newTag: v20260428-f4dfa26
   - name: harbor.corp.vmbeans.com/library/postgres
     newTag: 14-alpine
   - name: harbor.corp.vmbeans.com/library/redis
