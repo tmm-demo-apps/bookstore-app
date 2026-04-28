@@ -37,6 +37,17 @@ patches:
   - path: httproute-patch.yaml
   - path: tls-patch.yaml
   - path: postgres-patch.yaml
-  - path: elasticsearch-patch.yaml
   - path: redis-pvc-patch.yaml
   - path: minio-pvc-patch.yaml
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: elasticsearch
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: elasticsearch-service
