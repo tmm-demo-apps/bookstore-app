@@ -73,7 +73,7 @@ fi
 # Test 2: Products page loads
 log_test "Loading products page..."
 RESPONSE=$(curl -s "$BASE_URL")
-if echo "$RESPONSE" | grep -q "Products"; then
+if grep -q "Products" <<< "$RESPONSE"; then
     log_pass "Products page loaded"
 else
     log_fail "Products page did not load correctly"
@@ -82,7 +82,7 @@ fi
 # Test 3: Cart page is accessible
 log_test "Loading cart page..."
 RESPONSE=$(curl -s "$BASE_URL/cart")
-if echo "$RESPONSE" | grep -q "Shopping Cart"; then
+if grep -q "Shopping Cart" <<< "$RESPONSE"; then
     log_pass "Cart page loaded"
 else
     log_fail "Cart page did not load correctly"
@@ -95,7 +95,7 @@ RESPONSE=$(curl -s -X POST \
     -d "product_id=1&quantity=2" \
     -w "%{http_code}" \
     "$BASE_URL/cart/add")
-if echo "$RESPONSE" | grep -q "204"; then
+if grep -q "204" <<< "$RESPONSE"; then
     log_pass "Item added to cart"
 else
     log_fail "Failed to add item to cart (HTTP $RESPONSE)"
@@ -104,7 +104,7 @@ fi
 # Test 5: Cart count shows items
 log_test "Checking cart count..."
 RESPONSE=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/partials/cart-count")
-if echo "$RESPONSE" | grep -qE "\([1-9][0-9]*\)"; then
+if grep -qE "\([1-9][0-9]*\)" <<< "$RESPONSE"; then
     log_pass "Cart count shows items: $RESPONSE"
 else
     log_fail "Cart count incorrect: $RESPONSE"
@@ -113,7 +113,7 @@ fi
 # Test 6: View cart shows items
 log_test "Viewing cart..."
 RESPONSE=$(curl -s -b "$COOKIE_JAR" "$BASE_URL/cart")
-if echo "$RESPONSE" | grep -q "Shopping Cart"; then
+if grep -q "Shopping Cart" <<< "$RESPONSE"; then
     log_pass "Cart page shows items"
 else
     log_fail "Cart page empty or error"
@@ -127,7 +127,7 @@ RESPONSE=$(curl -s -X POST \
     -w "%{http_code}" \
     -L \
     "$BASE_URL/signup/process")
-if echo "$RESPONSE" | grep -q "200"; then
+if grep -q "200" <<< "$RESPONSE"; then
     log_pass "User registered successfully"
 else
     log_fail "User registration failed"
@@ -141,7 +141,7 @@ RESPONSE=$(curl -s -X POST \
     -w "%{http_code}" \
     -L \
     "$BASE_URL/login/process")
-if echo "$RESPONSE" | grep -q "200"; then
+if grep -q "200" <<< "$RESPONSE"; then
     log_pass "User logged in successfully"
 else
     log_fail "User login failed"
@@ -154,7 +154,7 @@ RESPONSE=$(curl -s -X POST \
     -d "product_id=2&quantity=3" \
     -w "%{http_code}" \
     "$BASE_URL/cart/add")
-if echo "$RESPONSE" | grep -q "204"; then
+if grep -q "204" <<< "$RESPONSE"; then
     log_pass "Item added to cart (authenticated)"
 else
     log_fail "Failed to add item to cart (authenticated)"
@@ -163,7 +163,7 @@ fi
 # Test 10: Checkout page accessible
 log_test "Loading checkout page..."
 RESPONSE=$(curl -s -b "$COOKIE_JAR" -w "%{http_code}" "$BASE_URL/checkout")
-if echo "$RESPONSE" | grep -q "Order Summary"; then
+if grep -q "Order Summary" <<< "$RESPONSE"; then
     log_pass "Checkout page loaded"
 else
     log_fail "Checkout page did not load"
@@ -172,7 +172,7 @@ fi
 # Test 11: Database connectivity
 log_test "Checking database connectivity..."
 DB_TEST=$(docker compose exec -T db psql -U user -d bookstore -c "SELECT 1;" 2>&1)
-if echo "$DB_TEST" | grep -q "1 row"; then
+if grep -q "1 row" <<< "$DB_TEST"; then
     log_pass "Database is accessible"
 else
     log_fail "Database connection failed"
@@ -223,7 +223,7 @@ curl -s -X POST -b "$MERGE_COOKIE" -c "$MERGE_COOKIE" \
 
 # Check cart count (should still have items)
 CART_COUNT=$(curl -s -b "$MERGE_COOKIE" "$BASE_URL/partials/cart-count")
-if echo "$CART_COUNT" | grep -qE "\([1-9][0-9]*\)"; then
+if grep -qE "\([1-9][0-9]*\)" <<< "$CART_COUNT"; then
     log_pass "Cart merged on signup: $CART_COUNT"
 else
     log_fail "Cart not merged on signup"
@@ -260,7 +260,7 @@ curl -s -X POST -b "$MERGE2_COOKIE" -c "$MERGE2_COOKIE" \
 
 # Check cart count (should be 5)
 MERGED_COUNT=$(curl -s -b "$MERGE2_COOKIE" "$BASE_URL/partials/cart-count")
-if echo "$MERGED_COUNT" | grep -q "(5)"; then
+if grep -q "(5)" <<< "$MERGED_COUNT"; then
     log_pass "Cart quantities merged correctly: $MERGED_COUNT"
 else
     log_fail "Cart quantities not merged correctly: $MERGED_COUNT (expected (5))"
@@ -333,7 +333,7 @@ fi
 # Test 24: Image serving with cache headers
 log_test "Checking image serving with cache headers..."
 CACHE_HEADER=$(curl -sI http://localhost:8080/images/product-1.jpg 2>/dev/null | grep -i "cache-control")
-if echo "$CACHE_HEADER" | grep -q "max-age=31536000"; then
+if grep -q "max-age=31536000" <<< "$CACHE_HEADER"; then
     log_pass "Images served with proper cache headers"
 else
     log_fail "Images missing proper cache headers"

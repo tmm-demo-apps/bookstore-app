@@ -29,6 +29,7 @@ ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 # Copy main application
 COPY --from=builder /app/main .
 COPY templates ./templates
+COPY static ./static
 
 # Copy seed binaries
 RUN mkdir -p /app/scripts/bin

@@ -1,11 +1,10 @@
-$patch: delete
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: elasticsearch
----
-$patch: delete
-apiVersion: v1
-kind: Service
-metadata:
-  name: elasticsearch-service
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: es-storage
+      spec:
+        storageClassName: "vsan-default-storage-policy"

@@ -194,6 +194,10 @@ func main() {
 		_, _ = w.Write([]byte("Ready"))
 	})
 
+	// Serve static files
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	mux.HandleFunc("/", h.ListProducts)
 	mux.HandleFunc("/products/{id}", h.ProductDetail)
 	mux.HandleFunc("/cart/add", h.AddToCart)

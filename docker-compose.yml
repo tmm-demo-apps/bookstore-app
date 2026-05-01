@@ -17,9 +17,10 @@ services:
       - READER_BROWSER_URL=http://localhost:8081
       - CHATBOT_BROWSER_URL=http://localhost:5000
     volumes:
-      # Mount templates for hot-reload during development
-      # Changes to templates take effect on next page refresh (no rebuild needed)
+      # Mount templates and static files for hot-reload during development
+      # Changes take effect on next page refresh (no rebuild needed)
       - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
     depends_on:
       db-init:
         condition: service_completed_successfully

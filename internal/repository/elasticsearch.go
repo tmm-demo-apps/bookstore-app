@@ -384,7 +384,7 @@ func (r *ElasticsearchRepository) SearchProducts(query string, categoryID int) (
 	res, err := r.client.Search(
 		r.client.Search.WithContext(context.Background()),
 		r.client.Search.WithIndex(productIndex),
-		r.client.Search.WithBody(&buf),
+		r.client.Search.WithBody(bytes.NewReader(buf.Bytes())),
 		r.client.Search.WithTrackTotalHits(true),
 	)
 	if err != nil {

@@ -6,5 +6,8 @@ data:
   # Lab URLs for cross-app browser links
   READER_BROWSER_URL: "http://reader-test.vcf.lab"
   CHATBOT_BROWSER_URL: "http://chatbot-test.vcf.lab"
-  # Disable Elasticsearch for the lab
+  
+  # LAB DEMO STEP: To ENABLE Elasticsearch, comment out the empty ES_URL below,
+  # AND uncomment the populated ES_URL line.
   ES_URL: ""
+  # ES_URL: "http://elasticsearch-service:9200"

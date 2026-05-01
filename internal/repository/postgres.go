@@ -21,6 +21,15 @@ func NewPostgresRepository(db *sql.DB) *PostgresRepository {
 
 func (r *PostgresRepository) SetElasticsearch(es *ElasticsearchRepository) {
 	r.ES = es
+	// If we have a cached product repository, we need to update its underlying repo
+	// so that it also has access to Elasticsearch
+	if r.CachedProducts != nil {
+		if cachedRepo, ok := r.CachedProducts.(*CachedProductRepository); ok {
+			if pgRepo, ok := cachedRepo.repo.(*postgresProductRepo); ok {
+				pgRepo.ES = es
+			}
+		}
+	}
 }
 
 func (r *PostgresRepository) SetCachedProducts(cached ProductRepository) {
@@ -237,6 +246,65 @@ func (r *postgresProductRepo) SearchProductsPaginatedSorted(query string, catego
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 10 // Default
+	}
+
+	// If Elasticsearch is available, use it for search
+	if r.ES != nil {
+		log.Printf("Using Elasticsearch for paginated search: query='%s', categoryID=%d", query, categoryID)
+		productIDs, err := r.ES.SearchProducts(query, categoryID)
+		if err != nil {
+			log.Printf("Elasticsearch search failed, falling back to SQL: %v", err)
+			// Fall through to SQL search
+		} else {
+			log.Printf("Elasticsearch returned %d product IDs", len(productIDs))
+
+			totalItems := len(productIDs)
+			totalPages := (totalItems + pageSize - 1) / pageSize
+
+			// Calculate offset and limit for the slice
+			offset := (page - 1) * pageSize
+
+			var paginatedIDs []int
+			if offset < totalItems {
+				end := offset + pageSize
+				if end > totalItems {
+					end = totalItems
+				}
+				paginatedIDs = productIDs[offset:end]
+			}
+
+			var products []models.Product
+			if len(paginatedIDs) > 0 {
+				// Fetch products from database by IDs in the order returned by Elasticsearch
+				products, err = r.getProductsByIDs(paginatedIDs)
+				if err != nil {
+					log.Printf("Failed to fetch products by IDs: %v", err)
+					// Fall through to SQL search
+				} else {
+					// We successfully got products from ES!
+					return &models.ProductsResult{
+						Products: products,
+						Pagination: models.Pagination{
+							Page:       page,
+							PageSize:   pageSize,
+							TotalItems: totalItems,
+							TotalPages: totalPages,
+						},
+					}, nil
+				}
+			} else if totalItems == 0 {
+				// No results from ES
+				return &models.ProductsResult{
+					Products: []models.Product{},
+					Pagination: models.Pagination{
+						Page:       page,
+						PageSize:   pageSize,
+						TotalItems: 0,
+						TotalPages: 0,
+					},
+				}, nil
+			}
+		}
 	}
 
 	// Build count query

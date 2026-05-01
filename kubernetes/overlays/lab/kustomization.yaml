@@ -43,6 +43,8 @@ patches:
   - path: redis-pvc-patch.yaml
   - path: minio-pvc-patch.yaml
   - path: init-db-job-patch.yaml
+  # LAB DEMO STEP: To ENABLE Elasticsearch, comment out the two patches below,
+  # AND uncomment the '- path: elasticsearch-patch.yaml' line below them.
   - patch: |-
       $patch: delete
       apiVersion: apps/v1
@@ -55,3 +57,5 @@ patches:
       kind: Service
       metadata:
         name: elasticsearch-service
+        
+  # - path: elasticsearch-patch.yaml
