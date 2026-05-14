@@ -32,6 +32,8 @@ spec:
     metadata:
       labels:
         app: minio
+      annotations:
+        policy.cilium.io/proxy-visibility: "<Ingress/9000/TCP/HTTP>"
     spec:
       {{- include "bookstore.imagePullSecrets" . | nindent 6 }}
       securityContext:
