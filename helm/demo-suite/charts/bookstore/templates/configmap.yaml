@@ -15,5 +15,5 @@ data:
   {{- end }}
   MINIO_ENDPOINT: "minio-service:9000"
   MINIO_USE_SSL: "false"
-  READER_BROWSER_URL: {{ .Values.readerBrowserURL | default (printf "http://reader.%s" .Values.global.domain) | quote }}
-  CHATBOT_BROWSER_URL: {{ .Values.chatbotBrowserURL | default (printf "http://chatbot.%s" .Values.global.domain) | quote }}
+  READER_BROWSER_URL: {{ .Values.readerBrowserURL | default (printf "https://reader.%s" .Values.global.domain) | quote }}
+  CHATBOT_BROWSER_URL: {{ .Values.chatbotBrowserURL | default (printf "https://chatbot.%s" .Values.global.domain) | quote }}
