@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  READER_BROWSER_URL: "http://reader-test.vcf.lab"
+  CHATBOT_BROWSER_URL: "http://chatbot-test.vcf.lab"
+  # LAB DEMO STEP: To ENABLE Elasticsearch, comment out ES_URL: "" below
+  # and uncomment the ES_URL line beneath it.
+  ES_URL: ""
+  # ES_URL: "http://elasticsearch-service:9200"

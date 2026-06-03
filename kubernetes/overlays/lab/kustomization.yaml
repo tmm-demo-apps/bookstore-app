@@ -34,18 +34,8 @@ secretGenerator:
     literals:
       - .dockerconfigjson={"auths":{"harbor-01a.vcf.lab":{"username":"admin","password":"Harbor123!","auth":"YWRtaW46SGFyYm9yMTIzIQ=="}}}
 
-configMapGenerator:
-  - name: app-config
-    behavior: merge
-    literals:
-      - READER_BROWSER_URL="http://reader-test.vcf.lab"
-      - CHATBOT_BROWSER_URL="http://chatbot-test.vcf.lab"
-      # LAB DEMO STEP: To ENABLE Elasticsearch, comment out the empty ES_URL below,
-      # AND uncomment the populated ES_URL line.
-      - ES_URL=""
-      # - ES_URL="http://elasticsearch-service:9200"
-
 patches:
+  - path: configmap-patch.yaml
   - path: namespace-patch.yaml
   - path: httproute-patch.yaml
   - path: tls-patch.yaml
