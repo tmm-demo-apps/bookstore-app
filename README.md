@@ -21,7 +21,7 @@ This Bookstore is part of a 3-app demo suite:
 | **Reader** | EPUB library reader | `reader.<your-domain>` | [reader-app](https://github.com/tmm-demo-apps/reader-app) |
 | **Chatbot** | AI customer support | `chatbot.<your-domain>` | [chatbot-app](https://github.com/tmm-demo-apps/chatbot-app) |
 
-All apps are deployed via **ArgoCD** using an App-of-Apps pattern and share services (MinIO, Redis) where appropriate.
+All apps can be deployed via **Helm** (any Kubernetes cluster) or **ArgoCD GitOps** (automated CI/CD), and share services (MinIO, Redis) where appropriate.
 
 ## 🚀 Deploy on a New Kubernetes Cluster
 
@@ -240,31 +240,7 @@ helm install demo ./helm/demo-suite -f ./helm/demo-suite/values-harbor.yaml
 helm upgrade demo ./helm/demo-suite --set global.domain=apps.your-env.com
 ```
 
-### Production Deployment (Kustomize + ArgoCD)
-
-```bash
-# SSH to remote VM
-ssh devops@cli-vm
-cd bookstore-app
-
-# One-command deployment (handles everything)
-./scripts/deploy-complete.sh v1.1.0 bookstore
-
-# Or deploy to test namespace
-./scripts/deploy-complete.sh v1.1.0 bookstore-test
-```
-
-The `deploy-complete.sh` script handles:
-- Harbor login, image build, and push
-- Database migrations and seeding (via init-db-job)
-- All Kubernetes manifests (Gateway API + HTTPRoute)
-- Dynamic hostname based on namespace (`{namespace}.corp.vmbeans.com`)
-
-**Current Deployments**:
-- **Production (vks-04)**: http://bookstore.corp.vmbeans.com
-- **Test (vks-03)**: http://bookstore-test.corp.vmbeans.com
-
-### GitOps Deployment (Recommended)
+### Production Deployment (GitOps with ArgoCD)
 
 The preferred deployment method is via GitOps with GitHub Actions and ArgoCD:
 
@@ -281,7 +257,7 @@ The preferred deployment method is via GitOps with GitHub Actions and ArgoCD:
                                                    ArgoCD Syncs
                                                          │
                                                          ▼
-                                                   VKS-04 Cluster
+                                                   VKS Cluster
 ```
 
 ```bash
@@ -293,7 +269,7 @@ git push
 argocd app get bookstore
 
 # View in ArgoCD UI
-# https://32.32.0.10
+# https://<your-argocd-host>
 ```
 
 The CI workflow automatically:
@@ -301,7 +277,7 @@ The CI workflow automatically:
 2. Builds Docker image
 3. Pushes to **GHCR** (public, for Helm deployments) and **Harbor** (enterprise)
 4. Updates `kubernetes/base/kustomization.yaml` with new image tag
-5. ArgoCD detects the change and syncs to VKS-04
+5. ArgoCD detects the change and syncs to the target cluster
 
 ## 📊 Project Structure
 
@@ -484,4 +460,4 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Last Updated**: March 24, 2026
+**Last Updated**: July 10, 2026
