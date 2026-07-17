@@ -388,7 +388,6 @@ bookstore-app/
 | [docs/GITHUB-ACTIONS-SETUP.md](docs/GITHUB-ACTIONS-SETUP.md) | CI/CD pipeline configuration |
 | [docs/SELF-HOSTED-RUNNER-SETUP.md](docs/SELF-HOSTED-RUNNER-SETUP.md) | GitHub Actions runner setup |
 | [docs/HARBOR-SETUP.md](docs/HARBOR-SETUP.md) | Harbor registry configuration |
-| [docs/DUAL-NETWORK-VKS-DEMO.md](docs/DUAL-NETWORK-VKS-DEMO.md) | VCF 9.1 dual-network demo |
 | [docs/AI-ASSISTANT-PLAN.md](docs/AI-ASSISTANT-PLAN.md) | Chatbot architecture (Ollama/VCF Private AI) |
 | [docs/READER-APP-SPEC.md](docs/READER-APP-SPEC.md) | Reader app specification |
 | [docs/GRACEFUL-STARTUP.md](docs/GRACEFUL-STARTUP.md) | Health checks and retry logic |

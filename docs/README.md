@@ -2,20 +2,30 @@
 
 ## 🚀 Getting Started
 
-### Quick Start
-The bookstore application is deployed using a single command:
+### Deploy on Any Kubernetes Cluster (Helm)
 
 ```bash
-# Deploy to Kubernetes (from remote VM)
-./scripts/deploy-complete.sh v1.1.0 bookstore
-
-# Deploy to test namespace
-./scripts/deploy-complete.sh v1.1.0 bookstore-test
+# Clone and deploy with a single Helm command
+git clone https://github.com/tmm-demo-apps/bookstore-app.git
+cd bookstore-app
+helm dependency update ./helm/demo-suite
+helm install demo ./helm/demo-suite --set global.domain=<your-domain>
 ```
 
-This handles everything: Harbor image build/push, NGINX Ingress auto-install, database migrations, seeding, and application deployment.
+See the [main README](../README.md) for the full list of Helm options (small clusters, Harbor, restricted networks, etc.).
+
+### GitOps Deployment (ArgoCD)
+
+```bash
+# Push to main — CI handles build, push to GHCR/Harbor, and kustomize update
+git push
+
+# ArgoCD detects the change and syncs automatically
+argocd app get bookstore
+```
 
 ### Local Development
+
 ```bash
 # Start local environment
 ./scripts/local-dev.sh start
@@ -35,61 +45,48 @@ This handles everything: Harbor image build/push, NGINX Ingress auto-install, da
 | [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) | Local development with Docker Compose |
 | [HARBOR-SETUP.md](HARBOR-SETUP.md) | Harbor registry configuration |
 | [GRACEFUL-STARTUP.md](GRACEFUL-STARTUP.md) | Health checks and retry logic |
+| [GITHUB-ACTIONS-SETUP.md](GITHUB-ACTIONS-SETUP.md) | CI/CD pipeline configuration |
+| [SELF-HOSTED-RUNNER-SETUP.md](SELF-HOSTED-RUNNER-SETUP.md) | GitHub Actions runner setup |
 
-### VCF 9.1 Features
+### App Specifications
 | Document | Purpose |
 |----------|---------|
-| [DUAL-NETWORK-VKS-DEMO.md](DUAL-NETWORK-VKS-DEMO.md) | Dual-NIC VKS cluster demo plan |
-
-### Future Features (Phase 2+)
-| Document | Purpose |
-|----------|---------|
+| [READER-APP-SPEC.md](READER-APP-SPEC.md) | Reader app specification |
+| [AI-ASSISTANT-PLAN.md](AI-ASSISTANT-PLAN.md) | Chatbot architecture (Ollama/VCF Private AI) |
 | [ADMIN-CONSOLE-PLAN.md](ADMIN-CONSOLE-PLAN.md) | Admin dashboard implementation plan |
-| [AI-ASSISTANT-PLAN.md](AI-ASSISTANT-PLAN.md) | AI chat bot microservice plan |
 
 ### Architecture
 | Document | Purpose |
 |----------|---------|
 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | System architecture overview |
 
-## 📊 Current Deployment
+## 📁 Key Files
 
-### Clusters
-- **Production (vks-04)**: `http://bookstore.corp.vmbeans.com` (32.32.0.16)
-- **Test (vks-03)**: `http://bookstore-test.corp.vmbeans.com` (32.32.0.17)
-
-### Services
-- **PostgreSQL**: StatefulSet with vSAN storage (10Gi)
-- **Redis**: Session management and caching (5Gi)
-- **Elasticsearch**: Full-text search (10Gi)
-- **MinIO**: Object storage for images (20Gi)
-- **Application**: 3 replicas with HPA
-- **NGINX Ingress**: Auto-installed per cluster
-
-### Key Files
 ```
-scripts/
-├── deploy-complete.sh          # One-command deployment
-├── harbor-remote-setup.sh      # Harbor integration
-└── k8s-diagnose.sh             # Troubleshooting
+helm/demo-suite/              # Umbrella Helm chart (primary deployment method)
+├── values.yaml               # Defaults: GHCR images, Gateway API, TLS
+├── values-small.yaml         # Lightweight profile for 1-2 node clusters
+└── values-harbor.yaml        # Override for Harbor enterprise registry
 
-kubernetes/
-├── ingress-nginx.yaml          # NGINX Ingress Controller
-├── ingress.yaml                # Application ingress
-├── init-db-job.yaml            # Automated migrations + seeding
-├── app.yaml                    # Application deployment
-├── postgres.yaml               # PostgreSQL
-├── redis.yaml                  # Redis
-├── elasticsearch.yaml          # Elasticsearch
-└── minio.yaml                  # MinIO
+kubernetes/                   # Kustomize manifests (GitOps/ArgoCD)
+├── base/                     # Base manifests (app, postgres, redis, minio, gateway, etc.)
+├── overlays/
+│   ├── prod/                 # Production environment patches
+│   ├── dev/                  # Development environment patches
+│   └── lab/                  # Air-gapped lab environment patches
+└── components/init-db/       # Database migration + seed job component
+
+scripts/
+├── local-dev.sh              # Local development helper
+├── install-prerequisites.sh  # Install Istio + cert-manager (non-VKS clusters)
+└── seed-gutenberg-books.go   # Book data source (regenerates 002_seed_books.sql)
 ```
 
 ## 🔗 External Resources
 
 - **Main README**: [../README.md](../README.md)
 - **Kubernetes Manifests**: [../kubernetes/README.md](../kubernetes/README.md)
-- **Personal Dev Notes**: `../dev_docs/` (not in git)
 
 ---
 
-**Last Updated**: January 9, 2026
+**Last Updated**: July 17, 2026
