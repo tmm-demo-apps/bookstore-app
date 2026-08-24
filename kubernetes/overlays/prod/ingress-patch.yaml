@@ -4,7 +4,7 @@ metadata:
   name: bookstore-ingress
 spec:
   rules:
-    - host: bookstore.corp.vmbeans.com
+    - host: bookstore.apps.lab
       http:
         paths:
           - path: /

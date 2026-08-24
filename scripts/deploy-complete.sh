@@ -18,7 +18,7 @@ set -e
 # ============================================================================
 # DEFAULT CONFIGURATION - These can be changed interactively at runtime
 # ============================================================================
-HARBOR_URL="harbor.corp.vmbeans.com"
+HARBOR_URL="harbor-01a.vcf.lab"
 HARBOR_PROJECT="bookstore"
 K8S_NAMESPACE="bookstore"
 
@@ -34,7 +34,7 @@ NGINX_INGRESS_TAG="v1.14.1"
 NGINX_WEBHOOK_TAG="v1.6.5"
 
 # Domain for ingress hostnames (namespace.DOMAIN)
-INGRESS_DOMAIN="corp.vmbeans.com"
+INGRESS_DOMAIN="apps.lab"
 # ============================================================================
 
 # Show help if requested
@@ -173,11 +173,11 @@ configure_kustomize() {
     # Set all images using kustomize edit or sed fallback
     if command -v kustomize &> /dev/null; then
         kustomize edit set image \
-            "harbor.corp.vmbeans.com/bookstore/app=${app_image}" \
-            "harbor.corp.vmbeans.com/library/postgres=${POSTGRES_IMAGE}" \
-            "harbor.corp.vmbeans.com/library/redis=${REDIS_IMAGE}" \
-            "harbor.corp.vmbeans.com/library/elasticsearch=${ELASTICSEARCH_IMAGE}" \
-            "harbor.corp.vmbeans.com/library/minio/minio=${MINIO_IMAGE}"
+            "harbor-01a.vcf.lab/bookstore/app=${app_image}" \
+            "harbor-01a.vcf.lab/library/postgres=${POSTGRES_IMAGE}" \
+            "harbor-01a.vcf.lab/library/redis=${REDIS_IMAGE}" \
+            "harbor-01a.vcf.lab/library/elasticsearch=${ELASTICSEARCH_IMAGE}" \
+            "harbor-01a.vcf.lab/library/minio/minio=${MINIO_IMAGE}"
     else
         echo "  ⚠️  kustomize not available, images will use defaults from manifests"
     fi
@@ -487,9 +487,9 @@ namespace: ${K8S_NAMESPACE}
 resources:
   - ../init-db-job.yaml
 images:
-  - name: harbor.corp.vmbeans.com/bookstore/app
+  - name: harbor-01a.vcf.lab/bookstore/app
     newTag: ${VERSION}
-  - name: harbor.corp.vmbeans.com/library/postgres
+  - name: harbor-01a.vcf.lab/library/postgres
     newTag: ${POSTGRES_TAG}
 EOF
 

@@ -10,16 +10,16 @@ components:
   - ../../components/init-db
 
 images:
-  - name: harbor.corp.vmbeans.com/bookstore/app
+  - name: harbor-01a.vcf.lab/bookstore/app
     newName: harbor-01a.vcf.lab/bookstore/app
     newTag: latest
-  - name: harbor.corp.vmbeans.com/library/postgres
+  - name: harbor-01a.vcf.lab/library/postgres
     newName: harbor-01a.vcf.lab/library/postgres
-  - name: harbor.corp.vmbeans.com/library/redis
+  - name: harbor-01a.vcf.lab/library/redis
     newName: harbor-01a.vcf.lab/library/redis
-  - name: harbor.corp.vmbeans.com/library/elasticsearch
+  - name: harbor-01a.vcf.lab/library/elasticsearch
     newName: harbor-01a.vcf.lab/library/elasticsearch
-  - name: harbor.corp.vmbeans.com/library/minio/minio
+  - name: harbor-01a.vcf.lab/library/minio/minio
     newName: harbor-01a.vcf.lab/library/minio/minio
 
 secretGenerator:

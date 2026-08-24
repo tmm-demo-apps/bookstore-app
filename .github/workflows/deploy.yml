@@ -54,7 +54,7 @@ jobs:
     - name: Update kustomization.yaml
       run: |
         cd kubernetes/base
-        sed -i '/harbor.corp.vmbeans.com\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ github.event.inputs.version }}/}' kustomization.yaml
+        sed -i '/harbor-01a.vcf.lab\/bookstore\/app/{n;s/newTag: .*/newTag: ${{ github.event.inputs.version }}/}' kustomization.yaml
         echo "Updated kustomization.yaml:"
         cat kustomization.yaml
 

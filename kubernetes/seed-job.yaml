@@ -14,7 +14,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: seed-books
-          image: harbor.corp.vmbeans.com/bookstore/app:latest
+          image: harbor-01a.vcf.lab/bookstore/app:latest
           command:
             - /bin/sh
             - -c
@@ -67,7 +67,7 @@ spec:
         - name: harbor-registry-secret
       containers:
         - name: seed-images
-          image: harbor.corp.vmbeans.com/bookstore/app:latest
+          image: harbor-01a.vcf.lab/bookstore/app:latest
           command:
             - /bin/sh
             - -c

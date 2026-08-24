@@ -18,7 +18,7 @@ spec:
       initContainers:
         # Wait for PostgreSQL to be ready
         - name: wait-for-postgres
-          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
+          image: harbor-01a.vcf.lab/library/postgres:14-alpine
           command:
             - sh
             - -c
@@ -54,7 +54,7 @@ spec:
         
         # Run migrations using psql from postgres image (has psql built-in)
         - name: run-migrations
-          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
+          image: harbor-01a.vcf.lab/library/postgres:14-alpine
           command:
             - sh
             - -c
@@ -98,7 +98,7 @@ spec:
         
         # Wait for MinIO to be ready (using postgres image which is already in Harbor)
         - name: wait-for-minio
-          image: harbor.corp.vmbeans.com/library/postgres:14-alpine
+          image: harbor-01a.vcf.lab/library/postgres:14-alpine
           command:
             - sh
             - -c
@@ -125,7 +125,7 @@ spec:
       containers:
         # Seed images from Gutenberg
         - name: seed-images
-          image: harbor.corp.vmbeans.com/bookstore/app:latest
+          image: harbor-01a.vcf.lab/bookstore/app:latest
           command: ["/app/scripts/bin/seed-images"]
           envFrom:
             - configMapRef:

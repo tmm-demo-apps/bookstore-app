@@ -4,4 +4,4 @@ metadata:
   name: bookstore-route
 spec:
   hostnames:
-    - bookstore.corp.vmbeans.com
+    - bookstore.apps.lab

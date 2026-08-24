@@ -37,7 +37,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: minio
-          image: harbor.corp.vmbeans.com/library/minio/minio:latest
+          image: harbor-01a.vcf.lab/library/minio/minio:latest
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
