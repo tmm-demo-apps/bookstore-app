@@ -4,7 +4,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: demo-apps
-  namespace: dev-wrcc9
+  namespace: infra-fbhdn
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -20,10 +20,10 @@ spec:
   
   destination:
     server: https://kubernetes.default.svc
-    namespace: dev-wrcc9
+    namespace: infra-fbhdn
   
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    # Note: dev-wrcc9 namespace already exists (ArgoCD's namespace), so no CreateNamespace needed
+    # Note: infra-fbhdn namespace already exists (ArgoCD's namespace), so no CreateNamespace needed

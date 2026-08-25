@@ -3,7 +3,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: bookstore
-  namespace: dev-wrcc9
+  namespace: infra-fbhdn
   labels:
     app.kubernetes.io/part-of: demo-suite
   finalizers:
@@ -21,8 +21,8 @@ spec:
     path: kubernetes/overlays/prod
   
   destination:
-    # VKS-04 cluster (production)
-    server: https://32.32.0.14:6443
+    # vks-argo workload cluster
+    name: vks-argo
     namespace: bookstore
   
   syncPolicy:
