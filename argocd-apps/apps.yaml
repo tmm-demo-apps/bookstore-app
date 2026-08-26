@@ -19,7 +19,7 @@ spec:
       include: '{bookstore.yaml,reader.yaml,chatbot.yaml}'
   
   destination:
-    server: https://kubernetes.default.svc
+    name: supervisor
     namespace: infra-fbhdn
   
   syncPolicy:
