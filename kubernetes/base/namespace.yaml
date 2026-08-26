@@ -5,4 +5,7 @@ metadata:
   labels:
     app: bookstore
     environment: production
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
 

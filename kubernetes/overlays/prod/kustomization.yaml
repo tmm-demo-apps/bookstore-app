@@ -6,6 +6,9 @@ namespace: bookstore
 resources:
   - ../../base
 
+components:
+  - ../../components/init-db
+
 patches:
   - path: configmap-patch.yaml
   - path: httproute-patch.yaml
