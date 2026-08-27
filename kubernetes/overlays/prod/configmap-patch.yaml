@@ -4,5 +4,5 @@ metadata:
   name: app-config
 data:
   # Production URLs for cross-app browser links
-  READER_BROWSER_URL: "http://reader.apps.lab"
-  CHATBOT_BROWSER_URL: "http://chatbot.apps.lab"
+  READER_BROWSER_URL: "https://reader.apps.lab"
+  CHATBOT_BROWSER_URL: "https://chatbot.apps.lab"

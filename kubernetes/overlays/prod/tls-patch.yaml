@@ -5,3 +5,5 @@ metadata:
 spec:
   dnsNames:
     - bookstore.apps.lab
+    - reader.apps.lab
+    - chatbot.apps.lab
