@@ -1,0 +1,15 @@
+.git
+.gitignore
+.dockerignore
+.cursor
+.cursorrules
+.vscode
+dev_docs
+docs
+logs
+tests
+bookstore
+main
+coverage.out
+*.md
+*.sh

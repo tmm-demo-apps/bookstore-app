@@ -24,7 +24,6 @@ go.work
 .harbor-credentials
 
 # Docker
-.dockerignore
 docker-compose.override.yml
 
 # IDE specific files

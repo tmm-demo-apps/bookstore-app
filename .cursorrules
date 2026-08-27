@@ -40,6 +40,7 @@
 - The `dev_docs/` directory is in `.gitignore` and should stay that way
 
 ## Git Workflow
+- **NEVER COMMIT OR PUSH AUTOMATICALLY**: NEVER run `git commit` or `git push` unless the user explicitly requests it in their prompt.
 - Always run `./test-smoke.sh` before committing
 - Format Go code with `go fmt ./...` before committing
 - Use descriptive commit messages following conventional commits format
