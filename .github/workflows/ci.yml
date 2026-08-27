@@ -68,7 +68,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:14-alpine
+        image: harbor-01a.vcf.lab/library/postgres:14-alpine
         env:
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
